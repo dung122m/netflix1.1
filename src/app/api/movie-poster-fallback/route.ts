@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchTmdbPosterByTitle, getTmdbMediaImagesById, isCorruptedTmdbId } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import { setBoundedMap } from "@/lib/boundedMap";
 import { runWithConcurrencyLimit } from "@/lib/asyncPool";
 import {
@@ -63,17 +64,9 @@ export function parseItemKeys(params: FallbackItemParams): ParsedItemKeys {
   return { cacheKey, redisPosterKey, slugCleanKey, tmdbId, title, origin_name, year, slug, type };
 }
 
-const CACHE_HEADERS_HIT = {
-  "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-  "CDN-Cache-Control": "public, max-age=604800, stale-while-revalidate=604800",
-  "Vercel-CDN-Cache-Control": "public, max-age=604800, stale-while-revalidate=604800",
-};
+const CACHE_HEADERS_HIT = buildEdgeCacheHeaders(604800, 86400, 86400);
 
-const CACHE_HEADERS_MISS = {
-  "Cache-Control": "public, max-age=3600, s-maxage=86400",
-  "CDN-Cache-Control": "public, max-age=86400",
-  "Vercel-CDN-Cache-Control": "public, max-age=86400",
-};
+const CACHE_HEADERS_MISS = buildEdgeCacheHeaders(86400, 0, 3600);
 
 async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
   const { tmdbId, title, origin_name, year, slug, type } = keys;

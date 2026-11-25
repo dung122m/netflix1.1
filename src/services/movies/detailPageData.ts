@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { movieApi, deduplicateServerEpisodes, filterDualServers } from "@/services/movies/service";
 import { cacheService } from "@/lib/cache";
+import { setBoundedMap } from "@/lib/boundedMap";
 import { encodeStreamUrl } from "@/lib/streamCrypto";
 import { canServerUseNanaflixPlayer } from "@/components/cinema/cinemaStreamHelpers";
 import {
@@ -783,11 +784,7 @@ async function getCachedMovieDetailPageData(
         NonNullable<Awaited<ReturnType<typeof buildMovieDetailPageDataInternal>>>
       >(cacheKey);
       if (cached && cached.movie) {
-        if (MOVIE_PAGE_DATA_L1.size >= MAX_MOVIE_PAGE_DATA_L1) {
-          const firstKey = MOVIE_PAGE_DATA_L1.keys().next().value;
-          if (firstKey) MOVIE_PAGE_DATA_L1.delete(firstKey);
-        }
-        MOVIE_PAGE_DATA_L1.set(cacheKey, { data: cached, expireAt: Date.now() + MOVIE_PAGE_DATA_TTL_MS });
+        setBoundedMap(MOVIE_PAGE_DATA_L1, cacheKey, { data: cached, expireAt: Date.now() + MOVIE_PAGE_DATA_TTL_MS }, MAX_MOVIE_PAGE_DATA_L1);
         return cached;
       }
     } catch {
@@ -797,11 +794,7 @@ async function getCachedMovieDetailPageData(
     // 3. Fallback: Compute expensive data (TMDB lookup + AES Crypto stream encryption)
     const freshData = await buildMovieDetailPageDataInternal(slug, options);
     if (freshData && freshData.movie) {
-      if (MOVIE_PAGE_DATA_L1.size >= MAX_MOVIE_PAGE_DATA_L1) {
-        const firstKey = MOVIE_PAGE_DATA_L1.keys().next().value;
-        if (firstKey) MOVIE_PAGE_DATA_L1.delete(firstKey);
-      }
-      MOVIE_PAGE_DATA_L1.set(cacheKey, { data: freshData, expireAt: Date.now() + MOVIE_PAGE_DATA_TTL_MS });
+      setBoundedMap(MOVIE_PAGE_DATA_L1, cacheKey, { data: freshData, expireAt: Date.now() + MOVIE_PAGE_DATA_TTL_MS }, MAX_MOVIE_PAGE_DATA_L1);
       cacheService.set(cacheKey, freshData, MOVIE_PAGE_DATA_REDIS_TTL_SEC).catch(() => {});
     }
     return freshData;

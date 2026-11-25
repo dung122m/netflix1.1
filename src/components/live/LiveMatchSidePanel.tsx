@@ -2,7 +2,7 @@
 
 import React from "react";
 import { ArrowLeftRight, Clock, Flame, Activity, Search, X } from "lucide-react";
-import { FootballMatch } from "@/services/live/football/service";
+import type { FootballMatch } from "@/services/live/football/service";
 import { LiveMatchScore } from "@/services/live/football/types";
 import { MatchTimelineSidebar } from "./MatchTimelineSidebar";
 import { MatchCard } from "./MatchCard";

@@ -8,7 +8,7 @@ import React, {
   useCallback,
 } from "react";
 import type { User } from "firebase/auth";
-import { isFirebaseConfigured } from "@/lib/firebaseConfig";
+import { isFirebaseConfigured } from "@/lib/firebase";
 
 type LoadedFirebaseAuth = {
   auth: import("firebase/auth").Auth | null;

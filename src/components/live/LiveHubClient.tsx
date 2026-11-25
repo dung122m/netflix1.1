@@ -1,13 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { RefreshCw } from "lucide-react";
-import { LiveFootballData, LiveMatchScore, evaluateEventLifecycle } from "@/services/live/football/service";
-import { LiveTvData } from "@/services/live/tv/service";
+import type { LiveFootballData, LiveMatchScore } from "@/services/live/football/service";
+import { evaluateEventLifecycle } from "@/services/live/football/lifecycleEngine";
+import type { LiveTvData } from "@/services/live/tv/service";
 import { LiveFootballClient } from "./LiveFootballClient";
-import { LiveTvClient } from "./LiveTvClient";
 import { LiveTvSkeleton } from "./LiveTvSkeleton";
+
+const LiveTvClient = dynamic(
+  () => import("./LiveTvClient").then((mod) => mod.LiveTvClient),
+  { ssr: false, loading: () => <LiveTvSkeleton /> },
+);
 
 interface LiveHubClientProps {
   footballData: LiveFootballData;

@@ -10,6 +10,7 @@ import {
 import { safeParseJson } from "@/lib/securityValidation";
 import { movieApi } from "@/services/movies/service";
 import { cacheService } from "@/lib/cache";
+import { NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -131,11 +132,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       { success: true, items },
       {
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-          "CDN-Cache-Control": "no-store",
-          "Vercel-CDN-Cache-Control": "no-store",
-        },
+        headers: NO_CACHE_HEADERS,
       }
     );
   } catch (error) {

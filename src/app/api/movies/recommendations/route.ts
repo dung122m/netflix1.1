@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildEdgeCacheHeaders, NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -29,12 +30,7 @@ const EMPTY_RECOMMENDATIONS_RESPONSE = {
   allMovies: [],
 };
 
-const NO_STORE_HEADERS = {
-  "Cache-Control": "no-store, no-cache, must-revalidate",
-};
-
-const PRIVATE_NO_STORE = "private, no-cache, no-store, max-age=0, must-revalidate";
-const PUBLIC_EDGE_CACHE = "public, s-maxage=86400, stale-while-revalidate=604800";
+const PUBLIC_EDGE_CACHE_HEADERS = buildEdgeCacheHeaders(86400, 604800);
 
 export async function GET(req: NextRequest) {
   try {
@@ -48,7 +44,7 @@ export async function GET(req: NextRequest) {
     if (!payload.currentMovieSlug) {
       return NextResponse.json(EMPTY_RECOMMENDATIONS_RESPONSE, {
         status: 400,
-        headers: NO_STORE_HEADERS,
+        headers: NO_CACHE_HEADERS,
       });
     }
 
@@ -59,13 +55,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": isCacheable ? PUBLIC_EDGE_CACHE : PRIVATE_NO_STORE,
-        ...(isCacheable
-          ? {
-              "CDN-Cache-Control": PUBLIC_EDGE_CACHE,
-              "Vercel-CDN-Cache-Control": PUBLIC_EDGE_CACHE,
-            }
-          : {}),
+        ...(isCacheable ? PUBLIC_EDGE_CACHE_HEADERS : NO_CACHE_HEADERS),
         "X-Cache": cacheStatus,
       },
     });
@@ -73,7 +63,7 @@ export async function GET(req: NextRequest) {
     console.error("[movie recommendations GET API] Lỗi:", err);
     return NextResponse.json(EMPTY_RECOMMENDATIONS_RESPONSE, {
       status: 500,
-      headers: NO_STORE_HEADERS,
+      headers: NO_CACHE_HEADERS,
     });
   }
 }
@@ -91,14 +81,14 @@ export async function POST(req: NextRequest) {
     if (!currentMovieSlug) {
       return NextResponse.json(EMPTY_RECOMMENDATIONS_RESPONSE, {
         status: 400,
-        headers: NO_STORE_HEADERS,
+        headers: NO_CACHE_HEADERS,
       });
     }
 
     const { data, cacheStatus } = await getMovieRecommendations(body);
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": PRIVATE_NO_STORE,
+        ...NO_CACHE_HEADERS,
         "X-Cache": cacheStatus,
       },
     });
@@ -106,7 +96,7 @@ export async function POST(req: NextRequest) {
     console.error("[movie recommendations API] Lỗi:", err);
     return NextResponse.json(EMPTY_RECOMMENDATIONS_RESPONSE, {
       status: 500,
-      headers: NO_STORE_HEADERS,
+      headers: NO_CACHE_HEADERS,
     });
   }
 }

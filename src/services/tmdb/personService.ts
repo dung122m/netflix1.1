@@ -5,7 +5,10 @@
  * - Lấy filmography đầy đủ và đối chiếu nguồn phát
  */
 
-import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
+import {
+  normalizeForMatch as cleanStringForMatch,
+  isAsianScript,
+} from "@/lib/stringUtils";
 import { cacheService } from "@/lib/cache";
 import { fetchTmdbEndpoint } from "../tmdbService";
 import { matchTmdbMoviesWithSources } from "./movieMatcher";
@@ -23,9 +26,6 @@ export function normalizeSinoVietnameseVariants(str: string): string {
     .replace(/\btrieu\b/g, "tieu")
     .replace(/\bphung\b/g, "phong");
 }
-
-const isAsianScript = (s: string) =>
-  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(s);
 
 // Caches
 const TMDB_PERSON_CACHE = new Map<string, CacheEntry<TmdbPerson | null>>();

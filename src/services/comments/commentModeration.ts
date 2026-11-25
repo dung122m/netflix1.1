@@ -6,7 +6,7 @@
 
 import { MovieComment } from "@/types/comment";
 import { checkContentModeration } from "@/lib/contentModeration";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabaseConfig";
 import { getAllCommentsSupabase } from "@/services/supabaseService";
 
 export interface AutoCleanResult {

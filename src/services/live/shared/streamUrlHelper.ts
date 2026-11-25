@@ -17,6 +17,17 @@ export function toCanonicalSourceUrl(url?: string | null): string {
   return clean.split("?")[0].trim();
 }
 
+const KNOWN_HTTPS_STREAM_HOST_REGEX =
+  /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns|losartang|miekgo|msdht|monarch|byteark|fastly|splay|dethich|thvl|xoilac|vebo|tiengruoi|cakhia|mitom|thevang|thapcam|90phut/i;
+
+export function upgradeKnownHttpsStreamUrl(url: string): string {
+  if (!url) return "";
+  if (url.startsWith("http://") && KNOWN_HTTPS_STREAM_HOST_REGEX.test(url)) {
+    return url.replace(/^http:\/\//i, "https://");
+  }
+  return url;
+}
+
 export function extractStreamHost(url?: string | null): string {
   if (!url) return "";
   const canonical = toCanonicalSourceUrl(url);

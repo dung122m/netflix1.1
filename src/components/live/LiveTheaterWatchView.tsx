@@ -1,16 +1,26 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { ArrowLeft, ArrowLeftRight } from "lucide-react";
 import type { FootballMatch } from "@/services/live/football/service";
 import type { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football/types";
 import { useBodyScrollLock } from "@/lib/scrollLock";
-import { LivePlayer } from "./LivePlayer";
 import { MatchCenter } from "./MatchCenter";
 import { LiveMatchSidePanel } from "./LiveMatchSidePanel";
 import { LiveMobileMatchSheet } from "./LiveMobileMatchSheet";
 import type { LiveFilterCounts } from "./LiveFilterCommandBar";
 import type { MatchStatusFilter } from "./hooks/useLiveFootballFilters";
+
+const LivePlayer = dynamic(
+  () => import("./LivePlayer").then((mod) => mod.LivePlayer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl animate-pulse" />
+    ),
+  },
+);
 
 export interface LiveTheaterWatchViewProps {
   selectedMatch: FootballMatch;

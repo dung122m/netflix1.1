@@ -1129,8 +1129,88 @@
   opacity: 0.85;
 }
 
+/* ========================================================================= */
+/* HERO BANNER PURE-CSS GPU TRANSITIONS (Replaces framer-motion on LCP)      */
+/* ========================================================================= */
+@keyframes heroSlideFromRight {
+  from {
+    transform: translate3d(40px, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroSlideFromLeft {
+  from {
+    transform: translate3d(-40px, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroFadeOnly {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes heroContentEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroProgressFill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-slide-enter-next {
+  animation:
+    heroSlideFromRight 0.45s cubic-bezier(0.25, 1, 0.5, 1) both,
+    heroFadeOnly 0.4s ease-in-out both;
+}
+
+.hero-slide-enter-prev {
+  animation:
+    heroSlideFromLeft 0.45s cubic-bezier(0.25, 1, 0.5, 1) both,
+    heroFadeOnly 0.4s ease-in-out both;
+}
+
+.hero-content-enter {
+  animation: heroContentEnter 0.35s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .poster-placeholder-shimmer {
     animation: none !important;
+  }
+
+  .hero-slide-enter-next,
+  .hero-slide-enter-prev {
+    animation: heroFadeOnly 0.4s ease-in-out both;
+  }
+
+  .hero-content-enter {
+    animation: heroFadeOnly 0.25s ease-out both;
   }
 }

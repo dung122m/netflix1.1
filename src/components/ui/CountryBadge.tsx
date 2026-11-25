@@ -2,7 +2,7 @@
 
 import React from "react";
 import { CountryFlag } from "@/components/live/CountryFlag";
-import { getTeamAsset } from "@/data/live/teamAssets";
+import { lookupNationalCountryEmoji } from "@/data/live/countryFlags";
 import { cleanCountryName } from "@/lib/stringUtils";
 import { cn } from "@/lib/utils";
 
@@ -45,10 +45,10 @@ export function resolveCountryFlagEmoji(countryName?: string | null): string | n
     return "🇭🇰";
   }
 
-  // 2. Tra cứu qua cơ sở dữ liệu >210 quốc gia trong teamAssets.ts (hệ thống chuẩn của trang /live)
-  const asset = getTeamAsset(clean);
-  if (asset?.isCountry && asset.emoji) {
-    return asset.emoji;
+  // 2. Tra cứu qua bảng quốc kỳ nhẹ trong countryFlags.ts (không kéo dữ liệu CLB/Esports)
+  const matchedFlag = lookupNationalCountryEmoji(clean);
+  if (matchedFlag) {
+    return matchedFlag;
   }
 
   return null;

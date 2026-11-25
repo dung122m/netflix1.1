@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { toast } from "@/components/ui/Toast";
 import { computeHeroMovieMeta, type HeroMovie } from "./heroMovieHelpers";
@@ -93,10 +92,28 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   }, [initialMovies.length]);
 
   const slides = useMemo(() => (heroMovies || []).slice(0, 8), [heroMovies]);
-  const [index, setIndex] = useState(0);
+  const [{ current: index, prev: prevIndex, hasSlid }, setSlideState] = useState({
+    current: 0,
+    prev: null as number | null,
+    hasSlid: false,
+  });
+  const setIndex: React.Dispatch<React.SetStateAction<number>> = React.useCallback(
+    (updater) => {
+      setSlideState((state) => {
+        const next =
+          typeof updater === "function" ? updater(state.current) : updater;
+        if (next === state.current) return state;
+        return {
+          current: next,
+          prev: state.current,
+          hasSlid: true,
+        };
+      });
+    },
+    [],
+  );
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
-  const reduceMotion = useReducedMotion();
 
   const heroRef = useRef<HTMLElement>(null);
   const currentSlug = slides[index]?.slug;
@@ -119,7 +136,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
   useEffect(() => {
     setIndex((prev) => (prev >= slides.length && slides.length > 0 ? 0 : prev));
-  }, [slides.length]);
+  }, [slides.length, setIndex]);
 
   const [inWatchlist, setInWatchlist] = useState(false);
   useEffect(() => {
@@ -236,24 +253,10 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     synopsisMap,
     failedHeroImages,
   );
-
-  const slideVariants = reduceMotion
-    ? {
-      enter: { opacity: 0 },
-      center: { opacity: 1 },
-      exit: { opacity: 0 },
-    }
-    : {
-      enter: (dir: number) => ({
-        x: dir > 0 ? 40 : -40,
-        opacity: 0,
-      }),
-      center: { x: 0, opacity: 1 },
-      exit: (dir: number) => ({
-        x: dir > 0 ? -40 : 40,
-        opacity: 0,
-      }),
-    };
+  const prevSlide = prevIndex !== null ? slides[prevIndex] : undefined;
+  const prevMeta = prevSlide
+    ? computeHeroMovieMeta(prevSlide, prevSlide.slug, {}, failedHeroImages)
+    : null;
 
   const handleToggleWatchlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -289,43 +292,63 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       onTouchEnd={handleTouchEnd}
     >
       {/* 1. HÌNH NỀN HERO BANNER */}
-      <div className="absolute inset-0">
-        <AnimatePresence initial={false} custom={direction}>
-          <motion.div
-            key={index}
-            custom={direction}
-            variants={slideVariants}
-            initial={index === 0 ? false : "enter"}
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { duration: 0.45, ease: [0.25, 1, 0.5, 1] },
-              opacity: { duration: 0.4, ease: "easeInOut" },
-            }}
-            className="absolute inset-0 select-none bg-zinc-950 transform-gpu will-change-[transform,opacity]"
+      <div className="absolute inset-0 overflow-hidden bg-zinc-950">
+        {prevMeta && prevSlide && (
+          <div
+            key={`prev-${prevIndex}`}
+            aria-hidden="true"
+            className="absolute inset-0 select-none pointer-events-none"
           >
             <Image
-              src={meta.heroImageSrc}
-              alt={meta.title}
+              src={prevMeta.heroImageSrc}
+              alt=""
               fill
-              priority={index === 0}
-              fetchPriority={index === 0 ? "high" : "auto"}
               decoding="async"
               quality={80}
               unoptimized
               sizes="100vw"
               className="object-cover object-[center_25%]"
-              onError={() => {
-                if (currentSlug && !failedHeroImages[currentSlug]) {
-                  setFailedHeroImages((prev) => ({
-                    ...prev,
-                    [currentSlug]: true,
-                  }));
-                }
-              }}
             />
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        )}
+        <div
+          key={index}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget && prevIndex !== null) {
+              setSlideState((state) =>
+                state.prev === null ? state : { ...state, prev: null },
+              );
+            }
+          }}
+          className={`absolute inset-0 select-none transform-gpu will-change-[transform,opacity] ${
+            hasSlid
+              ? direction > 0
+                ? "hero-slide-enter-next"
+                : "hero-slide-enter-prev"
+              : ""
+          }`}
+        >
+          <Image
+            src={meta.heroImageSrc}
+            alt={meta.title}
+            fill
+            priority={index === 0}
+            fetchPriority={index === 0 ? "high" : "auto"}
+            decoding="async"
+            quality={80}
+            unoptimized
+            sizes="100vw"
+            className="object-cover object-[center_25%]"
+            onError={() => {
+              if (currentSlug && !failedHeroImages[currentSlug]) {
+                setFailedHeroImages((prev) => ({
+                  ...prev,
+                  [currentSlug]: true,
+                }));
+              }
+            }}
+          />
+        </div>
       </div>
 
       {/* 1.1 TRAILER CHẠY NỀN TRÊN DESKTOP (Chỉ nạp khi Hero đang nằm trong khung nhìn) */}
@@ -371,6 +394,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       <HeroContentOverlay
         slides={slides}
         index={index}
+        hasSlid={hasSlid}
         paused={paused}
         featuredMovie={featuredMovie}
         currentSlug={currentSlug}

@@ -1,3 +1,5 @@
+import { upgradeKnownHttpsStreamUrl } from "@/services/live/shared/streamUrlHelper";
+
 export const FOOTBALL_STREAM_PROXY_ENDPOINT =
   process.env.NEXT_PUBLIC_STREAM_PROXY_URL?.trim() || "/api/live-football/proxy";
 
@@ -28,18 +30,8 @@ export function getFootballStreamUrl(
   useProxyFallback: boolean,
 ): string {
   if (!rawUrl) return "";
-  const playableUrl = toPlayableHlsUrl(rawUrl).trim();
-  let finalUrl = playableUrl;
-
   // Nâng cấp http sang https nếu domain hỗ trợ HTTPS
-  if (
-    finalUrl.startsWith("http://") &&
-    /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns|losartang|miekgo|msdht|monarch|byteark|fastly|splay|dethich|thvl|xoilac|vebo|tiengruoi|cakhia|mitom|thevang|thapcam|90phut/i.test(
-      finalUrl,
-    )
-  ) {
-    finalUrl = finalUrl.replace(/^http:\/\//i, "https://");
-  }
+  const finalUrl = upgradeKnownHttpsStreamUrl(toPlayableHlsUrl(rawUrl).trim());
 
   const finalIsHls = isHls || finalUrl.includes(".m3u8");
   if (finalIsHls) {

@@ -13,6 +13,7 @@ import {
 } from "./supabaseService";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { auth } from "@/lib/firebase";
+import { getFirebaseIdToken } from "@/lib/clientAuth";
 
 import {
   markCommentDeleted,
@@ -514,8 +515,7 @@ export async function fetchAllCommentsDirect(): Promise<MovieComment[]> {
     } catch {}
   }
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     const headers: Record<string, string> = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -861,7 +861,7 @@ export async function addMovieComment(
   };
 
   // 3. Ghi vào cơ sở dữ liệu qua Server API (/api/comments)
-  const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+  const idToken = await getFirebaseIdToken();
   const res = await fetch("/api/comments", {
     method: "POST",
     headers: {
@@ -962,7 +962,7 @@ export async function addReplyComment(params: {
   const { parentId, parentOwnerId, replyToUserId, replyToUserName, ...replyData } = params;
 
   // 2. Ghi qua Server API
-  const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+  const idToken = await getFirebaseIdToken();
   const res = await fetch("/api/comments", {
     method: "POST",
     headers: {
@@ -1142,7 +1142,7 @@ export async function setCommentReaction(
 
   // 3. Cập nhật qua Server API
   try {
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const idToken = await getFirebaseIdToken();
     await fetch("/api/comments", {
       method: "PATCH",
       headers: {
@@ -1233,7 +1233,7 @@ export async function updateMovieComment(
 
   // 2. Ghi qua Server API và kiểm tra kết quả trả về
   try {
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const idToken = await getFirebaseIdToken();
     const res = await fetch("/api/comments", {
       method: "PUT",
       headers: {
@@ -1372,7 +1372,7 @@ export async function deleteMovieComment(
 
   // 3. Xóa qua Server API và BẮT BUỘC CHỜ PHẢN HỒI từ cơ sở dữ liệu
   try {
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const idToken = await getFirebaseIdToken();
     const res = await fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
       method: "DELETE",
       headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
@@ -1441,7 +1441,7 @@ export async function togglePinComment(
 
   // 2. Cập nhật Supabase qua API server để tránh bị AdBlocker chặn và đảm bảo an toàn RLS
   try {
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const idToken = await getFirebaseIdToken();
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
 

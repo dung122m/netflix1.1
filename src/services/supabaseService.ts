@@ -10,6 +10,7 @@ import { UserNotification } from "@/types/notification";
 // ============================================================================
 
 import { setBoundedMap } from "@/lib/boundedMap";
+import { getFirebaseIdToken } from "@/lib/clientAuth";
 
 // In-memory micro-cache for user profiles (TTL 5 phút) để triệt tiêu request trùng lặp khi điều hướng trang
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -91,8 +92,7 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
 export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[]; totalCount: number }> {
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (!token) {
       return { profiles: [], totalCount: 0 };
     }
@@ -134,8 +134,7 @@ export async function updateUserProfileSupabase(
 ): Promise<void> {
   if (!userId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/profile`, {
@@ -168,8 +167,7 @@ export async function setUserCommentRestrictionSupabase(
 ): Promise<void> {
   if (!userId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/profile`, {
@@ -193,8 +191,7 @@ export async function setUserCommentRestrictionSupabase(
 export async function deleteAllUserCommentsSupabase(userId: string): Promise<void> {
   if (!userId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments?userId=${encodeURIComponent(userId)}`, {
@@ -336,8 +333,7 @@ export async function getCommentRepliesSupabase(parentId: string): Promise<Movie
 export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     const headers: Record<string, string> = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -362,8 +358,7 @@ export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
 export async function togglePinCommentSupabase(commentId: string, isPinned: boolean): Promise<void> {
   if (!commentId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments`, {
@@ -383,8 +378,7 @@ export async function togglePinCommentSupabase(commentId: string, isPinned: bool
 export async function flagCommentSupabase(commentId: string, reason: string): Promise<void> {
   if (!commentId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (!token) return;
 
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
@@ -404,8 +398,7 @@ export async function flagCommentSupabase(commentId: string, reason: string): Pr
 export async function unflagCommentSupabase(commentId: string): Promise<void> {
   if (!commentId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments`, {
@@ -429,8 +422,7 @@ export async function unflagCommentSupabase(commentId: string): Promise<void> {
 export async function getWatchHistorySupabase(userId: string): Promise<WatchHistoryItem[]> {
   if (!userId) return [];
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/history?userId=${encodeURIComponent(userId)}`, {
@@ -453,8 +445,7 @@ export async function getWatchHistorySupabase(userId: string): Promise<WatchHist
 export async function getWatchlistSupabase(userId: string): Promise<WatchlistItem[]> {
   if (!userId) return [];
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/watchlist?userId=${encodeURIComponent(userId)}`, {
@@ -487,8 +478,7 @@ export async function getUserCollectionsSupabase(userId: string): Promise<Supaba
     return { status: "unauthorized", error: "Missing userId" };
   }
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (!token) {
       // Bảo vệ riêng tư: Không có token xác thực tuyệt đối không gọi endpoint public ?userId=...
       // vì server sẽ lọc mất các bộ sưu tập riêng tư của chính user này
@@ -567,8 +557,7 @@ export async function getPublicCollectionsSupabase(): Promise<MovieCollection[]>
 export async function getUserNotificationsSupabase(userId: string): Promise<UserNotification[]> {
   if (!userId) return [];
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/notifications`, {
@@ -591,8 +580,7 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
 export async function markNotificationAsReadSupabase(userId: string, notifId: string): Promise<void> {
   if (!userId || !notifId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/notifications`, {
@@ -612,8 +600,7 @@ export async function markNotificationAsReadSupabase(userId: string, notifId: st
 export async function markAllNotificationsAsReadSupabase(userId: string): Promise<void> {
   if (!userId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/notifications`, {
@@ -633,8 +620,7 @@ export async function markAllNotificationsAsReadSupabase(userId: string): Promis
 export async function deleteNotificationSupabase(userId: string, notifId: string): Promise<void> {
   if (!userId || !notifId) return;
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/notifications?notifId=${encodeURIComponent(notifId)}`, {
@@ -659,8 +645,7 @@ export async function uploadAvatarSupabase(
   if (!userId) return null;
   // 1. Ưu tiên upload qua Server API /api/user/avatar (Lưu trữ Cloudflare R2 vĩnh viễn, 0đ egress)
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const formData = new FormData();
       formData.append("file", fileOrBlob, `avatar.${fileExt}`);
@@ -717,8 +702,7 @@ export async function uploadCollectionCoverSupabase(
   if (!userId) return null;
   // 1. Ưu tiên upload qua Server API /api/user/collections/cover (Lưu trữ Cloudflare R2 vĩnh viễn)
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const formData = new FormData();
       formData.append("file", fileOrBlob, `cover.${fileExt}`);

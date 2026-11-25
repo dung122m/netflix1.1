@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   Check,
   Info,
@@ -24,6 +23,7 @@ import {
 export interface HeroContentOverlayProps {
   slides: HeroMovie[];
   index: number;
+  hasSlid: boolean;
   paused: boolean;
   featuredMovie: HeroMovie | undefined;
   currentSlug: string | undefined;
@@ -48,6 +48,7 @@ export interface HeroContentOverlayProps {
 export function HeroContentOverlay({
   slides,
   index,
+  hasSlid,
   paused,
   featuredMovie,
   currentSlug,
@@ -83,12 +84,11 @@ export function HeroContentOverlay({
   return (
     <>
       {/* NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
-      <motion.div
+      <div
         key={`content-${index}`}
-        initial={index === 0 ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="relative z-10 flex h-full items-end"
+        className={`relative z-10 flex h-full items-end ${
+          hasSlid ? "hero-content-enter" : ""
+        }`}
       >
         <div className="w-full px-4 sm:px-8 md:px-16 pb-8 sm:pb-16 md:pb-20">
           <div className="mx-auto max-w-7xl">
@@ -270,22 +270,19 @@ export function HeroContentOverlay({
               {slides.length > 1 && (
                 <div className="hidden sm:block pt-3 max-w-sm w-full">
                   <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
-                    <motion.div
+                    <div
                       key={`progress-${index}-${paused ? "pause" : "play"}-${isTrailerDuration ? "trailer" : "normal"}`}
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: paused ? 0 : 1 }}
-                      transition={
+                      style={
                         paused
-                          ? { duration: 0 }
+                          ? { transform: "scaleX(0)" }
                           : {
-                              duration:
+                              animation: `heroProgressFill ${
                                 (isTrailerDuration
                                   ? AUTO_SLIDE_TRAILER_MS
-                                  : AUTO_SLIDE_NORMAL_MS) / 1000,
-                              ease: "linear",
+                                  : AUTO_SLIDE_NORMAL_MS) / 1000
+                              }s linear forwards`,
                             }
                       }
-                      style={{ transformOrigin: "left" }}
                       className="h-full w-full rounded-full bg-netflix-red origin-left transform-gpu"
                     />
                   </div>
@@ -294,7 +291,7 @@ export function HeroContentOverlay({
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* NÚT ĐIỀU HƯỚNG & DOTS (Đồng bộ chuẩn CarouselNavButton với các hàng phim bên dưới) */}
       {slides.length > 1 && (

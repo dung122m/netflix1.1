@@ -3,7 +3,7 @@ import {
   getUserCollectionsSupabase,
   getPublicCollectionsSupabase,
 } from "./supabaseService";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabaseConfig";
 import { auth } from "@/lib/firebase";
 import { movieApi } from "./movies/service";
 import { normalizeMovie } from "@/lib/movieMedia";

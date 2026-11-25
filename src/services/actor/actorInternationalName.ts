@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { cacheService } from "@/lib/cache";
+import { setBoundedMap } from "@/lib/boundedMap";
 import {
   getActorSynonyms,
   resolveActorMovies,
@@ -397,14 +398,10 @@ export const resolveActorProfile = cache(async (slug: string): Promise<ResolvedA
     tmdbDetail,
   };
 
-  if (ACTOR_PROFILE_RAM_CACHE.size >= MAX_ACTOR_PROFILE_RAM_ENTRIES) {
-    const oldest = ACTOR_PROFILE_RAM_CACHE.keys().next().value;
-    if (oldest) ACTOR_PROFILE_RAM_CACHE.delete(oldest);
-  }
-  ACTOR_PROFILE_RAM_CACHE.set(slug, {
+  setBoundedMap(ACTOR_PROFILE_RAM_CACHE, slug, {
     profile: resolved,
     expireAt: Date.now() + 7200000,
-  });
+  }, MAX_ACTOR_PROFILE_RAM_ENTRIES);
 
   cacheService.set(`actor:profile:v2:${slug}`, resolved, ACTOR_PROFILE_REDIS_TTL_SEC).catch(() => { });
 

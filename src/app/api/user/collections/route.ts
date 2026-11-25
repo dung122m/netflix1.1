@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { sanitizeSafeText } from "@/lib/security";
 import { cacheService } from "@/lib/cache";
-import { NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
+import { NO_CACHE_HEADERS, buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -68,11 +68,7 @@ export async function GET(req: NextRequest) {
   const collectionId = searchParams.get("id");
   const isPublicListRequest = searchParams.get("public") === "true";
 
-  const publicEdgeHeaders = {
-    "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-    "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-    "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-  };
+  const publicEdgeHeaders = buildEdgeCacheHeaders(300, 600);
 
   if (isPublicListRequest) {
     const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);

@@ -2,10 +2,8 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  type FootballMatch,
-  evaluateEventLifecycle,
-} from "@/services/live/football/service";
+import type { FootballMatch } from "@/services/live/football/service";
+import { evaluateEventLifecycle } from "@/services/live/football/lifecycleEngine";
 import { getServerProbeStatus } from "@/services/live/football/clientSourceProbe";
 import type { LiveMatchScore } from "@/services/live/football/types";
 import { resolveMatchDisplayStatus } from "@/services/live/football/liveStatus";

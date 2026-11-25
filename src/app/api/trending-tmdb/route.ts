@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTmdbRankedMovies, TmdbRankType } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
 import { movieApi } from "@/services/movies/service";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -28,11 +29,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Number(searchParams.get("limit")) || 20, 20);
   const cacheKey = `${type}_${limit}_v8`;
 
-  const edgeHeaders = {
-    "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
-    "CDN-Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
-    "Vercel-CDN-Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
-  };
+  const edgeHeaders = buildEdgeCacheHeaders(21600, 43200);
 
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~0ms)
   const cached = SERVER_CACHE.get(cacheKey);

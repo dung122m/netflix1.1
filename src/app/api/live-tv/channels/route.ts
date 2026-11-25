@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { liveTvService } from "@/services/live/tv/service";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -23,11 +24,7 @@ export async function GET(req?: NextRequest) {
         data,
       },
       {
-        headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        },
+        headers: buildEdgeCacheHeaders(300, 600),
       }
     );
   } catch (err: unknown) {

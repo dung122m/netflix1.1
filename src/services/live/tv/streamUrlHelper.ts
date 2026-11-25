@@ -1,4 +1,5 @@
 import type { TvChannel } from "@/services/live/tv/service";
+import { upgradeKnownHttpsStreamUrl } from "@/services/live/shared/streamUrlHelper";
 
 export const TV_STREAM_PROXY_ENDPOINT =
   process.env.NEXT_PUBLIC_TV_PROXY_URL?.trim() ||
@@ -11,16 +12,8 @@ export const TV_STREAM_PROXY_ENDPOINT =
  */
 export function getStreamUrl(url: string): string {
   if (!url) return "";
-  let cleanUrl = url.trim();
   // Nâng cấp http sang https nếu domain hỗ trợ HTTPS
-  if (
-    cleanUrl.startsWith("http://") &&
-    /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns|losartang|miekgo|msdht|monarch|byteark|fastly|splay|dethich|thvl|xoilac|vebo|tiengruoi|cakhia|mitom|thevang|thapcam|90phut/i.test(
-      cleanUrl,
-    )
-  ) {
-    cleanUrl = cleanUrl.replace(/^http:\/\//i, "https://");
-  }
+  const cleanUrl = upgradeKnownHttpsStreamUrl(url.trim());
 
   // Nếu là domain không hỗ trợ CORS cho trình duyệt (như vnns.net, dethich.pw) -> ưu tiên bọc qua proxy luôn để phát mượt mà không bị lỗi CORS
   if (
@@ -58,32 +51,11 @@ export function buildTvCandidateUrls(channel: TvChannel): string[] {
   const directPrimary = getStreamUrl(channel.url);
   if (directPrimary) candidateUrls.push(directPrimary);
 
-  // Nếu nguồn chính là direct HTTPS nhưng nghi ngờ CORS (ví dụ vnns.net, dethich.pw), chuẩn bị proxy
-  if (
-    directPrimary.startsWith("https://") &&
-    !directPrimary.includes(TV_STREAM_PROXY_ENDPOINT) &&
-    /vnns\.net|dethich\.pw/i.test(directPrimary)
-  ) {
-    candidateUrls.push(
-      `${TV_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(channel.url)}`,
-    );
-  }
-
   // Nguồn dự phòng nếu có
   if (fallbackUrl && fallbackUrl !== channel.url) {
     const directFallback = getStreamUrl(fallbackUrl);
     if (directFallback && !candidateUrls.includes(directFallback)) {
       candidateUrls.push(directFallback);
-    }
-    if (
-      directFallback.startsWith("https://") &&
-      !directFallback.includes(TV_STREAM_PROXY_ENDPOINT) &&
-      /vnns\.net|dethich\.pw/i.test(directFallback)
-    ) {
-      const proxyFallback = `${TV_STREAM_PROXY_ENDPOINT}?url=${encodeURIComponent(fallbackUrl)}`;
-      if (!candidateUrls.includes(proxyFallback)) {
-        candidateUrls.push(proxyFallback);
-      }
     }
   }
 

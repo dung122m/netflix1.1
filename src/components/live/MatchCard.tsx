@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Play, Mic, Radio, Trophy } from "lucide-react";
 import { PlayingEqualizer } from "./PlayingEqualizer";
-import { FootballMatch } from "@/services/live/football/service";
+import type { FootballMatch } from "@/services/live/football/service";
 import { LiveMatchScore } from "@/services/live/football/types";
 import {
   getTeamAsset,
@@ -18,7 +18,7 @@ import {
 import { resolveCanonicalTournament } from "@/services/live/football/canonicalLeagues";
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
 import { toCanonicalSourceUrl } from "@/services/live/shared/streamUrlHelper";
-import { isOffensiveCommentatorName } from "@/services/live/football/service";
+import { isOffensiveCommentatorName } from "@/services/live/football/commentatorSanitizer";
 import { CountryFlag } from "./CountryFlag";
 
 export interface MatchCardProps {

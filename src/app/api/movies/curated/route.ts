@@ -6,6 +6,7 @@ import {
   buildRateLimitResponse,
   RATE_LIMIT_PRESETS,
 } from "@/lib/rateLimit";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 
 export const revalidate = 7200; // CDN cache 2 giờ
 export const maxDuration = 10;
@@ -43,11 +44,7 @@ export async function GET(req: NextRequest) {
 
   const cacheKey = `${tab}_${limit}_v1`;
 
-  const edgeHeaders = {
-    "Cache-Control": "public, s-maxage=7200, stale-while-revalidate=14400",
-    "CDN-Cache-Control": "public, s-maxage=7200, stale-while-revalidate=14400",
-    "Vercel-CDN-Cache-Control": "public, s-maxage=7200, stale-while-revalidate=14400",
-  };
+  const edgeHeaders = buildEdgeCacheHeaders(7200, 14400);
 
   const cached = SERVER_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {

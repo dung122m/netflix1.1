@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTmdbReviews } from "@/services/tmdbService";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -30,11 +31,7 @@ export async function GET(req: NextRequest) {
         reviews,
       },
       {
-        headers: {
-          "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
-          "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
-        },
+        headers: buildEdgeCacheHeaders(86400, 604800),
       }
     );
   } catch (err) {

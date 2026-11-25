@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cacheService } from "@/lib/cache";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -128,11 +129,7 @@ export async function POST(req: NextRequest) {
           cached: true,
         },
         {
-          headers: {
-            "Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
-            "CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
-            "Vercel-CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
-          },
+          headers: buildEdgeCacheHeaders(2592000, 86400),
         }
       );
     }
@@ -160,11 +157,7 @@ export async function POST(req: NextRequest) {
         cached: false,
       },
       {
-        headers: {
-          "Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
-          "CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=2592000, stale-while-revalidate=86400",
-        },
+        headers: buildEdgeCacheHeaders(2592000, 86400),
       }
     );
   } catch (err) {

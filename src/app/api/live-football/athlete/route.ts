@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAthleteProfile } from "@/services/live/football/athleteProfile";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -47,11 +48,7 @@ export async function GET(request: NextRequest) {
         },
         {
           status: 404,
-          headers: {
-            "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-            "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-            "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-          },
+          headers: buildEdgeCacheHeaders(120, 300),
         },
       );
     }
@@ -65,9 +62,7 @@ export async function GET(request: NextRequest) {
       {
         status: 200,
         headers: {
-          "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
-          "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+          ...buildEdgeCacheHeaders(86400, 604800),
           "Access-Control-Allow-Origin": "*",
         },
       },

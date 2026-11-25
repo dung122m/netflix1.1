@@ -2,6 +2,7 @@ import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cacheService } from "@/lib/cache";
+import { setBoundedMap } from "@/lib/boundedMap";
 
 /**
  * ISR / Edge Cache: Cho phép CDN Cloudflare và Vercel Edge cache response HTML 24 giờ.
@@ -180,16 +181,12 @@ export default async function ActorDetailPage({ params }: PageProps) {
         wikiProfile = redisFull.wikiProfile;
         movies = redisFull.movies;
 
-        if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
-          const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
-          if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
-        }
-        ACTOR_PAGE_RAM_CACHE.set(slug, {
+        setBoundedMap(ACTOR_PAGE_RAM_CACHE, slug, {
           profile,
           wikiProfile,
           movies,
           expireAt: now + 7200000, // 2h RAM cache
-        });
+        }, MAX_ACTOR_PAGE_RAM_ENTRIES);
       }
     } catch {}
   }
@@ -198,17 +195,13 @@ export default async function ActorDetailPage({ params }: PageProps) {
   if (!profile || !movies || movies.length === 0) {
     profile = await resolveActorProfile(slug);
     if (profile.isCachedNotFound) {
-      if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
-        const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
-        if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
-      }
-      ACTOR_PAGE_RAM_CACHE.set(slug, {
+      setBoundedMap(ACTOR_PAGE_RAM_CACHE, slug, {
         profile: null,
         wikiProfile: null,
         movies: [],
         isNotFound: true,
         expireAt: now + 3600000,
-      });
+      }, MAX_ACTOR_PAGE_RAM_ENTRIES);
       notFound();
     }
 
@@ -245,16 +238,12 @@ export default async function ActorDetailPage({ params }: PageProps) {
       .set(`actor:full_page:v6:${slug}`, { profile, wikiProfile, movies }, pageRedisTtl)
       .catch(() => {});
 
-    if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
-      const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
-      if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
-    }
-    ACTOR_PAGE_RAM_CACHE.set(slug, {
+    setBoundedMap(ACTOR_PAGE_RAM_CACHE, slug, {
       profile,
       wikiProfile,
       movies,
       expireAt: now + pageRamTtlMs,
-    });
+    }, MAX_ACTOR_PAGE_RAM_ENTRIES);
   }
 
   const {
@@ -283,17 +272,13 @@ export default async function ActorDetailPage({ params }: PageProps) {
 
   // Nếu không tìm thấy thông tin trên TMDb, Wikipedia và cũng không có phim nào trên hệ thống -> 404 Not Found
   if (!tmdbDetail && !wikiProfile && (!movies || movies.length === 0)) {
-    if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
-      const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
-      if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
-    }
-    ACTOR_PAGE_RAM_CACHE.set(slug, {
+    setBoundedMap(ACTOR_PAGE_RAM_CACHE, slug, {
       profile: null,
       wikiProfile: null,
       movies: [],
       isNotFound: true,
       expireAt: Date.now() + 3600000, // 1h negative RAM cache
-    });
+    }, MAX_ACTOR_PAGE_RAM_ENTRIES);
     notFound();
   }
 

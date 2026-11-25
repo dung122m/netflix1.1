@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   generateForYouRecommendations,
   type WatchHistoryInputItem,
@@ -73,11 +74,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(result, {
-      headers: {
-        "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400",
-        "CDN-Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400",
-        "Vercel-CDN-Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400",
-      },
+      headers: buildEdgeCacheHeaders(21600, 86400),
     });
   } catch (err) {
     console.error("[for-you recommendations GET] Error:", err);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { enforceRateLimit, buildRateLimitResponse, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
 import { encodeStreamUrl } from "@/lib/streamCrypto";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 
 export async function GET(req: NextRequest) {
   const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);
@@ -80,11 +81,7 @@ export async function GET(req: NextRequest) {
         streams: secureStreams,
       },
       {
-        headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-          "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-        },
+        headers: buildEdgeCacheHeaders(3600, 86400),
       }
     );
   } catch (err) {

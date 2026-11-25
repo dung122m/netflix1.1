@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { liveFootballService } from "@/services/live/football/service";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -18,11 +19,7 @@ export async function GET(req: NextRequest) {
     return buildRateLimitResponse(rateLimit);
   }
 
-  const edgeHeaders = {
-    "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-    "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-    "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-  };
+  const edgeHeaders = buildEdgeCacheHeaders(300, 600);
 
   const now = Date.now();
   if (lastMatchesCache && now < lastMatchesCache.expireAt) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestId } from "@/lib/requestId";
+import { setBoundedMap } from "@/lib/boundedMap";
 
 /**
  * Enterprise Edge Middleware for Nanaflix
@@ -440,14 +441,10 @@ export function proxy(req: NextRequest) {
           );
         }
       } else {
-        if (EDGE_RATE_LIMIT_STORE.size >= MAX_EDGE_RATE_LIMIT_ENTRIES) {
-          const oldestKey = EDGE_RATE_LIMIT_STORE.keys().next().value;
-          if (oldestKey) EDGE_RATE_LIMIT_STORE.delete(oldestKey);
-        }
-        EDGE_RATE_LIMIT_STORE.set(rlKey, {
+        setBoundedMap(EDGE_RATE_LIMIT_STORE, rlKey, {
           count: 1,
           resetAt: now + matchedTier.windowMs,
-        });
+        }, MAX_EDGE_RATE_LIMIT_ENTRIES);
       }
     }
   }

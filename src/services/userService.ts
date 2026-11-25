@@ -154,6 +154,7 @@ import {
   setProfileMemoryCache,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabaseConfig";
+import { getFirebaseIdToken } from "@/lib/clientAuth";
 
 const PROFILE_CACHE_PREFIX = "nanaflix_user_profile_";
 
@@ -412,8 +413,7 @@ export async function getUserCloudWatchHistory(userId: string): Promise<WatchHis
   if (!userId) return [];
 
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/history?userId=${encodeURIComponent(userId)}`, {
@@ -449,8 +449,7 @@ export async function getUserCloudWatchlist(userId: string): Promise<WatchlistIt
   if (!userId) return [];
 
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/watchlist?userId=${encodeURIComponent(userId)}`, {
@@ -677,8 +676,7 @@ export async function updateUserProfile(
 
   // 2. Lưu qua Server API có xác thực
   try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const token = await getFirebaseIdToken();
     if (token) {
       await fetch("/api/user/profile", {
         method: "POST",

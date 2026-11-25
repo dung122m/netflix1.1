@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { createPortal } from "react-dom";
 import { RefreshCw, AlertCircle, Loader2, RotateCcw } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/scrollLock";
-import { FootballMatch, StreamServer } from "@/services/live/football/service";
+import type { FootballMatch, StreamServer } from "@/services/live/football/service";
 import {
   LiveMatchScore,
   NormalizedMatchSummary,

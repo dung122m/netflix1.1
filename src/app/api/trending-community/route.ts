@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -28,11 +29,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Number(searchParams.get("limit")) || 10, 20);
   const cacheKey = `trending:${timeframe}:${limit}`;
 
-  const edgeHeaders = {
-    "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800",
-    "CDN-Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800",
-    "Vercel-CDN-Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800",
-  };
+  const edgeHeaders = buildEdgeCacheHeaders(600, 1800);
 
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~1ms)
   const cached = SERVER_CACHE.get(cacheKey);

@@ -5,6 +5,7 @@ import { verifyServerAuth } from "@/lib/serverAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { MovieComment } from "@/types/comment";
 import { cacheService } from "@/lib/cache";
+import { NO_CACHE_HEADERS, buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -101,11 +102,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(
           { success: true, items: mapped },
           {
-            headers: {
-              "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
-              "CDN-Cache-Control": "no-store",
-              "Vercel-CDN-Cache-Control": "no-store",
-            },
+            headers: NO_CACHE_HEADERS,
           }
         );
       }
@@ -137,11 +134,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { success: true, items },
         {
-          headers: {
-            "Cache-Control": "public, max-age=15, s-maxage=30, stale-while-revalidate=60",
-            "CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
-            "Vercel-CDN-Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
-          },
+          headers: buildEdgeCacheHeaders(30, 60, 15),
         }
       );
     }
@@ -204,11 +197,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(responsePayload, {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-        "CDN-Cache-Control": "no-store",
-        "Vercel-CDN-Cache-Control": "no-store",
-      },
+      headers: NO_CACHE_HEADERS,
     });
   } catch (error) {
     console.error("Lỗi API get comments:", error);

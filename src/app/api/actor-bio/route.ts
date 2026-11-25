@@ -5,6 +5,7 @@ import { fetchActorProfile, cleanBioExtract } from "@/services/wikipediaService"
 import { searchTmdbPerson, getTmdbPersonDetail } from "@/services/tmdbService";
 import { selectBestBiography } from "@/services/actor/bioFormatter";
 import { cacheService } from "@/lib/cache";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import { calculateAgeVi as calculateAge, formatIsoDateToVn as formatDate } from "@/lib/dateFormatters";
 import {
@@ -38,11 +39,7 @@ export async function GET(request: NextRequest) {
     const cached = await cacheService.get<EnhancedActorProfile>(cacheKey);
     if (cached) {
       return NextResponse.json(cached, {
-        headers: {
-          "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-          "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-        },
+        headers: buildEdgeCacheHeaders(86400, 43200),
       });
     }
   } catch {}
@@ -159,16 +156,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(profile, {
       headers: isFound
-        ? {
-            "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-            "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-            "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-          }
-        : {
-            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-            "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-            "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          },
+        ? buildEdgeCacheHeaders(86400, 43200)
+        : buildEdgeCacheHeaders(300, 600),
     });
   } catch (error) {
     console.error("Actor bio API error:", error);

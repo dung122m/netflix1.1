@@ -5,23 +5,12 @@ import {
   isSupabaseConfigured,
 } from "./supabaseConfig";
 
-export { isSupabaseConfigured };
+export { supabaseUrl, supabaseAnonKey, isSupabaseConfigured };
 
-export const supabase: SupabaseClient | null = isSupabaseConfigured()
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-      global: {
-        fetch: (input, init) => {
-          const timeoutSignal = AbortSignal.timeout(8000);
-          const signal = init?.signal
-            ? AbortSignal.any([init.signal, timeoutSignal])
-            : timeoutSignal;
-          return fetch(input, { ...init, signal });
-        },
-      },
-    })
-  : null;
+// Chỉ tạo client thực tế nếu URL và Key hợp lệ để tránh crash ứng dụng khi chạy ở chế độ Local
+export const supabase: SupabaseClient = isSupabaseConfigured()
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : (createClient(
+      "https://placeholder-project.supabase.co",
+      "placeholder-anon-key-must-be-long-enough"
+    ) as SupabaseClient);

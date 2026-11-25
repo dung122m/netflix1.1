@@ -487,6 +487,18 @@ const cachedFetchMovieDetailBase = cache(
 // ============================================================
 // AI CANDIDATE SOURCING (FEDERATED 2 SOURCES IN PARALLEL)
 // ============================================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filterBySearchRelevance(candidates: any[], keyword: string) {
+  const kw = keyword.trim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scored = candidates.map((m: any) => ({
+    ...m,
+    relevanceScore: evaluateSearchRelevance(m, kw).score,
+  }));
+  const hasStrong = scored.some((m) => m.relevanceScore >= 40);
+  return scored.filter((m) => (hasStrong ? m.relevanceScore >= 40 : m.relevanceScore > 0));
+}
+
 async function executeGetAiCandidates(params: MovieFilterParams, _options?: AiCandidateOptions) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit || 24;
@@ -523,14 +535,7 @@ async function executeGetAiCandidates(params: MovieFilterParams, _options?: AiCa
   candidates = applyMovieFilters(candidates, params);
 
   if (isSearch && params.keyword && !_options?.skipRelevanceScoring) {
-    const kw = params.keyword.trim();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scored = candidates.map((m: any) => ({
-      ...m,
-      relevanceScore: evaluateSearchRelevance(m, kw).score,
-    }));
-    const hasStrong = scored.some((m) => m.relevanceScore >= 40);
-    candidates = scored.filter((m) => (hasStrong ? m.relevanceScore >= 40 : m.relevanceScore > 0));
+    candidates = filterBySearchRelevance(candidates, params.keyword);
   }
 
   return {
@@ -574,14 +579,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     let candidates = deduplicateMovieItems([...pItems, ...nItems]);
     candidates = applyMovieFilters(candidates, params);
 
-    const kw = params.keyword!.trim();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scored = candidates.map((m: any) => ({
-      ...m,
-      relevanceScore: evaluateSearchRelevance(m, kw).score,
-    }));
-    const hasStrong = scored.some((m) => m.relevanceScore >= 40);
-    candidates = scored.filter((m) => (hasStrong ? m.relevanceScore >= 40 : m.relevanceScore > 0));
+    candidates = filterBySearchRelevance(candidates, params.keyword!);
 
     sortMovieCandidates(candidates, parsedSort, true);
 

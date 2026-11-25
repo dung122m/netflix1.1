@@ -15,6 +15,7 @@ import { searchTmdbPerson } from "@/services/tmdbService";
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 import { normalizeForMatch, slugify } from "@/lib/stringUtils";
 import { cacheService } from "@/lib/cache";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -54,11 +55,9 @@ export async function GET(req: NextRequest) {
     const keyword = rawKeyword.slice(0, 100);
 
     // Trả về mảng rỗng nhưng cache trên Edge để chống bot spam từ khóa rỗng/1 ký tự
-    const emptyEdgeHeaders = {
-      "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
-      "CDN-Cache-Control": "public, s-maxage=86400",
-      "Vercel-CDN-Cache-Control": "public, s-maxage=86400",
-    };
+    const emptyEdgeHeaders = buildEdgeCacheHeaders(86400, 86400, 3600);
+    const suggestHitHeaders = buildEdgeCacheHeaders(3600, 86400, 1800);
+    const suggestMissHeaders = buildEdgeCacheHeaders(120, 300, 60);
 
     if (!keyword || keyword.length < 2) {
       return NextResponse.json({ items: [] }, { headers: emptyEdgeHeaders });
@@ -73,37 +72,16 @@ export async function GET(req: NextRequest) {
     const cacheKey = `search:suggest:v4:${normKw}`;
     const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
     if (cached && Array.isArray(cached.items)) {
-      const headers =
-        cached.items.length > 0
-          ? {
-              "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
-              "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-              "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-            }
-          : {
-              "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
-              "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-              "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-            };
-      return NextResponse.json(cached, { headers });
+      return NextResponse.json(cached, {
+        headers: cached.items.length > 0 ? suggestHitHeaders : suggestMissHeaders,
+      });
     }
 
     const existingFlight = inFlightSearchSuggest.get(cacheKey);
     if (existingFlight) {
       const flightData = await existingFlight;
       return NextResponse.json(flightData, {
-        headers:
-          flightData.items.length > 0
-            ? {
-                "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
-                "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-                "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-              }
-            : {
-                "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
-                "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-                "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-              },
+        headers: flightData.items.length > 0 ? suggestHitHeaders : suggestMissHeaders,
       });
     }
 
@@ -370,18 +348,7 @@ export async function GET(req: NextRequest) {
     const responseData = await computeSuggest;
 
     return NextResponse.json(responseData, {
-      headers:
-        responseData.items.length > 0
-          ? {
-              "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
-              "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-              "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-            }
-          : {
-              "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
-              "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-              "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-            },
+      headers: responseData.items.length > 0 ? suggestHitHeaders : suggestMissHeaders,
     });
   } catch (error) {
     console.error("Lỗi tìm kiếm gợi ý:", error);

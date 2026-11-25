@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import { pickBestMoviePoster, pickBestMovieThumb, detectMovieTypeName } from "@/lib/movieMedia";
 import {
   enforceRateLimit,
@@ -73,11 +74,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       { success: true, movies },
       {
-        headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-          "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-        },
+        headers: buildEdgeCacheHeaders(3600, 86400),
       }
     );
   } catch (err) {
