@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchTmdbPosterByTitle, getTmdbMediaImagesById, isCorruptedTmdbId } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
+import { setBoundedMap } from "@/lib/boundedMap";
+import { runWithConcurrencyLimit } from "@/lib/asyncPool";
+import {
+  enforceRateLimit,
+  buildRateLimitResponse,
+  RATE_LIMIT_PRESETS,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -11,17 +18,9 @@ interface PosterCacheEntry {
 }
 
 const posterMemoryCache = new Map<string, PosterCacheEntry>();
+const inFlightPosterResolves = new Map<string, Promise<{ posterUrl: string | null; backdropUrl: string | null }>>();
 const MEMORY_TTL = 24 * 60 * 60 * 1000;
-
-function setBoundedMap<K, V>(map: Map<K, V>, key: K, value: V, maxSize = 2000): void {
-  if (map.size >= maxSize) {
-    const firstKey = map.keys().next().value;
-    if (firstKey !== undefined) {
-      map.delete(firstKey);
-    }
-  }
-  map.set(key, value);
-}
+const NEGATIVE_MEMORY_TTL = 30 * 60 * 1000;
 
 export interface FallbackItemParams {
   tmdbId?: string | number;
@@ -117,7 +116,32 @@ async function resolvePoster(keys: ParsedItemKeys): Promise<{ posterUrl: string 
   return { posterUrl: null, backdropUrl: null };
 }
 
+async function resolvePosterCoalesced(keys: ParsedItemKeys): Promise<{ posterUrl: string | null; backdropUrl: string | null }> {
+  const existingFlight = inFlightPosterResolves.get(keys.cacheKey);
+  if (existingFlight) return existingFlight;
+
+  const task = resolvePoster(keys).finally(() => {
+    inFlightPosterResolves.delete(keys.cacheKey);
+  });
+  inFlightPosterResolves.set(keys.cacheKey, task);
+  return task;
+}
+
+function persistPosterToRedis(keys: ParsedItemKeys, resolved: { posterUrl: string | null; backdropUrl: string | null }): void {
+  const ttl = resolved.posterUrl || resolved.backdropUrl ? 30 * 86400 : 1800;
+  const payload = { posterUrl: resolved.posterUrl, backdropUrl: resolved.backdropUrl };
+  cacheService.set(keys.redisPosterKey, payload, ttl).catch(() => {});
+  if (keys.slugCleanKey && (resolved.posterUrl || resolved.backdropUrl)) {
+    cacheService.set(keys.slugCleanKey, payload, ttl).catch(() => {});
+  }
+}
+
 export async function GET(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK_IN_MEMORY);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   const { searchParams } = req.nextUrl;
   const tmdbId = searchParams.get("tmdb_id")?.trim() || searchParams.get("tmdbId")?.trim() || "";
   const title = searchParams.get("title")?.trim() || "";
@@ -141,14 +165,32 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const resolved = await resolvePoster(keys);
+  const redisCached = await cacheService.get<{ posterUrl?: string | null; backdropUrl?: string | null }>(
+    keys.redisPosterKey
+  );
+  if (redisCached && (redisCached.posterUrl !== undefined || redisCached.backdropUrl !== undefined)) {
+    const posterUrl = redisCached.posterUrl ?? null;
+    const backdropUrl = redisCached.backdropUrl ?? null;
+    setBoundedMap(posterMemoryCache, keys.cacheKey, {
+      posterUrl,
+      backdropUrl,
+      expireAt: now + (posterUrl || backdropUrl ? MEMORY_TTL : NEGATIVE_MEMORY_TTL),
+    });
+    return NextResponse.json(
+      { status: true, posterUrl, backdropUrl, source: "redis-cache" },
+      { headers: posterUrl || backdropUrl ? CACHE_HEADERS_HIT : CACHE_HEADERS_MISS }
+    );
+  }
+
+  const resolved = await resolvePosterCoalesced(keys);
   const hasPoster = Boolean(resolved.posterUrl || resolved.backdropUrl);
 
   setBoundedMap(posterMemoryCache, keys.cacheKey, {
     posterUrl: resolved.posterUrl,
     backdropUrl: resolved.backdropUrl,
-    expireAt: now + MEMORY_TTL,
+    expireAt: now + (hasPoster ? MEMORY_TTL : NEGATIVE_MEMORY_TTL),
   });
+  persistPosterToRedis(keys, resolved);
 
   return NextResponse.json(
     { status: true, posterUrl: resolved.posterUrl, backdropUrl: resolved.backdropUrl, source: "tmdb" },
@@ -157,6 +199,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.POSTER_FALLBACK_IN_MEMORY);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
+
   let body: { items?: FallbackItemParams[] } | null = null;
   try {
     body = await req.json();
@@ -169,56 +216,67 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: false, error: "No items provided" }, { status: 400 });
   }
 
-  const items = rawItems.slice(0, 32);
+  const items = rawItems.slice(0, 24);
   const now = Date.now();
   const results: Record<string, { posterUrl: string | null; backdropUrl: string | null; source: string }> = {};
+  const missingRedisChecks: Array<{ keys: ParsedItemKeys }> = [];
 
-  await Promise.allSettled(
-    items.map(async (it) => {
-      const keys = parseItemKeys(it);
-      const cached = posterMemoryCache.get(keys.cacheKey);
-      if (cached && cached.expireAt > now) {
-        results[keys.cacheKey] = {
-          posterUrl: cached.posterUrl,
-          backdropUrl: cached.backdropUrl,
-          source: "l1-cache",
-        };
-        return;
+  for (const it of items) {
+    const keys = parseItemKeys(it);
+    const cached = posterMemoryCache.get(keys.cacheKey);
+    if (cached && cached.expireAt > now) {
+      results[keys.cacheKey] = {
+        posterUrl: cached.posterUrl,
+        backdropUrl: cached.backdropUrl,
+        source: "l1-cache",
+      };
+    } else {
+      missingRedisChecks.push({ keys });
+    }
+  }
+
+  const needTmdbResolve: ParsedItemKeys[] = [];
+  if (missingRedisChecks.length > 0) {
+    const redisValues = await cacheService.mget<{ posterUrl?: string | null; backdropUrl?: string | null }>(
+      missingRedisChecks.map((m) => m.keys.redisPosterKey)
+    );
+    missingRedisChecks.forEach((m, idx) => {
+      const hit = redisValues[idx];
+      if (hit && (hit.posterUrl !== undefined || hit.backdropUrl !== undefined)) {
+        const posterUrl = hit.posterUrl ?? null;
+        const backdropUrl = hit.backdropUrl ?? null;
+        setBoundedMap(posterMemoryCache, m.keys.cacheKey, {
+          posterUrl,
+          backdropUrl,
+          expireAt: now + (posterUrl || backdropUrl ? MEMORY_TTL : NEGATIVE_MEMORY_TTL),
+        });
+        results[m.keys.cacheKey] = { posterUrl, backdropUrl, source: "redis-cache" };
+      } else {
+        needTmdbResolve.push(m.keys);
       }
+    });
+  }
 
-      const resolved = await resolvePoster(keys);
+  if (needTmdbResolve.length > 0) {
+    await runWithConcurrencyLimit(needTmdbResolve, 4, async (keys) => {
+      const resolved = await resolvePosterCoalesced(keys);
+      const hasPoster = Boolean(resolved.posterUrl || resolved.backdropUrl);
       setBoundedMap(posterMemoryCache, keys.cacheKey, {
         posterUrl: resolved.posterUrl,
         backdropUrl: resolved.backdropUrl,
-        expireAt: now + MEMORY_TTL,
+        expireAt: now + (hasPoster ? MEMORY_TTL : NEGATIVE_MEMORY_TTL),
       });
-
-      if (resolved.posterUrl) {
-        cacheService
-          .set(
-            keys.redisPosterKey,
-            { posterUrl: resolved.posterUrl, backdropUrl: resolved.backdropUrl },
-            30 * 86400
-          )
-          .catch(() => {});
-        if (keys.slugCleanKey) {
-          cacheService
-            .set(
-              keys.slugCleanKey,
-              { posterUrl: resolved.posterUrl, backdropUrl: resolved.backdropUrl },
-              30 * 86400
-            )
-            .catch(() => {});
-        }
-      }
-
+      persistPosterToRedis(keys, resolved);
       results[keys.cacheKey] = {
         posterUrl: resolved.posterUrl,
         backdropUrl: resolved.backdropUrl,
         source: "tmdb",
       };
-    })
-  );
+    });
+  }
 
-  return NextResponse.json({ status: true, results }, { headers: CACHE_HEADERS_HIT });
+  return NextResponse.json(
+    { status: true, results },
+    { headers: { "Cache-Control": "private, no-store" } }
+  );
 }

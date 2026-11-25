@@ -511,25 +511,32 @@ export function useCinemaVideoEvents({
             adDecision.adDuration,
             adDecision.adKey,
           );
-        } else if (!automatedAdSkipRef.current?.active && !video.seeking) {
+        } else if (
+          !automatedAdSkipRef.current?.active &&
+          !video.seeking &&
+          !video.paused &&
+          !video.ended
+        ) {
           // Fallback an toàn: Nếu playhead đang nằm bên trong một ad boundary mà chưa thoát ra ngoài
           const inAd = adBoundariesRef.current.find(
             (b) => ct >= b.start && ct < (b.nextStart ?? b.end),
           );
           if (inAd) {
             const adKey = `${inAd.start}_${inAd.end}`;
-            const targetSeek = calculateSafeAdSkipTarget(
-              inAd.end,
-              adBoundariesRef.current,
-              effectiveDur,
-              SAFE_AD_SKIP_OFFSET,
-            );
-            triggerAdSkip(targetSeek, Math.round(inAd.duration), adKey);
-          } else if (
-            !video.paused &&
-            !video.ended &&
-            adBoundariesRef.current.length > 0
-          ) {
+            const nowMs = Date.now();
+            if (
+              !hasSkippedAdRef.current.has(adKey) &&
+              nowMs - lastAdSkipTimeRef.current > 2000
+            ) {
+              const targetSeek = calculateSafeAdSkipTarget(
+                inAd.end,
+                adBoundariesRef.current,
+                effectiveDur,
+                SAFE_AD_SKIP_OFFSET,
+              );
+              triggerAdSkip(targetSeek, Math.round(inAd.duration), adKey);
+            }
+          } else if (adBoundariesRef.current.length > 0) {
             // 2. Pre-emptive monitoring: Nếu playhead đang tiến sát ranh giới quảng cáo kế tiếp (trong 1.5s)
             const curPlayhead = video.currentTime;
             const nextUpcomingAd = adBoundariesRef.current.find(

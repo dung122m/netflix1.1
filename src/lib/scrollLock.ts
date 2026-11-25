@@ -35,9 +35,21 @@ export function unlockBodyScroll(): void {
   if (lockCount === 0) {
     const body = document.body;
 
-    body.style.overflow = originalBodyOverflow;
+    body.style.overflow = originalBodyOverflow === "hidden" ? "" : originalBodyOverflow;
     body.style.overscrollBehavior = originalBodyOverscroll;
   }
+}
+
+/**
+ * Khôi phục trạng thái cuộn an toàn khi chuyển trang để tránh kẹt scroll nếu modal unmount bất thường.
+ */
+export function resetBodyScrollLock(): void {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  lockCount = 0;
+  originalBodyOverflow = "";
+  originalBodyOverscroll = "";
+  document.body.style.overflow = "";
+  document.body.style.overscrollBehavior = "";
 }
 
 /**

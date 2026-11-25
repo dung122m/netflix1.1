@@ -59,6 +59,10 @@ export function useCinemaCoreState({
   const [qualityLevels, setQualityLevels] = useState<QualityLevelItem[]>([]);
   const [currentQualityIndex, setCurrentQualityIndex] = useState<number>(-1);
   const [knownDuration, setKnownDuration] = useState<number>(0);
+  const knownDurationRef = useRef<number>(0);
+  useEffect(() => {
+    knownDurationRef.current = knownDuration;
+  }, [knownDuration]);
 
   const [videoFit, setVideoFit] = useState<VideoFit>(() => {
     if (typeof window !== "undefined") {
@@ -185,8 +189,8 @@ export function useCinemaCoreState({
     const v = videoRef.current;
     if (!v) return 0;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return knownDuration || (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
-  }, [knownDuration]);
+    return knownDurationRef.current || (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
+  }, []);
 
   const cancelAdPreTrigger = useCallback(() => {
     if (adPreTriggerRef.current.timer) {

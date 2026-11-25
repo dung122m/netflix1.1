@@ -296,12 +296,15 @@ export function extractPeopleAndTaxonomies(movie: MovieDetailRecord) {
   return { actorList, directorList, categoryList, countryList, altNames: sanitizedAltNames };
 }
 
-export async function resolveTmdbFallbackMedia(movie: MovieDetailRecord) {
+export async function resolveTmdbFallbackMedia(
+  movie: MovieDetailRecord,
+  options?: { skipTmdbSanityCheck?: boolean }
+) {
   let tmdbId = movie.tmdb?.id || movie.imdb?.id;
   const tmdbType =
     movie.tmdb?.type || (movie.type === "series" || movie.type === "phim-bo" ? "tv" : "movie");
 
-  if (tmdbId) {
+  if (tmdbId && !options?.skipTmdbSanityCheck) {
     if (isCorruptedTmdbId(tmdbId, movie)) {
       delete movie.tmdb;
       delete movie.imdb;
@@ -543,7 +546,7 @@ async function buildMovieDetailPageDataInternal(
     effectiveTrailerUrl,
     tmdbId,
     tmdbType,
-  } = await resolveTmdbFallbackMedia(movie);
+  } = await resolveTmdbFallbackMedia(movie, { skipTmdbSanityCheck: true });
 
   const tmdbVotesText = formatVoteCount(tmdbVotes);
   const imdbVotesText = formatVoteCount(imdbVotes);
@@ -746,6 +749,10 @@ const MOVIE_PAGE_DATA_L1 = new Map<
 const MAX_MOVIE_PAGE_DATA_L1 = 1500;
 const MOVIE_PAGE_DATA_TTL_MS = 60 * 60 * 1000; // 1h in-memory RAM
 const MOVIE_PAGE_DATA_REDIS_TTL_SEC = 24 * 60 * 60; // 24h in Redis DB 1
+const MOVIE_PAGE_DATA_IN_FLIGHT = new Map<
+  string,
+  Promise<Awaited<ReturnType<typeof buildMovieDetailPageDataInternal>>>
+>();
 
 async function getCachedMovieDetailPageData(
   slug: string,
@@ -764,34 +771,46 @@ async function getCachedMovieDetailPageData(
     return l1.data;
   }
 
-  // 2. L2 Redis DB 1 Cache (~2-5ms)
-  try {
-    const cached = await cacheService.get<
-      NonNullable<Awaited<ReturnType<typeof buildMovieDetailPageDataInternal>>>
-    >(cacheKey);
-    if (cached && cached.movie) {
+  const existingFlight = MOVIE_PAGE_DATA_IN_FLIGHT.get(cacheKey);
+  if (existingFlight) {
+    return existingFlight;
+  }
+
+  const task = (async () => {
+    // 2. L2 Redis DB 1 Cache (~2-5ms)
+    try {
+      const cached = await cacheService.get<
+        NonNullable<Awaited<ReturnType<typeof buildMovieDetailPageDataInternal>>>
+      >(cacheKey);
+      if (cached && cached.movie) {
+        if (MOVIE_PAGE_DATA_L1.size >= MAX_MOVIE_PAGE_DATA_L1) {
+          const firstKey = MOVIE_PAGE_DATA_L1.keys().next().value;
+          if (firstKey) MOVIE_PAGE_DATA_L1.delete(firstKey);
+        }
+        MOVIE_PAGE_DATA_L1.set(cacheKey, { data: cached, expireAt: Date.now() + MOVIE_PAGE_DATA_TTL_MS });
+        return cached;
+      }
+    } catch {
+      // Graceful fallback to compute on error
+    }
+
+    // 3. Fallback: Compute expensive data (TMDB lookup + AES Crypto stream encryption)
+    const freshData = await buildMovieDetailPageDataInternal(slug, options);
+    if (freshData && freshData.movie) {
       if (MOVIE_PAGE_DATA_L1.size >= MAX_MOVIE_PAGE_DATA_L1) {
         const firstKey = MOVIE_PAGE_DATA_L1.keys().next().value;
         if (firstKey) MOVIE_PAGE_DATA_L1.delete(firstKey);
       }
-      MOVIE_PAGE_DATA_L1.set(cacheKey, { data: cached, expireAt: now + MOVIE_PAGE_DATA_TTL_MS });
-      return cached;
+      MOVIE_PAGE_DATA_L1.set(cacheKey, { data: freshData, expireAt: Date.now() + MOVIE_PAGE_DATA_TTL_MS });
+      cacheService.set(cacheKey, freshData, MOVIE_PAGE_DATA_REDIS_TTL_SEC).catch(() => {});
     }
-  } catch {
-    // Graceful fallback to compute on error
-  }
+    return freshData;
+  })().finally(() => {
+    MOVIE_PAGE_DATA_IN_FLIGHT.delete(cacheKey);
+  });
 
-  // 3. Fallback: Compute expensive data (TMDB lookup + AES Crypto stream encryption)
-  const freshData = await buildMovieDetailPageDataInternal(slug, options);
-  if (freshData && freshData.movie) {
-    if (MOVIE_PAGE_DATA_L1.size >= MAX_MOVIE_PAGE_DATA_L1) {
-      const firstKey = MOVIE_PAGE_DATA_L1.keys().next().value;
-      if (firstKey) MOVIE_PAGE_DATA_L1.delete(firstKey);
-    }
-    MOVIE_PAGE_DATA_L1.set(cacheKey, { data: freshData, expireAt: now + MOVIE_PAGE_DATA_TTL_MS });
-    cacheService.set(cacheKey, freshData, MOVIE_PAGE_DATA_REDIS_TTL_SEC).catch(() => {});
-  }
-  return freshData;
+  MOVIE_PAGE_DATA_IN_FLIGHT.set(cacheKey, task);
+  return task;
 }
 
 export const buildMovieDetailPageData = cache(getCachedMovieDetailPageData);

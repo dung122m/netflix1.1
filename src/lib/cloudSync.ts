@@ -33,13 +33,17 @@ export function mergeWatchedEpisodesForCloud(item: WatchHistoryItem): string[] {
   return Array.from(new Set([...fromLocal, ...fromItem].filter(Boolean)));
 }
 
-async function getAuthHeaders(): Promise<HeadersInit> {
+async function getAuthHeaders(expectedUserId?: string): Promise<HeadersInit> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const currentUser = auth?.currentUser;
+    if (expectedUserId && currentUser?.uid !== expectedUserId) {
+      return headers;
+    }
+    const token = await currentUser?.getIdToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
@@ -48,7 +52,21 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 }
 
 const lastHistorySyncMap = new Map<string, number>();
+const inFlightHistorySync = new Map<string, Promise<WatchHistoryItem[]>>();
+const inFlightWatchlistSync = new Map<string, Promise<WatchlistItem[]>>();
 const HISTORY_SYNC_THROTTLE_MS = 5 * 60 * 1000; // Tối thiểu 5 phút giữa các lần GET /api/user/history tự động theo từng user
+
+export function cancelPendingCloudSync(): void {
+  for (const timer of cloudSaveTimers.values()) {
+    clearTimeout(timer);
+  }
+  cloudSaveTimers.clear();
+  pendingCloudSaveItems.clear();
+  lastSyncedCloudState.clear();
+  lastHistorySyncMap.clear();
+  inFlightHistorySync.clear();
+  inFlightWatchlistSync.clear();
+}
 
 /**
  * Đồng bộ hai chiều giữa LocalStorage và Supabase Cloud qua Server API
@@ -60,44 +78,55 @@ export async function syncWatchHistoryWithCloud(
 ): Promise<WatchHistoryItem[]> {
   if (!userId) return getWatchHistory();
 
+  const existingFlight = inFlightHistorySync.get(userId);
+  if (existingFlight) return existingFlight;
+
   const now = Date.now();
   const lastSync = lastHistorySyncMap.get(userId) || 0;
   if (!force && lastSync > 0 && now - lastSync < HISTORY_SYNC_THROTTLE_MS) {
     return getWatchHistory();
   }
 
-  try {
-    const headers = await getAuthHeaders();
-    if (!headers["Authorization" as keyof typeof headers]) {
-      return getWatchHistory();
-    }
+  const syncPromise = (async () => {
+    try {
+      const headers = await getAuthHeaders(userId);
+      if (!headers["Authorization" as keyof typeof headers]) {
+        return getWatchHistory();
+      }
 
-    const res = await fetch("/api/user/history", {
-      method: "GET",
-      headers,
-    });
+      const res = await fetch("/api/user/history", {
+        method: "GET",
+        headers,
+        signal: AbortSignal.timeout(8000),
+      });
 
-    if (res.ok) {
-      lastHistorySyncMap.set(userId, Date.now());
-      const json = await res.json();
-      if (json.success && Array.isArray(json.items)) {
-        if (json.items.length > 0) {
-          setWatchHistoryFromSync(json.items);
-          return getWatchHistory();
-        } else {
-          // Khi cloud history của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
-          // Đặt local history về rỗng để phân lập hoàn toàn với tài khoản trước.
-          setWatchHistoryFromSync([]);
-          return [];
+      if (res.ok) {
+        lastHistorySyncMap.set(userId, Date.now());
+        const json = await res.json();
+        if (json.success && Array.isArray(json.items)) {
+          if (json.items.length > 0) {
+            setWatchHistoryFromSync(json.items);
+            return getWatchHistory();
+          } else {
+            // Khi cloud history của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
+            // Đặt local history về rỗng để phân lập hoàn toàn với tài khoản trước.
+            setWatchHistoryFromSync([]);
+            return [];
+          }
         }
       }
-    }
 
-    return getWatchHistory();
-  } catch (err) {
-    console.warn("Lỗi sync watch history với Server API:", err);
-    return getWatchHistory();
-  }
+      return getWatchHistory();
+    } catch (err) {
+      console.warn("Lỗi sync watch history với Server API:", err);
+      return getWatchHistory();
+    } finally {
+      inFlightHistorySync.delete(userId);
+    }
+  })();
+
+  inFlightHistorySync.set(userId, syncPromise);
+  return syncPromise;
 }
 
 /**
@@ -156,7 +185,7 @@ export function saveWatchItemToCloudDebounced(
 
     (async () => {
       try {
-        const headers = await getAuthHeaders();
+        const headers = await getAuthHeaders(userId);
         if (!headers["Authorization" as keyof typeof headers]) return;
 
         const itemToSync = {
@@ -170,6 +199,7 @@ export function saveWatchItemToCloudDebounced(
           headers,
           body: JSON.stringify({ items: [itemToSync] }),
           keepalive: true,
+          signal: AbortSignal.timeout(8000),
         });
       } catch (err) {
         console.warn("Lỗi saveWatchItemToCloudDebounced (force):", err);
@@ -201,7 +231,7 @@ export function saveWatchItemToCloudDebounced(
     });
 
     try {
-      const headers = await getAuthHeaders();
+      const headers = await getAuthHeaders(userId);
       if (!headers["Authorization" as keyof typeof headers]) return;
 
       const itemToSync = {
@@ -215,6 +245,7 @@ export function saveWatchItemToCloudDebounced(
         headers,
         body: JSON.stringify({ items: [itemToSync] }),
         keepalive: true,
+        signal: AbortSignal.timeout(8000),
       });
     } catch (err) {
       console.warn("Lỗi saveWatchItemToCloudDebounced:", err);
@@ -319,45 +350,56 @@ export async function syncWatchlistWithCloud(
 ): Promise<WatchlistItem[]> {
   if (!userId) return getWatchlist();
 
-  try {
-    const headers = await getAuthHeaders();
-    if (!headers["Authorization" as keyof typeof headers]) {
-      return getWatchlist();
-    }
+  const existingFlight = inFlightWatchlistSync.get(userId);
+  if (existingFlight) return existingFlight;
 
-    const res = await fetch("/api/user/watchlist", {
-      method: "GET",
-      headers,
-    });
+  const syncPromise = (async () => {
+    try {
+      const headers = await getAuthHeaders(userId);
+      if (!headers["Authorization" as keyof typeof headers]) {
+        return getWatchlist();
+      }
 
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.items)) {
-        if (json.items.length > 0) {
-          const localList = getWatchlist();
-          const merged = mergeWatchlists(localList, json.items);
-          localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(merged));
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new Event("watchlist-updated"));
+      const res = await fetch("/api/user/watchlist", {
+        method: "GET",
+        headers,
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.items)) {
+          if (json.items.length > 0) {
+            const localList = getWatchlist();
+            const merged = mergeWatchlists(localList, json.items);
+            localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(merged));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("watchlist-updated"));
+            }
+            return merged;
+          } else {
+            // Khi cloud watchlist của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
+            // Đặt local watchlist về rỗng để phân lập hoàn toàn với tài khoản trước.
+            localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify([]));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("watchlist-updated"));
+            }
+            return [];
           }
-          return merged;
-        } else {
-          // Khi cloud watchlist của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
-          // Đặt local watchlist về rỗng để phân lập hoàn toàn với tài khoản trước.
-          localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify([]));
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new Event("watchlist-updated"));
-          }
-          return [];
         }
       }
-    }
 
-    return getWatchlist();
-  } catch (error) {
-    console.warn("Lỗi đồng bộ Danh sách yêu thích với Server API:", error);
-    return getWatchlist();
-  }
+      return getWatchlist();
+    } catch (error) {
+      console.warn("Lỗi đồng bộ Danh sách yêu thích với Server API:", error);
+      return getWatchlist();
+    } finally {
+      inFlightWatchlistSync.delete(userId);
+    }
+  })();
+
+  inFlightWatchlistSync.set(userId, syncPromise);
+  return syncPromise;
 }
 
 /**

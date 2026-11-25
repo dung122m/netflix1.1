@@ -245,6 +245,26 @@ export async function POST(req: NextRequest) {
       .eq("id", userId)
       .maybeSingle();
 
+    // Fast path cho heartbeat thời gian xem (tránh upsert đầy đủ và không ghi đè movie_comments)
+    if (isOnlyWatchTime && existing) {
+      const nextWatchMinutes = Math.max(0, body.watchTimeMinutes);
+      const { error: wtError } = await supabase
+        .from("profiles")
+        .update({
+          watch_time_minutes: nextWatchMinutes,
+          last_login_at: now,
+          updated_at: now,
+        })
+        .eq("id", userId);
+      if (wtError) {
+        return NextResponse.json({ success: false, error: wtError.message }, { status: 500 });
+      }
+      return NextResponse.json({
+        success: true,
+        profile: { ...existing, watch_time_minutes: nextWatchMinutes, last_login_at: now, updated_at: now },
+      });
+    }
+
     // 2. Xác định vai trò role: KHÔNG BAO GIỜ tin tưởng body.role từ client
     // Quyền Admin chỉ được gán nếu email nằm trong danh sách Quản trị viên server
     const userEmail = auth.email || body.email || existing?.email || "";
@@ -291,19 +311,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Đồng bộ tức thời avatar & tên mới vào các bình luận cũ của người dùng trong movie_comments
+    // Chỉ đồng bộ avatar & tên mới vào các bình luận cũ khi tên hoặc avatar thực sự thay đổi
     const finalAvatar = payload.custom_avatar || payload.photo_url || "";
+    const prevAvatar = existing?.custom_avatar || existing?.photo_url || "";
     const finalName = payload.display_name;
-    if (finalAvatar || finalName) {
+    const prevName = existing?.display_name || "";
+    if (existing && (finalAvatar !== prevAvatar || finalName !== prevName)) {
       const commentUpdates: Record<string, unknown> = {};
-      if (finalAvatar) commentUpdates.user_avatar = finalAvatar;
-      if (finalName) commentUpdates.user_name = finalName;
-      try {
-        await supabase
-          .from("movie_comments")
-          .update(commentUpdates)
-          .eq("user_id", userId);
-      } catch {}
+      if (finalAvatar && finalAvatar !== prevAvatar) commentUpdates.user_avatar = finalAvatar;
+      if (finalName && finalName !== prevName) commentUpdates.user_name = finalName;
+      if (Object.keys(commentUpdates).length > 0) {
+        try {
+          await supabase
+            .from("movie_comments")
+            .update(commentUpdates)
+            .eq("user_id", userId);
+        } catch {}
+      }
     }
 
     return NextResponse.json({ success: true, profile: payload });

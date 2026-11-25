@@ -614,7 +614,9 @@ export async function autoHydrateWatchHistory(): Promise<void> {
 
   isHydratingWatchHistory = true;
   try {
-    const res = await fetch(`/api/movies/meta?slugs=${encodeURIComponent(uniqueSlugs.join(","))}`);
+    const res = await fetch(`/api/movies/meta?slugs=${encodeURIComponent(uniqueSlugs.join(","))}`, {
+      signal: AbortSignal.timeout(8000),
+    });
     if (!res.ok) return;
 
     const data = await res.json();
@@ -748,6 +750,7 @@ export const removeWatchHistoryItem = (slug: string): void => {
 export const clearLocalWatchHistoryOnly = (): void => {
   if (typeof window === "undefined") return;
   try {
+    hydratedHistorySlugsInSession.clear();
     updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
     localStorage.removeItem(EPISODES_PROGRESS_KEY);
@@ -767,9 +770,16 @@ export const clearLocalWatchHistoryOnly = (): void => {
 export const clearWatchHistory = (): void => {
   if (typeof window === "undefined") return;
   try {
+    hydratedHistorySlugsInSession.clear();
     updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
     localStorage.removeItem(EPISODES_PROGRESS_KEY);
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("nanaflix_watched_eps_")) {
+        localStorage.removeItem(key);
+      }
+    }
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     if (auth?.currentUser) {

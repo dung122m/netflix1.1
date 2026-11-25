@@ -86,8 +86,9 @@ let memoryCachedData: CachedPayload | null = null;
 function getCachedData(expectedUid?: string): CachedPayload | null {
   if (typeof window === "undefined") return null;
   const now = Date.now();
+  const targetUid = expectedUid || null;
   if (memoryCachedData) {
-    if (!expectedUid || !memoryCachedData.uid || memoryCachedData.uid === expectedUid) {
+    if ((memoryCachedData.uid || null) === targetUid) {
       if (now - memoryCachedData.timestamp < CACHE_TTL) {
         return memoryCachedData;
       }
@@ -98,7 +99,7 @@ function getCachedData(expectedUid?: string): CachedPayload | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.items) && parsed.items.length >= 12) {
-      if (expectedUid && parsed.uid && parsed.uid !== expectedUid) {
+      if ((parsed.uid || null) !== targetUid) {
         return null;
       }
       if (parsed.timestamp && now - parsed.timestamp > CACHE_TTL) {
@@ -163,16 +164,18 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   const favoriteGenres = useMemo(() => profile?.favoriteGenres || [], [profile?.favoriteGenres]);
   const genresKey = useMemo(() => favoriteGenres.slice().sort().join(","), [favoriteGenres]);
 
-  // Nạp cache từ memory / localStorage một lần duy nhất khi client mount
+  // Nạp cache từ memory / localStorage hoặc reset về catalogFallback khi đổi tài khoản / đăng xuất
   useEffect(() => {
+    setRefreshCount(0);
     const cached = getCachedData(user?.uid);
     if (cached && cached.items.length >= 8) {
       setMovies(cached.items);
-      if (cached.context) {
-        setContextText(cached.context);
-      }
+      setContextText(cached.context || "Tuyển chọn chuẩn gu cho bạn");
+    } else {
+      setMovies(catalogFallback.slice(0, 16));
+      setContextText("Tuyển chọn chuẩn gu cho bạn");
     }
-  }, [user?.uid]);
+  }, [user?.uid, catalogFallback]);
 
   // 2. Fetch danh sách phim đề xuất chạy ở background (SWR pattern)
   const fetchRecommendations = useCallback(async (forceRefresh = false, nextSeed?: number) => {
@@ -226,18 +229,15 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${tasteProfileHash}_seed${currentSeed}`;
 
     if (typeof document !== "undefined" && document.hidden) return;
-    if (!forceRefresh && inFlightRef.current) return;
+    if (inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
 
-    // Giữ cache tối thiểu 15 phút tại Client cho người dùng đăng nhập trước khi cho phép gọi lại
-    const MIN_CLIENT_CACHE_TTL = 15 * 60 * 1000; // 15 phút
-
-    // Kiểm tra cache đã nạp trong memory (Fresh Cache Hit) - Tránh đọc localStorage/JSON.parse lần nữa
+    // Kiểm tra cache đã nạp trong memory (Fresh Cache Hit) - chỉ dùng khi đúng fingerprint của user hiện tại
     if (!forceRefresh) {
       const cached = getCachedData(user?.uid);
       if (
         cached &&
-        (cached.fingerprint === currentFingerprint || Date.now() - cached.timestamp < MIN_CLIENT_CACHE_TTL) &&
+        cached.fingerprint === currentFingerprint &&
         Date.now() - cached.timestamp < CACHE_TTL &&
         Array.isArray(cached.items) &&
         cached.items.length >= 8
@@ -249,6 +249,23 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
         setIsUpdating(false);
         return;
       }
+    }
+
+    // Khách chưa có lịch sử xem & chưa có thể loại yêu thích (không có tín hiệu cá nhân hóa):
+    // Dùng thẳng catalogFallback từ SSR để tránh bắn request /api/recommendations/for-you?seed=0 vô ích cho 100% khách vãng lai
+    if (
+      !forceRefresh &&
+      !topGenres &&
+      !topTypes &&
+      favoriteGenres.length === 0 &&
+      currentSeed === 0 &&
+      catalogFallback.length >= 8
+    ) {
+      lastFingerprintRef.current = currentFingerprint;
+      setMovies(catalogFallback.slice(0, 16));
+      setLoading(false);
+      setIsUpdating(false);
+      return;
     }
 
     inFlightRef.current = true;
@@ -343,6 +360,28 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   useEffect(() => {
     fetchRecommendations();
   }, [fetchRecommendations]);
+
+  // Tự động cập nhật ngay hàng phim gợi ý khi đăng nhập/đăng xuất hoặc đồng bộ lịch sử Cloud hoàn tất
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const handleAuthOrHistorySynced = () => {
+      if (memoryCachedData && (memoryCachedData.uid || null) !== (user?.uid || null)) {
+        memoryCachedData = null;
+      }
+      lastFingerprintRef.current = "";
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        fetchRecommendations(false);
+      }, 80);
+    };
+    window.addEventListener("nanaflix-auth-synced", handleAuthOrHistorySynced);
+    window.addEventListener("watch-history-updated", handleAuthOrHistorySynced);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("nanaflix-auth-synced", handleAuthOrHistorySynced);
+      window.removeEventListener("watch-history-updated", handleAuthOrHistorySynced);
+    };
+  }, [fetchRecommendations, user?.uid]);
 
   const handleRefreshClick = () => {
     const next = refreshCount + 1;

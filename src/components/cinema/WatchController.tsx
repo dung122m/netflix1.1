@@ -132,7 +132,7 @@ export function WatchController({
     // Tự động khớp server ưa thích đã lưu trên tài khoản (Cloud Sync)
     if (initialServers && initialServers.length > 1) {
       try {
-        const settings = getPlayerSettings();
+        const settings = getPlayerSettings(user?.uid);
         if (settings?.preferredServer) {
           const pref = settings.preferredServer.toLowerCase();
           const foundIdx = initialServers.findIndex((s) =>
@@ -208,11 +208,11 @@ export function WatchController({
   const hasInitializedHistoryRef = useRef<string | null>(null);
   const streamFetchTriedRef = useRef<Set<string>>(new Set());
 
-  // Ghi nhận lịch sử xem duy nhất 1 lần khi mount trang hoặc khởi tạo tập phim
+  // Ghi nhận lịch sử xem duy nhất 1 lần khi mount trang, đổi tập hoặc khi vừa đăng nhập tài khoản mới
   useEffect(() => {
     const currentSlug = activeEpisodeSlug || episodes[0]?.slug || "";
     if (!movieSlug || !currentSlug) return;
-    const historyKey = `${movieSlug}_${currentSlug}`;
+    const historyKey = `${user?.uid || "guest"}_${movieSlug}_${currentSlug}`;
     if (hasInitializedHistoryRef.current === historyKey) return;
     hasInitializedHistoryRef.current = historyKey;
 
@@ -233,6 +233,7 @@ export function WatchController({
       tmdbId: tmdbId ?? undefined,
     });
   }, [
+    user?.uid,
     movieSlug,
     movieTitle,
     posterUrl,

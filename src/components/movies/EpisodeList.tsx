@@ -175,20 +175,24 @@ function useEpisodeWatchData(movieSlug: string) {
 
     const handleStorageChange = (e: StorageEvent) => {
       if (
-        e.key === `nanaflix_watched_episodes_${movieSlug}` ||
+        e.key === `nanaflix_watched_eps_${movieSlug}` ||
         e.key === "nanaflix_watch_history"
       ) {
         refreshData();
       }
     };
 
-    window.addEventListener("nanaflix-watched-episodes-updated", handleWatchedUpdated);
-    window.addEventListener("nanaflix-watch-progress-updated", refreshData);
+    window.addEventListener("watched-episodes-updated", handleWatchedUpdated);
+    window.addEventListener("watch-progress-updated", refreshData);
+    window.addEventListener("watch-history-updated", refreshData);
+    window.addEventListener("nanaflix-auth-synced", refreshData);
     window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener("nanaflix-watched-episodes-updated", handleWatchedUpdated);
-      window.removeEventListener("nanaflix-watch-progress-updated", refreshData);
+      window.removeEventListener("watched-episodes-updated", handleWatchedUpdated);
+      window.removeEventListener("watch-progress-updated", refreshData);
+      window.removeEventListener("watch-history-updated", refreshData);
+      window.removeEventListener("nanaflix-auth-synced", refreshData);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [movieSlug]);

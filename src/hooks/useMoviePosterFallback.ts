@@ -50,6 +50,7 @@ export const GLOBAL_TRIED_FAILURES = initPersistentFailures();
 
 export function persistPosterCacheEntry(key: string, url: string) {
   if (typeof window === "undefined" || !key || !url) return;
+  if (GLOBAL_POSTER_CACHE.get(key) === url) return;
   try {
     GLOBAL_POSTER_CACHE.set(key, url);
     const raw = localStorage.getItem(POSTER_CACHE_KEY);
@@ -63,6 +64,7 @@ export function persistPosterCacheEntry(key: string, url: string) {
 
 export function persistFailureEntry(key: string) {
   if (typeof window === "undefined" || !key) return;
+  if (GLOBAL_TRIED_FAILURES.has(key)) return;
   try {
     GLOBAL_TRIED_FAILURES.add(key);
     const raw = sessionStorage.getItem(TRIED_FAILURES_KEY);
@@ -137,6 +139,7 @@ function processBatchQueue() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ items: itemsForFetch }),
+    signal: AbortSignal.timeout(8000),
   })
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
@@ -186,7 +189,12 @@ function processBatchQueue() {
       });
     })
     .finally(() => {
-      itemsForFetch.forEach((it) => inFlightKeys.delete(getItemKey(it)));
+      itemsForFetch.forEach((it) => {
+        const key = getItemKey(it);
+        inFlightKeys.delete(key);
+        batchCallbacks.delete(key);
+        if (it.slug) batchCallbacks.delete(it.slug);
+      });
       if (batchQueue.length > 0) {
         batchTimer = setTimeout(processBatchQueue, 500);
       }

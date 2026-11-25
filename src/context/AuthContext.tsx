@@ -50,10 +50,31 @@ function hasAuthSessionHint(): boolean {
 import {
   syncWatchHistoryWithCloud,
   syncWatchlistWithCloud,
+  cancelPendingCloudSync,
 } from "@/lib/cloudSync";
 import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
 import { clearLocalWatchlistOnly } from "@/lib/watchlist";
-import { recordUserProfile } from "@/services/userService";
+import {
+  recordUserProfile,
+  clearLocalPlayerSettings,
+  cancelPendingUserServiceTimers,
+} from "@/services/userService";
+
+function clearSessionLocalCaches(previousUid?: string | null): void {
+  cancelPendingCloudSync();
+  cancelPendingUserServiceTimers();
+  clearLocalWatchHistoryOnly();
+  clearLocalWatchlistOnly();
+  clearLocalPlayerSettings(previousUid || undefined);
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.removeItem("nanaflix_foryou_cache_v10");
+      localStorage.removeItem("nanaflix_foryou_cache_v10");
+      sessionStorage.removeItem("nanaflix_for_you_cache_v3");
+      localStorage.removeItem("nanaflix_for_you_cache_v3");
+    } catch {}
+  }
+}
 
 export interface CachedAuthUser {
   uid: string;
@@ -152,8 +173,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
+        let prevUid: string | null = getCachedAuthUser()?.uid || null;
         unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
           if (cancelled) return;
+          const nextUid = currentUser?.uid || null;
+          if ((prevUid && prevUid !== nextUid) || (!currentUser && prevUid)) {
+            clearSessionLocalCaches(prevUid);
+          }
+          prevUid = nextUid;
+
           setUser(currentUser);
           if (currentUser) {
             const cached: CachedAuthUser = {
@@ -167,6 +195,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           } else {
             setCachedUser(null);
             setCachedAuthUser(null);
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("nanaflix-auth-synced", { detail: { uid: null } })
+              );
+            }
           }
           setLoading(false);
 
@@ -217,6 +250,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 Promise.all(tasks),
                 new Promise((resolve) => setTimeout(resolve, 3000)),
               ]);
+              if (!cancelled && typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("nanaflix-auth-synced", { detail: { uid: currentUser.uid } })
+                );
+              }
             } catch (err) {
               console.warn("Lỗi tự động sync khi đăng nhập:", err);
             }
@@ -297,12 +335,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       const res = await signInWithPopup(auth, googleProvider);
       if (res.user) {
+        const cached: CachedAuthUser = {
+          uid: res.user.uid,
+          email: res.user.email,
+          displayName: res.user.displayName,
+          photoURL: res.user.photoURL,
+        };
         setUser(res.user);
-        await Promise.all([
-          syncWatchHistoryWithCloud(res.user.uid),
-          syncWatchlistWithCloud(res.user.uid),
-          recordUserProfile(res.user),
+        setCachedUser(cached);
+        setCachedAuthUser(cached);
+        try {
+          sessionStorage.setItem(`nanaflix_data_synced_${res.user.uid}`, String(Date.now()));
+          sessionStorage.setItem(`nanaflix_profile_synced_${res.user.uid}`, String(Date.now()));
+        } catch {}
+        await Promise.race([
+          Promise.all([
+            syncWatchHistoryWithCloud(res.user.uid, true),
+            syncWatchlistWithCloud(res.user.uid),
+            recordUserProfile(res.user),
+          ]),
+          new Promise((resolve) => setTimeout(resolve, 3000)),
         ]);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("nanaflix-auth-synced", { detail: { uid: res.user.uid } })
+          );
+        }
         return { success: true };
       }
       return { success: false, error: "Đăng nhập không thành công" };
@@ -328,13 +386,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const { auth, signOut } = await loadFirebaseAuth();
       if (!auth) return;
+      const prevUid = auth.currentUser?.uid || getCachedAuthUser()?.uid || null;
       await signOut(auth);
       setUser(null);
       setCachedUser(null);
       setCachedAuthUser(null);
       // Trả máy tính về trạng thái sạch cho người tiếp theo, không lo lẫn lộn tài khoản
-      clearLocalWatchHistoryOnly();
-      clearLocalWatchlistOnly();
+      clearSessionLocalCaches(prevUid);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("nanaflix-auth-synced", { detail: { uid: null } })
+        );
+      }
     } catch (err) {
       console.error("Lỗi đăng xuất:", err);
     }

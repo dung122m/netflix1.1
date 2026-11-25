@@ -34,6 +34,29 @@ const L1_CACHE = new Map<string, L1CacheEntry>();
 const MAX_L1_ENTRIES = 2500;
 const DEFAULT_L1_TTL_MS = 60 * 60 * 1000; // 60 minutes L1 RAM retention
 
+function resolveL1TtlMs(key: string, explicitMaxMs?: number): number {
+  let capMs = DEFAULT_L1_TTL_MS;
+  if (key.startsWith("football:score") || key.startsWith("live:summary")) {
+    capMs = 25_000;
+  } else if (key.startsWith("collection:") || key.startsWith("community:")) {
+    capMs = 180_000;
+  } else if (key.startsWith("live:") || key.startsWith("football:")) {
+    capMs = 300_000;
+  }
+  if (typeof explicitMaxMs === "number" && explicitMaxMs > 0) {
+    return Math.min(capMs, explicitMaxMs);
+  }
+  return capMs;
+}
+
+function setL1Bounded(key: string, value: unknown, ttlMs: number): void {
+  if (L1_CACHE.size >= MAX_L1_ENTRIES && !L1_CACHE.has(key)) {
+    const oldestKey = L1_CACHE.keys().next().value;
+    if (oldestKey) L1_CACHE.delete(oldestKey);
+  }
+  L1_CACHE.set(key, { value, expireAt: Date.now() + Math.max(1000, ttlMs) });
+}
+
 // Single-Flight Mutex: Batches concurrent requests for the same key so fetcher runs only once
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const inFlightRequests = new Map<string, Promise<any>>();
@@ -336,12 +359,8 @@ export const cacheService: CacheService = {
         if (process.env.NODE_ENV !== "production") {
           console.debug(`[Cache HIT: Redis] key="${key}"`);
         }
-        // Repopulate L1 RAM so subsequent requests on this instance take 0ms
-        if (L1_CACHE.size >= MAX_L1_ENTRIES) {
-          const oldestKey = L1_CACHE.keys().next().value;
-          if (oldestKey) L1_CACHE.delete(oldestKey);
-        }
-        L1_CACHE.set(key, { value: data, expireAt: now + DEFAULT_L1_TTL_MS });
+        // Repopulate L1 RAM so subsequent requests on this instance take 0ms (respecting short-TTL prefixes)
+        setL1Bounded(key, data, resolveL1TtlMs(key));
         return data;
       }
 
@@ -418,11 +437,7 @@ export const cacheService: CacheService = {
             const val = vals[m];
             if (val !== null && val !== undefined) {
               results[group[m].origIdx] = val;
-              if (L1_CACHE.size >= MAX_L1_ENTRIES) {
-                const oldestKey = L1_CACHE.keys().next().value;
-                if (oldestKey) L1_CACHE.delete(oldestKey);
-              }
-              L1_CACHE.set(group[m].key, { value: val, expireAt: now + DEFAULT_L1_TTL_MS });
+              setL1Bounded(group[m].key, val, resolveL1TtlMs(group[m].key));
             }
           }
         }
@@ -593,8 +608,7 @@ export const cacheService: CacheService = {
     }
     const current = (L1_CACHE.get(sanitized)?.value as number) || 0;
     const next = current + 1;
-    const expireAt = Date.now() + (ttlSeconds ? ttlSeconds * 1000 : DEFAULT_L1_TTL_MS);
-    L1_CACHE.set(sanitized, { value: next, expireAt });
+    setL1Bounded(sanitized, next, ttlSeconds ? ttlSeconds * 1000 : DEFAULT_L1_TTL_MS);
     return next;
   },
 

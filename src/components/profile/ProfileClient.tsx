@@ -137,14 +137,39 @@ export function ProfileClient() {
       setPlayerSettingsState(getPlayerSettings(activeUid));
       setUploadedAvatars(getUploadedAvatarsHistory(activeUid));
     } else if (typeof window !== "undefined") {
+      setWatchlistCount(0);
+      setWatchHistoryCount(0);
+      setCollectionsCount(0);
       setUploadedAvatars(getUploadedAvatarsHistory());
     }
   }, [activeUid, refreshStats]);
 
+  // Đồng bộ thống kê ngay khi lịch sử xem, watchlist hoặc auth cloud sync hoàn tất
+  useEffect(() => {
+    if (!activeUid) return;
+    const handleSyncRefresh = () => refreshStats();
+    window.addEventListener("watchlist-updated", handleSyncRefresh);
+    window.addEventListener("watch-history-updated", handleSyncRefresh);
+    window.addEventListener("nanaflix-auth-synced", handleSyncRefresh);
+    return () => {
+      window.removeEventListener("watchlist-updated", handleSyncRefresh);
+      window.removeEventListener("watch-history-updated", handleSyncRefresh);
+      window.removeEventListener("nanaflix-auth-synced", handleSyncRefresh);
+    };
+  }, [activeUid, refreshStats]);
+
   // Realtime Profile Listener
   useEffect(() => {
+    setProfile(null);
+    setDisplayName(user?.displayName || cachedUser?.displayName || "");
+    setBio("");
+    setFavoriteGenres([]);
+    setUserBadges([]);
+    setSelectedAvatar(user?.photoURL || cachedUser?.photoURL || "");
+    setCustomAvatarUrl("");
+    setUseCustomUrl(false);
+
     if (!activeUid) {
-      setProfile(null);
       return;
     }
     const unsub = subscribeUserProfile(activeUid, (data) => {
@@ -189,7 +214,10 @@ export function ProfileClient() {
 
   // Realtime Collections Listener
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid) {
+      setCollectionsCount(0);
+      return;
+    }
     const unsub = subscribeUserCollections(user.uid, (items) => {
       setCollectionsCount(items.length);
     });

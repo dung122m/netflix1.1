@@ -160,11 +160,6 @@ export async function getTmdbBasicMetadata(
   return null;
 }
 
-function combineTimeoutSignal(timeoutMs: number, externalSignal?: AbortSignal): AbortSignal {
-  const timeoutSignal = AbortSignal.timeout(timeoutMs);
-  return externalSignal ? AbortSignal.any([timeoutSignal, externalSignal]) : timeoutSignal;
-}
-
 function awaitWithAbort<T>(promise: Promise<T>, signal?: AbortSignal, fallback?: T): Promise<T> {
   if (!signal) return promise;
   if (signal.aborted) {
@@ -1193,7 +1188,7 @@ export async function fetchTmdbEndpoint(
 
       const res = await fetch(fullUrl, {
         headers,
-        signal: combineTimeoutSignal(3000, externalSignal),
+        signal: AbortSignal.timeout(3000),
         next: { revalidate: revalidateSeconds },
       });
       if (res.ok) {
@@ -1202,9 +1197,6 @@ export async function fetchTmdbEndpoint(
       // Server đã phản hồi HTTP (404, 400, 401, 429...) -> trả null ngay, không fallback DNS/HTTPS lặp lại
       return null;
     } catch (err: any) {
-      if (externalSignal?.aborted) {
-        return null;
-      }
       const msg = String(err?.message || "");
       const causeCode = String(err?.cause?.code || err?.code || "");
       const causeMsg = String(err?.cause?.message || "");
@@ -1225,17 +1217,13 @@ export async function fetchTmdbEndpoint(
     }
 
     // 2. Fallback sang https qua Resolved IP với Google/Cloudflare DNS (chỉ khi gặp lỗi DNS/network block)
-    if (shouldFallbackDns && !externalSignal?.aborted && typeof window === "undefined") {
+    if (shouldFallbackDns && typeof window === "undefined") {
       try {
         const httpsModule = await import("https");
-        const ip = await awaitWithAbort(
-          Promise.race([
-            resolveTmdbIp(),
-            new Promise<string>((resolve) => setTimeout(() => resolve("api.themoviedb.org"), 1500)),
-          ]),
-          externalSignal
-        );
-        if (externalSignal?.aborted) return null;
+        const ip = await Promise.race([
+          resolveTmdbIp(),
+          new Promise<string>((resolve) => setTimeout(() => resolve("api.themoviedb.org"), 1500)),
+        ]);
 
         return await new Promise((resolve, reject) => {
           const reqHeaders: Record<string, string> = {
@@ -1261,7 +1249,6 @@ export async function fetchTmdbEndpoint(
               let body = "";
               res.on("data", (chunk: any) => (body += chunk));
               res.on("end", () => {
-                cleanupAbort();
                 try {
                   if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
                     resolve(JSON.parse(body));
@@ -1275,23 +1262,10 @@ export async function fetchTmdbEndpoint(
             }
           );
 
-          const onAbort = () => {
-            req.destroy();
-            reject(externalSignal?.reason ?? new DOMException("Aborted", "AbortError"));
-          };
-          const cleanupAbort = () => {
-            externalSignal?.removeEventListener("abort", onAbort);
-          };
-          if (externalSignal) {
-            externalSignal.addEventListener("abort", onAbort, { once: true });
-          }
-
           req.on("error", (err: any) => {
-            cleanupAbort();
             reject(err);
           });
           req.setTimeout(2500, () => {
-            cleanupAbort();
             req.destroy();
             reject(new Error("TMDB HTTPS request timeout"));
           });
@@ -1303,12 +1277,11 @@ export async function fetchTmdbEndpoint(
     return null;
   })();
 
-  inFlightTmdbEndpoint.set(endpointPath, task);
-  try {
-    return await task;
-  } finally {
+  const sharedTask = task.finally(() => {
     inFlightTmdbEndpoint.delete(endpointPath);
-  }
+  });
+  inFlightTmdbEndpoint.set(endpointPath, sharedTask);
+  return awaitWithAbort(sharedTask, externalSignal, null);
 }
 
 // =========================================================================

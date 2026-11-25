@@ -21,6 +21,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const FOR_YOU_L1_CACHE = new Map<string, { data: any; expireAt: number }>();
 export const L1_TTL_MS = 15 * 60 * 1000;
+const FOR_YOU_IN_FLIGHT = new Map<string, Promise<RecommendationResult>>();
 
 export const CATEGORY_MAP: Record<string, { slug: string; name: string }> = Object.fromEntries(
   DEFAULT_GENRES.map((g) => [g.slug, g])
@@ -475,6 +476,13 @@ export async function generateForYouRecommendations(
     if (l1Cached && l1Cached.expireAt > Date.now()) {
       return l1Cached.data as RecommendationResult;
     }
+
+    const existingFlight = FOR_YOU_IN_FLIGHT.get(kvForYouKey);
+    if (existingFlight) {
+      return existingFlight;
+    }
+
+    const computePromise = (async (): Promise<RecommendationResult> => {
 
     // 1. Thử lấy từ L2 Redis Cache
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -989,10 +997,10 @@ export async function generateForYouRecommendations(
 
     // Nạp sẵn poster TMDb từ RAM/Redis cache vào danh sách gợi ý
     if (selectedFinalMovies.length > 0) {
-      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 2500, stripProxyUrls: true });
+      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 800, stripProxyUrls: true });
     }
 
-    // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s) CHỈ KHI ĐẠT ĐỦ >= 14 PHIM
+    // 8. LƯU VÀO CACHE VỚI TTL 6 GIỜ (21600s) CHỈ KHI ĐẠT ĐỦ >= 14 PHIM
     if (selectedFinalMovies.length >= 14) {
       cacheService.set(
         kvForYouKey,
@@ -1000,7 +1008,7 @@ export async function generateForYouRecommendations(
           context: matchContext,
           movies: selectedFinalMovies,
         },
-        7200
+        21600
       ).catch(() => {});
     }
 
@@ -1013,6 +1021,14 @@ export async function generateForYouRecommendations(
     setBoundedMap(FOR_YOU_L1_CACHE, kvForYouKey, { data: finalPayload, expireAt: Date.now() + L1_TTL_MS }, 500);
 
     return finalPayload;
+    })();
+
+    FOR_YOU_IN_FLIGHT.set(kvForYouKey, computePromise);
+    try {
+      return await computePromise;
+    } finally {
+      FOR_YOU_IN_FLIGHT.delete(kvForYouKey);
+    }
   } catch (err) {
     console.error("[generateForYouRecommendations] Error:", err);
     return { success: false, context: "Tuyển chọn chuẩn gu cho bạn", items: [] };

@@ -129,6 +129,7 @@ export const Footer: React.FC = () => {
               <li>
                 <Link
                   href="/about"
+                  prefetch={false}
                   className="hover:text-white transition-colors block truncate text-zinc-300 font-medium"
                 >
                   Giới thiệu Nanaflix
@@ -137,6 +138,7 @@ export const Footer: React.FC = () => {
               <li>
                 <Link
                   href="/faq"
+                  prefetch={false}
                   className="hover:text-white transition-colors block truncate"
                 >
                   Hỏi & Đáp (FAQ)
@@ -145,6 +147,7 @@ export const Footer: React.FC = () => {
               <li>
                 <Link
                   href="/privacy"
+                  prefetch={false}
                   className="hover:text-white transition-colors block truncate"
                 >
                   Bảo mật & Riêng tư
@@ -153,6 +156,7 @@ export const Footer: React.FC = () => {
               <li>
                 <Link
                   href="/terms"
+                  prefetch={false}
                   className="hover:text-white transition-colors block truncate"
                 >
                   Điều khoản & DMCA
@@ -161,6 +165,7 @@ export const Footer: React.FC = () => {
               <li>
                 <Link
                   href="/about#contact"
+                  prefetch={false}
                   className="hover:text-white transition-colors block truncate"
                 >
                   Trợ giúp & Báo lỗi
@@ -177,30 +182,35 @@ export const Footer: React.FC = () => {
           <div className="max-w-[320px] mx-auto grid grid-cols-2 gap-x-6 gap-y-3 text-xs text-center">
             <Link
               href="/about"
+              prefetch={false}
               className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1"
             >
               Giới thiệu Nanaflix
             </Link>
             <Link
               href="/faq"
+              prefetch={false}
               className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1"
             >
               Hỏi & Đáp (FAQ)
             </Link>
             <Link
               href="/privacy"
+              prefetch={false}
               className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1"
             >
               Bảo mật & Riêng tư
             </Link>
             <Link
               href="/terms"
+              prefetch={false}
               className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1"
             >
               Điều khoản & DMCA
             </Link>
             <Link
               href="/collection"
+              prefetch={false}
               className="text-zinc-400 hover:text-white active:text-netflix-red transition-colors block truncate py-1"
             >
               Bộ sưu tập phim

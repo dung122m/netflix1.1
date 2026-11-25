@@ -48,6 +48,7 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/profile?userId=${encodeURIComponent(userId)}`, {
         cache: "no-store",
+        signal: AbortSignal.timeout(8000),
       });
       if (res.ok) {
         const data = await res.json();
@@ -62,6 +63,7 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
             bio: d.bio,
             favoriteGenres: d.favoriteGenres || [],
             badges: d.badges || [],
+            playerSettings: d.playerSettings || undefined,
             watchTimeMinutes: Number(d.watchTimeMinutes) || 0,
             role: d.role || "member",
             isCommentRestricted: Boolean(d.isCommentRestricted),

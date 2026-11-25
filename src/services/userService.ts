@@ -27,7 +27,34 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
 
 const PLAYER_SETTINGS_STORAGE_KEY = "nanaflix_player_settings";
 let playerSettingsSyncTimer: NodeJS.Timeout | null = null;
-let pendingPlayerSettingsSync: PlayerSettings | null = null;
+let pendingPlayerSettingsSync: { userId: string; settings: PlayerSettings } | null = null;
+const inFlightRecordProfile = new Map<string, Promise<void>>();
+
+function getPlayerSettingsStorageKey(userId?: string): string {
+  return userId ? `${PLAYER_SETTINGS_STORAGE_KEY}_${userId}` : PLAYER_SETTINGS_STORAGE_KEY;
+}
+
+export function clearLocalPlayerSettings(userId?: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(PLAYER_SETTINGS_STORAGE_KEY);
+    if (userId) {
+      localStorage.removeItem(getPlayerSettingsStorageKey(userId));
+    }
+  } catch {}
+}
+
+export function cancelPendingUserServiceTimers(): void {
+  if (playerSettingsSyncTimer) {
+    clearTimeout(playerSettingsSyncTimer);
+    playerSettingsSyncTimer = null;
+  }
+  pendingPlayerSettingsSync = null;
+  for (const timer of watchTimeSaveTimers.values()) {
+    clearTimeout(timer);
+  }
+  watchTimeSaveTimers.clear();
+}
 
 /**
  * Lấy cài đặt trình phát video (kết hợp LocalStorage và Cloud Profile)
@@ -40,6 +67,11 @@ export function getPlayerSettings(userId?: string): PlayerSettings {
       if (profile?.playerSettings && Object.keys(profile.playerSettings).length > 0) {
         return { ...DEFAULT_PLAYER_SETTINGS, ...profile.playerSettings };
       }
+      const scopedRaw = localStorage.getItem(getPlayerSettingsStorageKey(userId));
+      if (scopedRaw) {
+        return { ...DEFAULT_PLAYER_SETTINGS, ...JSON.parse(scopedRaw) };
+      }
+      return DEFAULT_PLAYER_SETTINGS;
     }
     const raw = localStorage.getItem(PLAYER_SETTINGS_STORAGE_KEY);
     if (raw) {
@@ -61,7 +93,7 @@ export async function updatePlayerSettings(
 
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem(PLAYER_SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(getPlayerSettingsStorageKey(userId), JSON.stringify(updated));
     } catch {}
   }
 
@@ -74,16 +106,19 @@ export async function updatePlayerSettings(
       });
     }
 
-    pendingPlayerSettingsSync = updated;
+    pendingPlayerSettingsSync = { userId, settings: updated };
     if (playerSettingsSyncTimer) {
       clearTimeout(playerSettingsSyncTimer);
     }
     playerSettingsSyncTimer = setTimeout(async () => {
       playerSettingsSyncTimer = null;
-      const settingsToSync = pendingPlayerSettingsSync || updated;
+      const pending = pendingPlayerSettingsSync;
+      pendingPlayerSettingsSync = null;
+      if (!pending || pending.userId !== userId) return;
       try {
         const { auth } = await import("@/lib/firebase");
-        const token = await auth?.currentUser?.getIdToken().catch(() => null);
+        if (auth?.currentUser?.uid !== userId) return;
+        const token = await auth.currentUser.getIdToken().catch(() => null);
         if (token) {
           fetch("/api/user/profile", {
             method: "POST",
@@ -91,7 +126,8 @@ export async function updatePlayerSettings(
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ playerSettings: settingsToSync }),
+            body: JSON.stringify({ playerSettings: pending.settings }),
+            signal: AbortSignal.timeout(8000),
           }).catch(() => {});
         }
       } catch {}
@@ -163,8 +199,11 @@ export function setCachedUserProfile(userId: string, profile: Partial<UserProfil
  */
 export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
   if (!user || !user.uid) return;
+  const existingFlight = inFlightRecordProfile.get(user.uid);
+  if (existingFlight) return existingFlight;
 
-  try {
+  const task = (async () => {
+    try {
     const now = Date.now();
     const isAdmin = isUserAdmin(user.email);
     const cached = getCachedUserProfile(user.uid);
@@ -221,7 +260,7 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
       remoteProfile?.watchTimeMinutes ?? cached?.watchTimeMinutes ?? 0
     );
 
-    const localPlayerSettings = getPlayerSettings();
+    const localPlayerSettings = getPlayerSettings(user.uid);
     const mergedPlayerSettings = remoteProfile?.playerSettings || cached?.playerSettings || localPlayerSettings;
 
     const profileData: Partial<UserProfile> & { uid: string } = {
@@ -241,10 +280,10 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
       watchTimeMinutes: currentWatchMins,
     };
 
-    // Đồng bộ vào localStorage để CinemaPlayer đọc được tức thì
+    // Đồng bộ vào localStorage (theo đúng uid) để CinemaPlayer đọc được tức thì
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem(PLAYER_SETTINGS_STORAGE_KEY, JSON.stringify(mergedPlayerSettings));
+        localStorage.setItem(getPlayerSettingsStorageKey(user.uid), JSON.stringify(mergedPlayerSettings));
         window.dispatchEvent(
           new CustomEvent("player-settings-updated", { detail: { settings: mergedPlayerSettings } })
         );
@@ -258,7 +297,8 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
     // Lưu qua Server API có xác thực Firebase Token
     try {
       const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken().catch(() => null);
+      if (auth?.currentUser?.uid !== user.uid) return;
+      const token = await auth.currentUser.getIdToken().catch(() => null);
       if (token) {
         await fetch("/api/user/profile", {
           method: "POST",
@@ -267,14 +307,21 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(profileData),
+          signal: AbortSignal.timeout(8000),
         });
       }
     } catch (err) {
       console.warn("Lỗi lưu thông tin người dùng qua API:", err);
     }
-  } catch (err) {
-    console.warn("Lỗi lưu thông tin người dùng:", err);
-  }
+    } catch (err) {
+      console.warn("Lỗi lưu thông tin người dùng:", err);
+    } finally {
+      inFlightRecordProfile.delete(user.uid);
+    }
+  })();
+
+  inFlightRecordProfile.set(user.uid, task);
+  return task;
 }
 
 /**
@@ -519,6 +566,8 @@ export function subscribeUserProfile(
             }
             setCachedUserProfile(userId, profile);
             onUpdate(profile);
+          } else if (!profile && !isUnsubscribed && !getCachedUserProfile(userId)) {
+            onUpdate(null);
           }
         })
         .catch(() => {});
@@ -705,7 +754,8 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
       watchTimeSaveTimers.delete(userId);
       try {
         const { auth } = await import("@/lib/firebase");
-        const token = await auth?.currentUser?.getIdToken().catch(() => null);
+        if (auth?.currentUser?.uid !== userId) return;
+        const token = await auth.currentUser.getIdToken().catch(() => null);
         if (token) {
           await fetch("/api/user/profile", {
             method: "POST",
@@ -714,6 +764,7 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ watchTimeMinutes: newMins }),
+            signal: AbortSignal.timeout(8000),
           });
         } else if (isSupabaseConfigured()) {
           updateUserProfileSupabase(userId, { watchTimeMinutes: newMins }).catch(() => {});
