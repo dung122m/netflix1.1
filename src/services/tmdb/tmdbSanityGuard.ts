@@ -213,12 +213,16 @@ export function isTmdbPayloadMatchingMovie(
 
   // Nếu tiêu đề hoàn toàn không có sự tương đồng:
   if (!hasOverlap) {
-    // 1. Cả hai bên đều có tiêu đề tiếng Việt nhưng không có từ tố nào trùng nhau
-    // (như "Bình Minh Đỏ" bị gán nhầm sang "Những Đứa Trẻ Trong Sương" cùng năm 2022)
-    const hasVietnameseMovieTitle = movieTitles.some((t) => VIETNAMESE_DIACRITICS_REGEX.test(t));
-    const hasVietnameseTmdbTitle = tmdbTitles.some((t) => VIETNAMESE_DIACRITICS_REGEX.test(t));
-    if (hasVietnameseMovieTitle && hasVietnameseTmdbTitle) {
-      return false;
+    // 1. Với phim không rõ quốc gia nước ngoài (hoặc phim nội địa), nếu cả hai bên đều có tiêu đề tiếng Việt
+    // nhưng không có từ tố nào trùng nhau -> từ chối (như "Bình Minh Đỏ" vs "Những Đứa Trẻ Trong Sương" cùng năm 2022).
+    // Với phim nước ngoài rõ ràng (hasForeignCountry) cùng năm (diff <= 2), 2 nhà dịch có thể đặt tên Việt khác nhau
+    // (vd: "Đảo Hỏa Tuyến" vs "Ngòi Nổ" cho cùng Flash Point 2007) -> KHÔNG từ chối oan.
+    if (!hasForeignCountry) {
+      const hasVietnameseMovieTitle = movieTitles.some((t) => VIETNAMESE_DIACRITICS_REGEX.test(t));
+      const hasVietnameseTmdbTitle = tmdbTitles.some((t) => VIETNAMESE_DIACRITICS_REGEX.test(t));
+      if (hasVietnameseMovieTitle && hasVietnameseTmdbTitle) {
+        return false;
+      }
     }
 
     // 2. Nếu không xác định được năm (hoặc chênh lệch năm) và tiêu đề hoàn toàn không liên quan

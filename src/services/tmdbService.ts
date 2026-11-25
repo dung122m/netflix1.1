@@ -252,6 +252,7 @@ export async function getTmdbMediaImagesById(
         backdropUrl: redisHit.backdropUrl ?? null,
         title: redisHit.title ?? null,
         originalTitle: redisHit.originalTitle ?? null,
+        altTitles: redisHit.altTitles,
         releaseDate: redisHit.releaseDate ?? null,
         expireAt: Date.now() + (redisHit.posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
       });
@@ -742,10 +743,10 @@ export async function getTmdbMovieLogo(
     30 * 86400 // 30 ngày trên Upstash KV
   );
 
-  TMDB_LOGO_CACHE.set(cacheKey, {
+  setBoundedMap(TMDB_LOGO_CACHE, cacheKey, {
     url: logoUrl,
     expireAt: now + (logoUrl ? 24 * 3600 * 1000 : 3600 * 1000),
-  });
+  }, 1500);
 
   return logoUrl;
 }
@@ -802,10 +803,10 @@ export async function getTmdbTrailerUrl(
     7 * 86400 // 7 ngày trên Upstash KV
   );
 
-  TMDB_TRAILER_CACHE.set(cacheKey, {
+  setBoundedMap(TMDB_TRAILER_CACHE, cacheKey, {
     url: trailerUrl,
     expireAt: now + (trailerUrl ? 24 * 3600 * 1000 : 3600 * 1000),
-  });
+  }, 1500);
 
   return trailerUrl;
 }
@@ -905,10 +906,10 @@ export async function getTmdbReviews(
     14 * 86400 // 14 ngày
   );
 
-  TMDB_REVIEWS_CACHE.set(cacheKey, {
+  setBoundedMap(TMDB_REVIEWS_CACHE, cacheKey, {
     data: reviews || [],
     expireAt: now + 24 * 3600 * 1000,
-  });
+  }, 1000);
 
   return reviews || [];
 }
@@ -1010,10 +1011,10 @@ export async function getTmdbMovieCredits(
     30 * 86400 // 30 ngày trên Upstash KV
   );
 
-  TMDB_CAST_CACHE.set(cacheKey, {
+  setBoundedMap(TMDB_CAST_CACHE, cacheKey, {
     data: castList || [],
     expireAt: now + 24 * 3600 * 1000,
-  });
+  }, 1500);
 
   return castList || [];
 }
@@ -1119,10 +1120,10 @@ export async function getTmdbMovieRecommendations(
     14 * 86400 // 14 ngày trên Upstash KV
   );
 
-  TMDB_RECOMMENDATIONS_CACHE.set(cacheKey, {
+  setBoundedMap(TMDB_RECOMMENDATIONS_CACHE, cacheKey, {
     data: matchedMovies || [],
     expireAt: now + 24 * 3600 * 1000,
-  });
+  }, 1500);
 
   const list = matchedMovies || [];
   return filterExcludes(list);

@@ -31,7 +31,7 @@ export async function getTmdbRankedMovies(
   limit = 20,
   concurrency = 8
 ): Promise<any[]> {
-  const cacheKey = `TMDB_RANKED_${type}_V8`;
+  const cacheKey = `TMDB_RANKED_${type}_${limit}_V8`;
   const now = Date.now();
   const cached = TMDB_TRENDING_MOVIES_CACHE.get(cacheKey);
 
@@ -66,11 +66,11 @@ export async function getTmdbRankedMovies(
 
 // Backward-compatible alias
 export async function getTmdbTrendingMovies(
-  timeWindow: "day" | "week" = "week",
+  _timeWindow: "day" | "week" = "week",
   limit = 20,
   concurrency = 8
 ): Promise<any[]> {
-  return getTmdbRankedMovies(timeWindow === "day" ? "week" : "week", limit, concurrency);
+  return getTmdbRankedMovies("week", limit, concurrency);
 }
 
 /**

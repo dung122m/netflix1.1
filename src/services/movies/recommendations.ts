@@ -672,14 +672,21 @@ export function unpackRecommendationsPayload(raw: any): RecommendationsData {
   return raw;
 }
 
+import { setBoundedMap } from "@/lib/boundedMap";
+
 function storeRecommendationsL1(cacheKey: string, data: RecommendationsData): void {
   if (data && data.success && Array.isArray(data.allMovies) && data.allMovies.length > 0) {
     const now = Date.now();
-    recommendationsL1Cache.set(cacheKey, {
-      data,
-      expireAt: now + 30 * 60 * 1000,
-      staleUntil: now + 4 * 3600 * 1000,
-    });
+    setBoundedMap(
+      recommendationsL1Cache,
+      cacheKey,
+      {
+        data,
+        expireAt: now + 30 * 60 * 1000,
+        staleUntil: now + 4 * 3600 * 1000,
+      },
+      800
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 import { stripTrailingDanglingHeadings } from "@/lib/bioFormatter";
 import { cacheService } from "@/lib/cache";
+import { setBoundedMap } from "@/lib/boundedMap";
 
 export interface ActorProfile {
   name: string;
@@ -277,11 +278,11 @@ export async function fetchActorProfile(
     const redisCached = await cacheService.get<ActorProfile | { _isNull: boolean }>(kvKey);
     if (redisCached) {
       if ("_isNull" in redisCached && redisCached._isNull) {
-        wikiCache.set(cleanName, null);
+        setBoundedMap(wikiCache, cleanName, null, 1000);
         return null;
       }
       const profile = redisCached as ActorProfile;
-      wikiCache.set(cleanName, profile);
+      setBoundedMap(wikiCache, cleanName, profile, 1000);
       return profile;
     }
   } catch {}
@@ -300,7 +301,7 @@ export async function fetchActorProfile(
 
       const found = summaryVi || summaryEn;
       if (found) {
-        wikiCache.set(cleanName, found);
+        setBoundedMap(wikiCache, cleanName, found, 1000);
         cacheService.set(kvKey, found, WIKI_TTL_SECONDS).catch(() => {});
         return found;
       }
@@ -317,7 +318,7 @@ export async function fetchActorProfile(
       const validDisambiguation = disambiguationResults.find(Boolean);
 
       if (validDisambiguation) {
-        wikiCache.set(cleanName, validDisambiguation);
+        setBoundedMap(wikiCache, cleanName, validDisambiguation, 1000);
         cacheService.set(kvKey, validDisambiguation, WIKI_TTL_SECONDS).catch(() => {});
         return validDisambiguation;
       }
@@ -326,7 +327,7 @@ export async function fetchActorProfile(
     }
   }
 
-  wikiCache.set(cleanName, null);
+  setBoundedMap(wikiCache, cleanName, null, 1000);
   // Negative cache lưu tại RAM L1 wikiCache để tránh tiêu tốn lệnh Redis SET của DB3
   return null;
 }

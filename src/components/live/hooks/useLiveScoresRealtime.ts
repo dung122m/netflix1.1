@@ -259,7 +259,7 @@ export function useLiveScoresRealtime({
     // - Khi đang mở Player xem trận đấu (isTheaterMode): giãn ra 90s vì trận đang xem đã được MatchCenter cập nhật riêng, tiết kiệm tối đa CPU Vercel.
     // Khi hôm nay có trận giải lớn nhưng CHƯA ĐÁ / ĐÃ XONG: polling 60s để nhận diện ngay khi bóng lăn.
     // Khi hôm nay HOÀN TOÀN KHÔNG CÓ trận giải lớn nào: TẮT HẲN polling (null).
-    const livePollInterval = isTheaterMode ? 30_000 : 30_000;
+    const livePollInterval = isTheaterMode ? 90_000 : 30_000;
     const pollIntervalMs = hasActiveScoreboardMatches
       ? livePollInterval
       : hasScoreboardMatchesToday

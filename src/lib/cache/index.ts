@@ -62,6 +62,21 @@ const writeBurstCounters: Record<RedisPurpose, { count: number; windowStart: num
 };
 
 /**
+ * Core catalog & poster keys that bypass the per-instance write burst shield.
+ * Non-poster tmdb:* and aux movie:* keys (recommendations, synopsis) remain protected.
+ */
+function isCoreCatalogCacheKey(key: string): boolean {
+  return (
+    key.startsWith("movie:list:") ||
+    key.startsWith("movie:detail:") ||
+    key.startsWith("movie:stream:") ||
+    key.startsWith("tmdb:images:") ||
+    key.startsWith("tmdb:poster:") ||
+    key.startsWith("tmdb:fallback_poster:")
+  );
+}
+
+/**
  * Evaluate and track per-instance write burst limits for a target Redis DB.
  */
 function shouldShieldRedisWrite(purpose: RedisPurpose, now: number): boolean {
@@ -446,7 +461,7 @@ export const cacheService: CacheService = {
 
     // 2. Kiểm tra Circuit Breaker cho cả DB 1, DB 2 & DB 3: Chống cháy quota khi có bot quét bão dữ liệu
     // Dữ liệu cốt lõi (catalog phim, chi tiết phim, poster TMDb) luôn được ưu tiên lưu bền vững vào Redis
-    const isCoreCatalogKey = key.startsWith("movie:") || key.startsWith("tmdb:");
+    const isCoreCatalogKey = isCoreCatalogCacheKey(key);
     const purpose = getRedisPurposeForKey(key);
     if (!isCoreCatalogKey && shouldShieldRedisWrite(purpose, now)) {
       if (process.env.NODE_ENV !== "production") {
@@ -504,7 +519,7 @@ export const cacheService: CacheService = {
       });
 
       // 2. Queue in corresponding Redis pipeline (with per-DB write burst shield)
-      const isCoreCatalogKey = key.startsWith("movie:") || key.startsWith("tmdb:");
+      const isCoreCatalogKey = isCoreCatalogCacheKey(key);
       const purpose = getRedisPurposeForKey(key);
       if (!isCoreCatalogKey && shouldShieldRedisWrite(purpose, now)) {
         continue; // Lưu an toàn trong L1 RAM, bỏ qua queue pipeline khi vượt ngưỡng ghi

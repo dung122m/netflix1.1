@@ -30,7 +30,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     let isFresh = false;
     // 1. Thử đọc nhanh từ localStorage (0ms) nếu TmdbTopTrending hoặc phiên trước đã lưu
     try {
-      const rawCache = localStorage.getItem("nanaflix_tmdb_ranking_cache_v8");
+      const rawCache = localStorage.getItem("nanaflix_ranking_cache_v8");
       if (rawCache) {
         const parsed = JSON.parse(rawCache);
         if (Array.isArray(parsed?.week) && parsed.week.length >= 3) {

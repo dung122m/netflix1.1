@@ -71,7 +71,13 @@ export async function GET(req: NextRequest) {
     const cacheKey = `search:suggest:v4:${normKw}`;
     const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
     if (cached && Array.isArray(cached.items) && cached.items.length > 0) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, {
+        headers: {
+          "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
+          "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      });
     }
 
     // Tra cứu nhanh nghệ sĩ từ bộ dữ liệu Historical Artists O(1) (0ms)

@@ -176,7 +176,7 @@ function useEpisodeWatchData(movieSlug: string) {
     const handleStorageChange = (e: StorageEvent) => {
       if (
         e.key === `nanaflix_watched_episodes_${movieSlug}` ||
-        e.key === "nanaflix_history_v1"
+        e.key === "nanaflix_watch_history"
       ) {
         refreshData();
       }

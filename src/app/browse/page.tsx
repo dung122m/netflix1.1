@@ -5,7 +5,6 @@ import { FilterBarClient } from "@/components/browse/FilterBarClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Film, ChevronRight } from "lucide-react";
-import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
 import { searchTmdbPerson } from "@/services/tmdb/personService";
 import { movieApi, parseSortMode } from "@/services/movies/service";
 import { executeSmartSearch } from "@/services/movies/smartSearchService";
@@ -16,7 +15,6 @@ import {
   resolveActorMovies,
   queryMoviesByActor,
   getActorSynonyms,
-  GOLDEN_ACTOR_INDEX,
   hasExplicitActorPrefix,
   isAmbiguousShortActorKeyword,
   cleanActorQuery,
@@ -34,6 +32,7 @@ import {
   getCanonicalCountrySlug,
   isRawId,
   extractMovieModifiedTime,
+  pruneMovieForClient,
   } from "@/lib/movieMedia";
 import { slugify } from "@/lib/stringUtils";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
@@ -156,16 +155,7 @@ function parsePositivePage(rawPage?: string): number {
 
 function isKnownActorName(query: string): boolean {
   const normalizedQuery = cleanNormalizedForMatch(query);
-  return (
-    Boolean(normalizedQuery) &&
-    (GOLDEN_ACTOR_INDEX.some(
-      (profile) =>
-        cleanNormalizedForMatch(profile.name) === normalizedQuery ||
-        profile.aliases.some((alias) => cleanNormalizedForMatch(alias) === normalizedQuery)
-    ) ||
-      getActorSynonyms(query).isMatched ||
-      Boolean(findHistoricalArtist(query)))
-  );
+  return Boolean(normalizedQuery) && getActorSynonyms(query).isMatched;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -209,18 +199,9 @@ async function runActorSearch(options: ActorSearchOptions) {
     ...(actorResult.aliases || []),
     ...(actorParam ? [actorParam] : []),
   ])).filter(Boolean);
-  const matchedPreset = GOLDEN_ACTOR_INDEX.find(
-    (p) => cleanNormalizedForMatch(p.name) === cleanNormalizedForMatch(canonicalName)
-  );
-  if (matchedPreset) actorAliases.push(...matchedPreset.aliases);
 
-  const historicalArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
-  if (historicalArtist?.aliases) {
-    actorAliases.push(...historicalArtist.aliases);
-  }
-
-  const tmdbId = actorResult.tmdbPersonId || historicalArtist?.tmdbPersonId;
-  const actorCountry = actorResult.country || actorSynonyms?.country || matchedPreset?.country || historicalArtist?.country;
+  const tmdbId = actorResult.tmdbPersonId;
+  const actorCountry = actorResult.country || actorSynonyms?.country;
   const actorMovies = await queryMoviesByActor(canonicalName, actorAliases, actorCountry, 150, tmdbId);
   let filteredActorMovies = actorMovies;
 
@@ -320,9 +301,8 @@ async function runActorSearch(options: ActorSearchOptions) {
   const totalItems = filteredActorMovies.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
   const startIndex = (currentPage - 1) * pageLimit;
-  const histArtist = findHistoricalArtist(canonicalName) || (actorParam ? findHistoricalArtist(actorParam) : undefined);
-  let bestAvatar = (actorResult as any)?.avatarUrl || histArtist?.avatarUrl;
-  let resolvedPersonId = (actorResult as any)?.tmdbPersonId || histArtist?.tmdbPersonId;
+  let bestAvatar = (actorResult as any)?.avatarUrl;
+  let resolvedPersonId = (actorResult as any)?.tmdbPersonId;
 
   if (!bestAvatar || !resolvedPersonId) {
     try {
@@ -338,12 +318,12 @@ async function runActorSearch(options: ActorSearchOptions) {
     } catch {}
   }
 
-  const displayActorName = toVietnameseTitleCase(histArtist?.name || canonicalName);
+  const displayActorName = toVietnameseTitleCase(canonicalName);
   return {
     actor: {
       name: displayActorName,
-      englishName: histArtist?.englishName || actorSynonyms?.englishName,
-      country: histArtist?.country || actorCountry,
+      englishName: actorSynonyms?.englishName,
+      country: actorCountry,
       avatarUrl: bestAvatar,
       tmdbPersonId: resolvedPersonId,
     },
@@ -448,71 +428,96 @@ export default async function BrowsePage({
   // Explicit actor routes are intentional. Keyword searches always go through the title search first.
   const targetActorQuery = actorParam ? actorParam.trim() : undefined;
   const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
-  const historicalArtist = targetActorQuery ? (findHistoricalArtist(targetActorQuery) || findHistoricalArtist(cleanActorQuery(targetActorQuery))) : undefined;
-  const actorRes = targetActorQuery
-    ? actorSynonyms?.isMatched
-      ? { actorName: actorSynonyms.canonicalName, country: actorSynonyms.country, aliases: actorSynonyms.variants, isActor: true, tmdbPersonId: historicalArtist?.tmdbPersonId, source: "preset" as const }
-      : await resolveActorMovies(targetActorQuery)
-    : null;
+  let actorRes = null;
+  if (targetActorQuery) {
+    try {
+      actorRes = actorSynonyms?.isMatched
+        ? { actorName: actorSynonyms.canonicalName, country: actorSynonyms.country, aliases: actorSynonyms.variants, isActor: true, source: "preset" as const }
+        : await resolveActorMovies(targetActorQuery);
+    } catch (err) {
+      console.error("[BrowsePage] resolveActorMovies error:", err);
+      actorRes = null;
+    }
+  }
 
   if (actorRes && (actorRes.isActor || actorParam || actorSynonyms?.isMatched)) {
-    const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
-    if (actorSearch) {
-      if (actorSearch.movies.length > 0 || (actorParam && Boolean(actorSearch.actor.avatarUrl))) {
-        const rawActorName = historicalArtist?.name || (actorSynonyms?.isMatched ? actorSynonyms.canonicalName : "") || actorSearch.actor.name;
-        const actorSlug = (historicalArtist?.slug || (actorSynonyms?.isMatched ? actorSynonyms.slug : "") || slugify(rawActorName))
-          .toLowerCase()
-          .replace(/^-+|-+$/g, "");
-        const personId = actorSearch.actor.tmdbPersonId || actorRes?.tmdbPersonId || historicalArtist?.tmdbPersonId;
-        const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
-        detectedActor = {
-          ...actorSearch.actor,
-          href: actorHref,
-        };
+    try {
+      const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
+      if (actorSearch) {
+        if (actorSearch.movies.length > 0 || (actorParam && Boolean(actorSearch.actor.avatarUrl))) {
+          const rawActorName = (actorSynonyms?.isMatched ? actorSynonyms.canonicalName : "") || actorSearch.actor.name;
+          const actorSlug = ((actorSynonyms?.isMatched ? actorSynonyms.slug : "") || slugify(rawActorName))
+            .toLowerCase()
+            .replace(/^-+|-+$/g, "");
+          const personId = actorSearch.actor.tmdbPersonId || actorRes?.tmdbPersonId;
+          const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
+          detectedActor = {
+            ...actorSearch.actor,
+            href: actorHref,
+          };
+        }
+        movies = actorSearch.movies;
+        totalItems = actorSearch.totalItems;
+        totalPages = actorSearch.totalPages;
       }
-      movies = actorSearch.movies;
-      totalItems = actorSearch.totalItems;
-      totalPages = actorSearch.totalPages;
+    } catch (err) {
+      console.error("[BrowsePage] runActorSearch error:", err);
     }
   } else if (keyword) {
     // 2A. TÌM KIẾM THÔNG MINH 3 TẦNG (100% ZERO-AI, ZERO-HARDCODE)
     // Tầng 1: Smart Filter Tokenizer -> Tầng 2: Direct Search & Slug Normalization -> Tầng 3: TMDb & Typo Tolerance
-    const smartSearchRes = await executeSmartSearch({
-      query: keyword,
-      page: currentPage,
-      limit: PAGE_LIMIT,
-      sort: effectiveSort,
-      category,
-      country,
-      year,
-      type,
-    });
+    try {
+      const smartSearchRes = await executeSmartSearch({
+        query: keyword,
+        page: currentPage,
+        limit: PAGE_LIMIT,
+        sort: effectiveSort,
+        category,
+        country,
+        year,
+        type,
+      });
 
-    movies = smartSearchRes.items;
-    if (movies.length > 0) {
-      await enrichMovieListPosters(movies, { budgetMs: 400, stripProxyUrls: true });
+      movies = smartSearchRes.items;
+      if (movies.length > 0) {
+        await enrichMovieListPosters(movies, { budgetMs: 400, stripProxyUrls: true });
+      }
+      upstreamMovies = movies;
+      totalPages = smartSearchRes.totalPages;
+      totalItems = smartSearchRes.totalItems;
+      correctedQuery = smartSearchRes.correctedQuery;
+    } catch (err) {
+      console.error("[BrowsePage] executeSmartSearch error:", err);
+      movies = [];
+      upstreamMovies = [];
+      totalPages = 1;
+      totalItems = 0;
     }
-    upstreamMovies = movies;
-    totalPages = smartSearchRes.totalPages;
-    totalItems = smartSearchRes.totalItems;
-    correctedQuery = smartSearchRes.correctedQuery;
   } else {
     // 2B. DUYỆT THEO DANH MỤC / QUỐC GIA / NĂM (CATALOG BROWSING)
-    const response = await movieApi.getMovies({
-      category,
-      country,
-      year,
-      page: currentPage,
-      limit: PAGE_LIMIT,
-      type,
-      sort: effectiveSort,
-      posterEnrichmentBudgetMs: 1800,
-    });
+    try {
+      const response = await movieApi.getMovies({
+        category,
+        country,
+        year,
+        page: currentPage,
+        limit: PAGE_LIMIT,
+        type,
+        sort: effectiveSort,
+        posterEnrichmentBudgetMs: 1800,
+      });
 
-    upstreamMovies = response?.items || [];
-    movies = upstreamMovies;
-    totalPages = response?.pagination?.totalPages || 1;
-    totalItems = response?.pagination?.totalItems || movies.length;
+      upstreamMovies = response?.items || [];
+      movies = upstreamMovies;
+      totalPages = response?.pagination?.totalPages || 1;
+      totalItems = response?.pagination?.totalItems || movies.length;
+    } catch (err) {
+      console.error("[BrowsePage] movieApi.getMovies error:", err);
+      upstreamMovies = [];
+      movies = [];
+      totalPages = 1;
+      totalItems = 0;
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -535,73 +540,70 @@ export default async function BrowsePage({
     !actorParam &&
     !isAmbiguousShortActorKeyword(keyword)
   ) {
-    const actorKeyword = hasExplicitActorPrefix(keyword) ? cleanActorQuery(keyword) : keyword;
-    const fallbackSynonyms = getActorSynonyms(actorKeyword);
-    const historicalArtist = findHistoricalArtist(actorKeyword) || findHistoricalArtist(cleanActorQuery(actorKeyword));
-    const fallbackResult = fallbackSynonyms.isMatched
-      ? {
-          actorName: fallbackSynonyms.canonicalName,
-          country: fallbackSynonyms.country,
-          aliases: fallbackSynonyms.variants,
-          isActor: true,
-          tmdbPersonId: historicalArtist?.tmdbPersonId,
-          source: "preset" as const,
-        }
-      : historicalArtist
-      ? {
-          actorName: historicalArtist.name,
-          englishName: historicalArtist.englishName,
-          country: historicalArtist.country,
-          aliases: historicalArtist.aliases,
-          isActor: true,
-          tmdbPersonId: historicalArtist.tmdbPersonId,
-          source: "preset" as const,
-        }
-      : await resolveActorMovies(actorKeyword);
-    if (fallbackResult.isActor) {
-      const actorSearch = await runActorSearch({
-        actorResult: fallbackResult,
-        actorSynonyms: fallbackSynonyms,
-        category,
-        country,
-        year,
-        type,
-        sort,
-        currentPage,
-        pageLimit: PAGE_LIMIT,
-      });
-      if (actorSearch) {
-        if (
-          actorSearch.movies.length > 0 ||
-          (hasExplicitActorPrefix(keyword) && Boolean(actorSearch.actor.avatarUrl)) ||
-          !hasSuitableTitleResults
-        ) {
-          const rawActorName = historicalArtist?.name || (fallbackSynonyms?.isMatched ? fallbackSynonyms.canonicalName : "") || actorSearch.actor.name;
-          const actorSlug = (historicalArtist?.slug || (fallbackSynonyms?.isMatched ? fallbackSynonyms.slug : "") || slugify(rawActorName))
-            .toLowerCase()
-            .replace(/^-+|-+$/g, "");
-          const personId = actorSearch.actor.tmdbPersonId || fallbackResult?.tmdbPersonId || historicalArtist?.tmdbPersonId;
-          const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
-          detectedActor = {
-            ...actorSearch.actor,
-            href: actorHref,
-          };
-          movies = actorSearch.movies;
-          totalItems = actorSearch.totalItems;
-          totalPages = actorSearch.totalPages;
+    try {
+      const actorKeyword = hasExplicitActorPrefix(keyword) ? cleanActorQuery(keyword) : keyword;
+      const fallbackSynonyms = getActorSynonyms(actorKeyword);
+      const fallbackResult = fallbackSynonyms.isMatched
+        ? {
+            actorName: fallbackSynonyms.canonicalName,
+            country: fallbackSynonyms.country,
+            aliases: fallbackSynonyms.variants,
+            isActor: true,
+            source: "preset" as const,
+          }
+        : await resolveActorMovies(actorKeyword);
+      if (fallbackResult.isActor) {
+        const actorSearch = await runActorSearch({
+          actorResult: fallbackResult,
+          actorSynonyms: fallbackSynonyms,
+          category,
+          country,
+          year,
+          type,
+          sort,
+          currentPage,
+          pageLimit: PAGE_LIMIT,
+        });
+        if (actorSearch) {
+          if (
+            actorSearch.movies.length > 0 ||
+            (hasExplicitActorPrefix(keyword) && Boolean(actorSearch.actor.avatarUrl)) ||
+            !hasSuitableTitleResults
+          ) {
+            const rawActorName = (fallbackSynonyms?.isMatched ? fallbackSynonyms.canonicalName : "") || actorSearch.actor.name;
+            const actorSlug = ((fallbackSynonyms?.isMatched ? fallbackSynonyms.slug : "") || slugify(rawActorName))
+              .toLowerCase()
+              .replace(/^-+|-+$/g, "");
+            const personId = actorSearch.actor.tmdbPersonId || fallbackResult?.tmdbPersonId;
+            const actorHref = personId ? `/dien-vien/${personId}-${actorSlug}` : (actorSlug ? `/dien-vien/${actorSlug}` : undefined);
+            detectedActor = {
+              ...actorSearch.actor,
+              href: actorHref,
+            };
+            movies = actorSearch.movies;
+            totalItems = actorSearch.totalItems;
+            totalPages = actorSearch.totalPages;
+          }
         }
       }
+    } catch (err) {
+      console.error("[BrowsePage] fallback actor search error:", err);
     }
   }
 
   const pages = getPaginationPages(currentPage, totalPages);
 
   if (movies.length === 0 && (keyword || actorParam)) {
-    const fallbackRes = await movieApi.getMovies({ limit: 24, sort: "views", posterEnrichmentBudgetMs: 0 });
-    const rawFallback = fallbackRes?.items || [];
-    // Đảm bảo số lượng phim tròn hàng trên lưới 6 cột (12 hoặc 18 phim), tuyệt đối không bị khuyết ô trống
-    const count = Math.floor(rawFallback.length / 6) * 6;
-    fallbackMovies = rawFallback.slice(0, count >= 12 ? Math.min(count, 18) : 12);
+    try {
+      const fallbackRes = await movieApi.getMovies({ limit: 24, sort: "views", posterEnrichmentBudgetMs: 0 });
+      const rawFallback = fallbackRes?.items || [];
+      // Đảm bảo số lượng phim tròn hàng trên lưới 6 cột (12 hoặc 18 phim), tuyệt đối không bị khuyết ô trống
+      const count = Math.floor(rawFallback.length / 6) * 6;
+      fallbackMovies = rawFallback.slice(0, count >= 12 ? Math.min(count, 18) : 12);
+    } catch (err) {
+      console.error("[BrowsePage] fallback popular movies error:", err);
+      fallbackMovies = [];
+    }
   }
 
   let title = "Kho Phim";
@@ -773,7 +775,7 @@ export default async function BrowsePage({
 
         {movies.length > 0 ? (
           <>
-            <MovieGrid movies={movies} />
+            <MovieGrid movies={movies.map((m) => pruneMovieForClient(m))} />
 
             {/* THANH PHÂN TRANG CHUẨN GỌN GÀNG */}
             <PaginationControl
@@ -815,7 +817,7 @@ export default async function BrowsePage({
                     Phim Thịnh Hành
                   </h3>
                 </div>
-                <MovieGrid movies={fallbackMovies} />
+                <MovieGrid movies={fallbackMovies.map((m) => pruneMovieForClient(m))} />
               </div>
             )}
           </div>

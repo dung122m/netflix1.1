@@ -139,8 +139,10 @@ export async function GET(req: NextRequest) {
       if (!auth.isAuthenticated || !auth.isAdmin) {
         return NextResponse.json({ error: "Forbidden: Yêu cầu quyền Quản trị viên" }, { status: 403 });
       }
-      const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-      const limit = Math.max(1, Math.min(300, parseInt(searchParams.get("limit") || "200", 10)));
+      const parsedPage = Number.parseInt(searchParams.get("page") || "1", 10);
+      const parsedLimit = Number.parseInt(searchParams.get("limit") || "200", 10);
+      const page = Math.max(1, Number.isFinite(parsedPage) ? parsedPage : 1);
+      const limit = Math.max(1, Math.min(300, Number.isFinite(parsedLimit) ? parsedLimit : 200));
       const offset = (page - 1) * limit;
 
       const { data, count, error } = await supabase
@@ -231,15 +233,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const id = body.id;
-    const name = body.name;
-    const description = body.description;
-    const isPublic = body.isPublic !== undefined ? body.isPublic : (body.is_public !== undefined ? body.is_public : true);
-    const colorGradient = body.colorGradient || body.color_gradient || null;
-    const coverUrl = body.coverUrl || body.cover_url || null;
-    const movies = sanitizeAndDeduplicateMovies(body.movies);
-    const clientCreatedAt = body.createdAt || body.created_at;
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const safeBody = (body || {}) as Record<string, unknown>;
+    const id = safeBody.id as string | undefined;
+    const name = safeBody.name;
+    const description = safeBody.description as string | undefined;
+    const isPublic = safeBody.isPublic !== undefined ? safeBody.isPublic : (safeBody.is_public !== undefined ? safeBody.is_public : true);
+    const colorGradient = safeBody.colorGradient || safeBody.color_gradient || null;
+    const coverUrl = safeBody.coverUrl || safeBody.cover_url || null;
+    const movies = sanitizeAndDeduplicateMovies(safeBody.movies);
+    const clientCreatedAt = safeBody.createdAt || safeBody.created_at;
 
     if (!name || typeof name !== "string") {
       return NextResponse.json({ error: "Tên bộ sưu tập không được để trống" }, { status: 400 });

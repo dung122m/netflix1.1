@@ -9,6 +9,8 @@ import { UserNotification } from "@/types/notification";
 // 1. HỒ SƠ NGƯỜI DÙNG (PROFILES)
 // ============================================================================
 
+import { setBoundedMap } from "@/lib/boundedMap";
+
 // In-memory micro-cache for user profiles (TTL 5 phút) để triệt tiêu request trùng lặp khi điều hướng trang
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 const profileMemoryCache = new Map<string, { data: UserProfile; expiry: number }>();
@@ -23,7 +25,7 @@ export function invalidateUserProfileCache(userId: string): void {
 
 export function setProfileMemoryCache(userId: string, profile: UserProfile): void {
   if (!userId || !profile) return;
-  profileMemoryCache.set(userId, { data: profile, expiry: Date.now() + PROFILE_CACHE_TTL_MS });
+  setBoundedMap(profileMemoryCache, userId, { data: profile, expiry: Date.now() + PROFILE_CACHE_TTL_MS }, 500);
   inFlightProfilePromises.delete(userId);
 }
 
@@ -68,7 +70,7 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
             updatedAt: Number(d.updatedAt) || Date.now(),
           };
 
-          profileMemoryCache.set(userId, { data: profile, expiry: Date.now() + PROFILE_CACHE_TTL_MS });
+          setBoundedMap(profileMemoryCache, userId, { data: profile, expiry: Date.now() + PROFILE_CACHE_TTL_MS }, 500);
           return profile;
         }
       }

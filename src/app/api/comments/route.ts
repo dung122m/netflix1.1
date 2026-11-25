@@ -168,8 +168,10 @@ export async function GET(req: NextRequest) {
     let page = 1;
     let limit = 100;
     if (isPaginated) {
-      page = Math.max(1, parseInt(pageParam || "1", 10));
-      limit = Math.max(1, Math.min(300, parseInt(limitParam || "20", 10)));
+      const parsedPage = Number.parseInt(pageParam || "1", 10);
+      const parsedLimit = Number.parseInt(limitParam || "20", 10);
+      page = Math.max(1, Number.isFinite(parsedPage) ? parsedPage : 1);
+      limit = Math.max(1, Math.min(300, Number.isFinite(parsedLimit) ? parsedLimit : 20));
       const offset = (page - 1) * limit;
       query = query.range(offset, offset + limit - 1);
     } else if (!movieSlug && !parentId && !userId && all !== "true") {
@@ -588,8 +590,20 @@ export async function PUT(req: NextRequest) {
       return buildRateLimitResponse(rateLimit);
     }
 
-    const body = await req.json();
-    const { commentId, rating, content, isSpoiler, episodeSlug, episodeName } = body;
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const { commentId, rating, content, isSpoiler, episodeSlug, episodeName } = (body || {}) as {
+      commentId?: string;
+      rating?: number | string | null;
+      content?: string;
+      isSpoiler?: boolean;
+      episodeSlug?: string;
+      episodeName?: string;
+    };
     if (!commentId) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }

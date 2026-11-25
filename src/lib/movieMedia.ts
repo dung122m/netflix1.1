@@ -1533,3 +1533,81 @@ export function normalizeMovie(m: any): NormalizedMovie {
     raw: m,
   };
 }
+
+/**
+ * Rút gọn danh sách category/country trước khi serialize sang Client Component.
+ */
+export function pruneTaxonomyList(raw: unknown): Array<{ name: string; slug?: string }> | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw
+    .map((item) => {
+      if (typeof item === "string") return { name: item };
+      if (item && typeof item === "object" && "name" in item) {
+        const typed = item as { name?: unknown; slug?: unknown };
+        if (typeof typed.name === "string" && typed.name) {
+          return typed.slug && typeof typed.slug === "string"
+            ? { name: typed.name, slug: typed.slug }
+            : { name: typed.name };
+        }
+      }
+      return null;
+    })
+    .filter((v): v is { name: string; slug?: string } => v !== null);
+}
+
+/**
+ * Rút gọn dữ liệu phim trước khi serialize sang Client Component để giảm kích thước HTML/RSC payload & CPU Vercel.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function pruneMovieForClient<T extends Record<string, any>>(movie: T, includeHeroFields = false): T {
+  if (!movie || typeof movie !== "object") return movie;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pruned: Record<string, any> = {
+    _id: movie._id,
+    slug: movie.slug,
+    name: movie.name,
+    title: movie.title,
+    origin_name: movie.origin_name,
+    poster_url: movie.poster_url,
+    posterUrl: movie.posterUrl,
+    poster_url_webp: movie.poster_url_webp,
+    poster_path: movie.poster_path,
+    thumb_url: movie.thumb_url,
+    thumbUrl: movie.thumbUrl,
+    thumb_url_webp: movie.thumb_url_webp,
+    imageUrl: movie.imageUrl,
+    year: movie.year,
+    quality: movie.quality,
+    lang: movie.lang,
+    time: movie.time,
+    type: movie.type,
+    itemType: movie.itemType,
+    episode_current: movie.episode_current,
+    episode_total: movie.episode_total,
+    tmdbId: movie.tmdbId,
+    tmdb: movie.tmdb,
+    score: movie.score,
+    category: pruneTaxonomyList(movie.category),
+    country: pruneTaxonomyList(movie.country),
+  };
+
+  if (includeHeroFields) {
+    pruned.backdrop_url = movie.backdrop_url;
+    pruned.backdropUrl = movie.backdropUrl;
+    pruned.banner_url = movie.banner_url;
+    pruned.bannerUrl = movie.bannerUrl;
+    pruned.backdrop_path = movie.backdrop_path;
+    pruned.backdropPath = movie.backdropPath;
+    pruned.status = movie.status;
+    pruned.trailer_url = movie.trailer_url;
+    pruned.isTrending = movie.isTrending;
+    if (typeof movie.content === "string" && movie.content) {
+      pruned.content = movie.content.slice(0, 420);
+    }
+    if (typeof movie.description === "string" && movie.description) {
+      pruned.description = movie.description.slice(0, 420);
+    }
+  }
+
+  return pruned as T;
+}

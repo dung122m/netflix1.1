@@ -184,6 +184,14 @@ export async function enrichMovieListPosters(movieList: any[], options: PosterEn
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     movieList.map(async (item: any) => {
       if (!item) return;
+      if (
+        item.poster_url &&
+        String(item.poster_url).includes("image.tmdb.org") &&
+        !shouldUpgradeThumbUrl(item.thumb_url)
+      ) {
+        settledItems.add(item);
+        return;
+      }
       if (signal.aborted) {
         finalizeFallback(item);
         return;

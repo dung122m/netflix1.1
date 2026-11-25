@@ -40,7 +40,8 @@ export async function GET(req: NextRequest) {
   try {
     const targetUserId = getEffectiveTargetUserId(auth, req) || auth.userId;
 
-    const limit = Math.max(1, Math.min(200, parseInt(req.nextUrl.searchParams.get("limit") || "200", 10)));
+    const parsedLimit = Number.parseInt(req.nextUrl.searchParams.get("limit") || "200", 10);
+    const limit = Math.max(1, Math.min(200, Number.isFinite(parsedLimit) ? parsedLimit : 200));
     const { data, error } = await supabase
       .from("watchlist")
       .select("slug, title, poster, year, quality, category, added_at")

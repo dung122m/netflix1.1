@@ -159,6 +159,23 @@ describe("TMDb Sanity Guard & Anti-Corruption Suite", () => {
         release_date: "2026-03-06",
       };
       assert.strictEqual(isTmdbPayloadMatchingMovie(tmdbHoppers, hoppers), true);
+
+      // 4. Ngoại phim rõ quốc gia có 2 bản dịch tiếng Việt khác nhau nhưng cùng năm & tmdbId chuẩn
+      // (vd: "Đảo Hỏa Tuyến" vs TMDb "Ngòi Nổ" cùng năm 2007 cho Flash Point)
+      const daoHoaTuyen = {
+        name: "Đảo Hỏa Tuyến",
+        origin_name: "Flash Point",
+        year: 2007,
+        country: "Hồng Kông",
+        slug: "dao-hoa-tuyen",
+      };
+      const tmdbFlashPoint = {
+        id: 35854,
+        title: "Ngòi Nổ",
+        original_title: "導火線",
+        release_date: "2007-07-26",
+      };
+      assert.strictEqual(isTmdbPayloadMatchingMovie(tmdbFlashPoint, daoHoaTuyen), true);
     });
 
     it("Accepts legitimate title variations (sequel numbers, roman numerals, vowel variants) within same year", () => {

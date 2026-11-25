@@ -1,5 +1,6 @@
 import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movies/service";
+import { setBoundedMap } from "@/lib/boundedMap";
 import { cacheService } from "@/lib/cache";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 
@@ -512,7 +513,7 @@ export async function generateForYouRecommendations(
           items: filtered.slice(0, 36),
           cached: true,
         };
-        FOR_YOU_L1_CACHE.set(kvForYouKey, { data: payload, expireAt: Date.now() + L1_TTL_MS });
+        setBoundedMap(FOR_YOU_L1_CACHE, kvForYouKey, { data: payload, expireAt: Date.now() + L1_TTL_MS }, 500);
         return payload;
       }
     }
@@ -1006,7 +1007,7 @@ export async function generateForYouRecommendations(
 
     // Nạp sẵn poster TMDb từ RAM/Redis cache vào danh sách gợi ý
     if (selectedFinalMovies.length > 0) {
-      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 1500, stripProxyUrls: true });
+      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 2500, stripProxyUrls: true });
     }
 
     // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s) CHỈ KHI ĐẠT ĐỦ >= 14 PHIM
@@ -1027,7 +1028,7 @@ export async function generateForYouRecommendations(
       items: selectedFinalMovies,
       cached: false,
     };
-    FOR_YOU_L1_CACHE.set(kvForYouKey, { data: finalPayload, expireAt: Date.now() + L1_TTL_MS });
+    setBoundedMap(FOR_YOU_L1_CACHE, kvForYouKey, { data: finalPayload, expireAt: Date.now() + L1_TTL_MS }, 500);
 
     return finalPayload;
   } catch (err) {

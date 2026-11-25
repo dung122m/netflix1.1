@@ -22,7 +22,12 @@ export async function POST(req: NextRequest) {
       return buildRateLimitResponse(rateLimit, "Too many record view requests. Please try again later.");
     }
 
-    const body = await req.json();
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 });
+    }
     const {
       slug,
       title,
@@ -32,7 +37,16 @@ export async function POST(req: NextRequest) {
       quality,
       category,
       anonymousId: bodyAnonId,
-    } = body || {};
+    } = (body || {}) as {
+      slug?: string;
+      title?: string;
+      poster?: string;
+      thumb?: string;
+      year?: string | number;
+      quality?: string;
+      category?: string;
+      anonymousId?: string;
+    };
 
     if (!slug || typeof slug !== "string") {
       return NextResponse.json({ success: false, error: "Thiếu slug phim" }, { status: 400 });
