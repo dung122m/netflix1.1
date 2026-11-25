@@ -273,6 +273,7 @@ export function useMoviePosterFallback({
   year,
   type,
   initialSrc,
+  enabled = true,
   tmdbId,
 }: UseMoviePosterFallbackOptions): {
   displaySrc: string;
@@ -317,6 +318,21 @@ export function useMoviePosterFallback({
       setDisplaySrc(next);
     }
   }, [resolveCurrent]);
+
+  // Nâng cấp sang TMDb qua batch debounce (chỉ chạy khi chưa có ảnh an toàn, tránh hot-swap nháy UI)
+  useEffect(() => {
+    if (!enabled || displaySrc || (!slug && !title)) return;
+    enqueuePosterBatchFallback(
+      { slug, title, origin_name, year, type, tmdbId: cleanTmdbId || undefined },
+      (resolvedUrl) => {
+        if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
+          const optimized = toOptimizedCardPosterUrl(resolvedUrl);
+          prevResolvedRef.current = optimized;
+          setDisplaySrc(optimized);
+        }
+      }
+    );
+  }, [enabled, displaySrc, slug, title, origin_name, year, type, cleanTmdbId]);
 
   const triggerFallback = useCallback(() => {
     if (cacheKey) persistFailureEntry(cacheKey);

@@ -485,7 +485,7 @@ export async function generateForYouRecommendations(
     }
 
     const pageOffset = (seed % 4) + 1;
-    const kvForYouKey = `foryou:taste:v9:${tasteHash}:p${pageOffset}`;
+    const kvForYouKey = `foryou:taste:v10:${tasteHash}:p${pageOffset}`;
 
     // 0. Thử lấy từ L1 In-Memory RAM Cache (0ms, 0 Redis calls, 0 CPU)
     const l1Cached = FOR_YOU_L1_CACHE.get(kvForYouKey);
@@ -1006,7 +1006,7 @@ export async function generateForYouRecommendations(
 
     // Nạp sẵn poster TMDb từ RAM/Redis cache vào danh sách gợi ý
     if (selectedFinalMovies.length > 0) {
-      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 400, stripProxyUrls: true });
+      await enrichMovieListPosters(selectedFinalMovies, { budgetMs: 1500, stripProxyUrls: true });
     }
 
     // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s) CHỈ KHI ĐẠT ĐỦ >= 14 PHIM

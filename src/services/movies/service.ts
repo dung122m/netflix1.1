@@ -9,6 +9,7 @@ import {
   extractMovieRatingScore,
   extractMovieModifiedTime,
   evaluateSearchRelevance,
+  isSlowProviderSourceUrl,
 } from "@/lib/movieMedia";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 import { DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/data/movies/taxonomy";
@@ -669,7 +670,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   return payload;
 }
 
-export const MOVIE_CACHE_VERSION = 25;
+export const MOVIE_CACHE_VERSION = 26;
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
@@ -709,6 +710,17 @@ export const movieApi = {
     const now = Date.now();
     if (moviesMemoryCache.has(cacheKey)) {
       const entry = moviesMemoryCache.get(cacheKey)!;
+      if (
+        params.posterEnrichmentBudgetMs &&
+        params.posterEnrichmentBudgetMs > 0 &&
+        Array.isArray(entry.data?.items) &&
+        entry.data.items.some((it: { poster_url?: string }) => isSlowProviderSourceUrl(it?.poster_url))
+      ) {
+        await enrichMovieListPosters(entry.data.items, {
+          budgetMs: Math.min(params.posterEnrichmentBudgetMs, 1500),
+          stripProxyUrls: true,
+        }).catch(() => {});
+      }
       // Trả về dữ liệu ngay lập tức nếu cache còn tươi
       if (entry.expireAt > now) {
         return sanitizeMovieImages(entry.data);
@@ -768,7 +780,11 @@ export const movieApi = {
 
         if (res) {
           if (Array.isArray(res.items) && res.items.length > 0) {
-            await enrichMovieListPosters(res.items, { budgetMs: 0, stripProxyUrls: true }).catch(() => {});
+            const hitBudget =
+              params.posterEnrichmentBudgetMs && params.posterEnrichmentBudgetMs > 0
+                ? Math.min(params.posterEnrichmentBudgetMs, 1500)
+                : 0;
+            await enrichMovieListPosters(res.items, { budgetMs: hitBudget, stripProxyUrls: true }).catch(() => {});
           }
           // Nạp ngay vào L1 RAM cache để các request kế tiếp trên instance này lấy trong 0ms (0 Redis GETs)
           moviesMemoryCache.set(cacheKey, {

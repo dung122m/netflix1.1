@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { cacheService } from "@/lib/cache";
+import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
+import { isSlowProviderSourceUrl } from "@/lib/movieMedia";
 
 export const VIETNAM_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -144,7 +146,36 @@ export async function getTopTrendingCommunitySupabase(
   try {
     const cached = await cacheService.get<MovieViewStatItem[]>(summaryCacheKey);
     if (cached && Array.isArray(cached) && cached.length > 0) {
-      return cached.slice(0, safeLimit);
+      const slice = cached.slice(0, safeLimit);
+      const hasSlowPoster = slice.some((it) => isSlowProviderSourceUrl(it.poster));
+      if (hasSlowPoster) {
+        const enrichPayload = slice.map((it) => ({
+          slug: it.movieSlug,
+          name: it.movieTitle,
+          poster_url: it.poster,
+          thumb_url: it.thumb,
+          year: it.year,
+        }));
+        await enrichMovieListPosters(enrichPayload, { budgetMs: 1200, stripProxyUrls: true }).catch(() => {});
+        let changed = false;
+        for (let i = 0; i < slice.length; i++) {
+          const ep = enrichPayload[i];
+          if (ep?.poster_url && String(ep.poster_url).includes("image.tmdb.org")) {
+            slice[i] = {
+              ...slice[i],
+              poster: String(ep.poster_url),
+              thumb: ep.thumb_url && String(ep.thumb_url).includes("image.tmdb.org")
+                ? String(ep.thumb_url)
+                : String(ep.poster_url),
+            };
+            changed = true;
+          }
+        }
+        if (changed) {
+          cacheService.set(summaryCacheKey, slice, 3600).catch(() => {});
+        }
+      }
+      return slice;
     }
   } catch (err) {
     console.warn("[getTopTrendingCommunitySupabase] Cache read warning:", err);
@@ -242,7 +273,32 @@ async function resolveTrendingCommunityInternal(
       return b.lastViewedAt - a.lastViewedAt;
     });
 
-    return items.slice(0, limit);
+    const topItems = items.slice(0, limit);
+    try {
+      const enrichPayload = topItems.map((it) => ({
+        slug: it.movieSlug,
+        name: it.movieTitle,
+        poster_url: it.poster,
+        thumb_url: it.thumb,
+        year: it.year,
+      }));
+      await enrichMovieListPosters(enrichPayload, { budgetMs: 1800, stripProxyUrls: true });
+      for (let i = 0; i < topItems.length; i++) {
+        const enriched = enrichPayload[i];
+        if (enriched?.poster_url && String(enriched.poster_url).includes("image.tmdb.org")) {
+          topItems[i].poster = String(enriched.poster_url);
+        }
+        if (enriched?.thumb_url && String(enriched.thumb_url).includes("image.tmdb.org")) {
+          topItems[i].thumb = String(enriched.thumb_url);
+        } else if (topItems[i].poster.includes("image.tmdb.org")) {
+          topItems[i].thumb = topItems[i].poster;
+        }
+      }
+    } catch {
+      // Giữ nguyên danh sách nếu enrich tạm thời thất bại
+    }
+
+    return topItems;
   } catch (err) {
     console.warn("[resolveTrendingCommunityInternal] Error:", err);
     return [];

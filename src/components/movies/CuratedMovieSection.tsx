@@ -56,7 +56,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
   },
 ];
 
-const LOCAL_STORAGE_KEY = "nanaflix_curated_movies_v5";
+const LOCAL_STORAGE_KEY = "nanaflix_curated_movies_v6";
 const STORAGE_TTL_MS = 2 * 60 * 60 * 1000; // 2 giờ trong localStorage
 
 interface CuratedMovieSectionProps {

@@ -354,7 +354,7 @@ export const CinemaIframeOrFallbackStage: React.FC<
     return (
       <div className="w-full h-full flex flex-col items-center justify-center relative">
         <Image
-          src={toFastCdnImageUrl(toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl)}
+          src={toFastCdnImageUrl(toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl) || "/default-hero.jpg"}
           alt={title}
           fill
           unoptimized

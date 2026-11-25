@@ -506,7 +506,7 @@ export default async function BrowsePage({
       limit: PAGE_LIMIT,
       type,
       sort: effectiveSort,
-      posterEnrichmentBudgetMs: 400,
+      posterEnrichmentBudgetMs: 1800,
     });
 
     upstreamMovies = response?.items || [];

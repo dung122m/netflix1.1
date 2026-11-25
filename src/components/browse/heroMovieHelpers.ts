@@ -157,9 +157,9 @@ export function computeHeroMovieMeta(
 
   // Giữ targetWidth w1280 ổn định giữa SSR và client hydration
   const targetWidth = "w1280";
-  const heroImageSrc =
+  const resolvedHeroSrc =
     !featuredMovie || (currentSlug && failedHeroImages[currentSlug])
-      ? "/default-hero.jpg"
+      ? ""
       : toFastCdnImageUrl(
           toHighResBackdropUrl(
             pickHeroBackdropImage(
@@ -170,6 +170,7 @@ export function computeHeroMovieMeta(
             targetWidth,
           ),
         );
+  const heroImageSrc = resolvedHeroSrc || "/default-hero.jpg";
 
   return {
     title,

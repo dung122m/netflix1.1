@@ -264,7 +264,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         { slug, title, origin_name, year, tmdbId, type: itemType },
         (resolvedUrl) => {
           if (resolvedUrl && resolvedUrl.includes("image.tmdb.org")) {
-            setCurrentSrc(resolvedUrl);
+            setCurrentSrc(toOptimizedCardPosterUrl(resolvedUrl));
             setHasError(false);
           }
         }

@@ -150,7 +150,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           <div className="relative w-10 h-13 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={toFastCdnImageUrl(toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg")}
+              src={toFastCdnImageUrl(toOptimizedCardPosterUrl(movie.poster, 192)) || "/default-poster.jpg"}
               alt={movie.title}
               className="w-full h-full object-cover"
             />
