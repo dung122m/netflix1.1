@@ -760,8 +760,7 @@ export default async function BrowsePage({
                 )}
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 text-xs md:text-sm text-zinc-200 shadow-sm">
-                  <Film className="w-3.5 h-3.5 text-netflix-red" />
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/[0.08] px-3.5 py-1.5 text-xs md:text-sm text-zinc-200 font-sans tabular-nums">
                   <span>{totalItems.toLocaleString("vi-VN")} phim</span>
                   <span className="text-white/40">•</span>
                   <span>Trang {currentPage}</span>

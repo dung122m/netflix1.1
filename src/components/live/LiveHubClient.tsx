@@ -165,6 +165,7 @@ export function LiveHubClient({ footballData, tvData: initialTvData, initialScor
       }`}
     >
       {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR (Cụm 2 nút Thể thao / Truyền hình tinh gọn) */}
+      <h1 className="sr-only">Trực tiếp Thể thao &amp; Truyền hình TV HD</h1>
       {!isSportsCinema || isTvCinema ? (
         <header className="flex items-center justify-start py-1 sm:py-2">
           {/* CỤM CHUYỂN ĐỔI TAB (THỂ THAO / TRUYỀN HÌNH) - Dàn đều 2 cột cân đối 100% trên mobile */}

@@ -3,13 +3,8 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
-  Bookmark,
   Trash2,
-  Clock,
-  FolderHeart,
   Plus,
-  MessageSquare,
-  Users,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -309,19 +304,7 @@ function MyListContent() {
                 : "Bộ sưu tập của tôi",
           },
         ]}
-        icon={
-          activeTab === "watchlist" ? (
-            <Bookmark className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red fill-current" />
-          ) : activeTab === "history" ? (
-            <Clock className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
-          ) : activeTab === "comments" ? (
-            <MessageSquare className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
-          ) : activeTab === "actors" ? (
-            <Users className="h-7 w-7 sm:h-8 sm:w-8 text-rose-500" />
-          ) : (
-            <FolderHeart className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
-          )
-        }
+        icon={undefined}
         title={
           activeTab === "watchlist"
             ? "Danh sách của tôi"
@@ -434,36 +417,26 @@ function MyListContent() {
           {
             id: "watchlist",
             label: "Yêu thích",
-            icon: Bookmark,
-            iconColor: "text-netflix-red",
             count: mounted ? watchlist.length : 0,
           },
           {
             id: "history",
             label: "Lịch sử xem",
-            icon: Clock,
-            iconColor: "text-amber-400",
             count: mounted ? history.length : 0,
           },
           {
             id: "collections",
             label: "Bộ sưu tập",
-            icon: FolderHeart,
-            iconColor: "text-pink-400",
             count: mounted && user ? collections.length : 0,
           },
           {
             id: "comments",
             label: "Bình luận",
-            icon: MessageSquare,
-            iconColor: "text-netflix-red",
             count: mounted && user ? userComments.length : 0,
           },
           {
             id: "actors",
             label: "Diễn viên",
-            icon: Users,
-            iconColor: "text-rose-400",
             count: mounted ? favoriteActors.length : 0,
           },
         ]}

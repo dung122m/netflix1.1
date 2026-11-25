@@ -161,7 +161,7 @@ export function MovieInfoHeaderAndToolbar({
             <TrailerModal
               trailerUrl={effectiveTrailerUrl}
               title={title}
-              triggerClassName="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900 text-zinc-200 hover:bg-zinc-800 hover:text-white px-2.5 sm:px-3.5 py-2 sm:py-1.5 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap"
+              triggerClassName="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-full sm:rounded-xl bg-zinc-900 text-zinc-200 hover:bg-zinc-800 hover:text-white px-3 sm:px-3.5 py-2 sm:py-1.5 text-xs sm:text-sm font-medium transition-all active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap"
             />
           )}
 
@@ -175,7 +175,7 @@ export function MovieInfoHeaderAndToolbar({
             movie={movieActionPayload}
             label={isSeries ? "Lưu phim" : undefined}
             mobileLabel="Lưu"
-            className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"
+            className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-full sm:rounded-xl"
           />
 
           {/* Nút Thêm vào Bộ sưu tập */}
@@ -183,13 +183,13 @@ export function MovieInfoHeaderAndToolbar({
             movie={movieActionPayload}
             label={isSeries ? "Bộ sưu tập" : undefined}
             mobileLabel="Sưu tập"
-            className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"
+            className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-full sm:rounded-xl"
           />
 
           {/* Cụm tiện ích: Chia sẻ (nằm liền kề tự nhiên trong hàng nút tác vụ) */}
           <ShareButton
             title={title}
-            className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-xl"
+            className="w-full sm:w-auto min-h-[40px] sm:min-h-[38px] justify-center rounded-full sm:rounded-xl"
           />
         </div>
       </div>

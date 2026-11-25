@@ -303,9 +303,9 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
             setShowOptionsMenu(false);
           }}
           aria-label="Thông báo"
-          className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
+          className="relative flex items-center justify-center h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
         >
-          <Bell size={16} className="sm:hidden" />
+          <Bell size={17} className="sm:hidden" />
           <Bell size={18} className="hidden sm:block" />
           {userUnreadCount > 0 && (
             <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-netflix-red text-white text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-lg">

@@ -154,7 +154,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                 <button
                   type="button"
                   onClick={() => setDraftType("")}
-                  className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                  className={`py-2 px-3.5 min-h-[36px] rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
                     !draftType
                       ? "bg-netflix-red text-white font-bold"
                       : "bg-zinc-900/90 text-zinc-300"
@@ -169,7 +169,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                       key={t.slug}
                       type="button"
                       onClick={() => setDraftType(isSelected ? "" : t.slug)}
-                      className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                      className={`py-2 px-3.5 min-h-[36px] rounded-xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
                         isSelected
                           ? "bg-netflix-red text-white font-bold shadow-sm"
                           : "bg-zinc-900/90 text-zinc-300"
@@ -202,7 +202,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                 <button
                   type="button"
                   onClick={() => setDraftCategory("")}
-                  className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                  className={`py-2 px-3.5 min-h-[36px] rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
                     !draftCategory
                       ? "bg-netflix-red text-white font-bold"
                       : "bg-zinc-900/90 text-zinc-300"
@@ -217,7 +217,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                       key={g.slug}
                       type="button"
                       onClick={() => setDraftCategory(isSelected ? "" : g.slug)}
-                      className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                      className={`py-2 px-3.5 min-h-[36px] rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
                         isSelected
                           ? "bg-netflix-red text-white font-bold shadow-sm"
                           : "bg-zinc-900/90 text-zinc-300"
@@ -250,7 +250,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                 <button
                   type="button"
                   onClick={() => setDraftCountry("")}
-                  className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                  className={`py-2 px-3.5 min-h-[36px] rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
                     !draftCountry
                       ? "bg-netflix-red text-white font-bold"
                       : "bg-zinc-900/90 text-zinc-300"
@@ -265,7 +265,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                       key={c.slug}
                       type="button"
                       onClick={() => setDraftCountry(isSelected ? "" : c.slug)}
-                      className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                      className={`py-2 px-3.5 min-h-[36px] rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
                         isSelected
                           ? "bg-netflix-red text-white font-bold shadow-sm"
                           : "bg-zinc-900/90 text-zinc-300"
@@ -299,7 +299,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                 <button
                   type="button"
                   onClick={() => setDraftYear("")}
-                  className={`py-1.5 min-h-[34px] px-1 text-center rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                  className={`py-2 min-h-[36px] px-1 text-center rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer ${
                     !draftYear
                       ? "bg-netflix-red text-white font-bold shadow-sm"
                       : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"
@@ -314,7 +314,7 @@ export const FilterMobileDrawer: React.FC<FilterMobileDrawerProps> = React.memo(
                       key={y}
                       type="button"
                       onClick={() => setDraftYear(isSelected ? "" : y)}
-                      className={`py-1.5 min-h-[34px] px-1 text-center rounded-xl text-xs font-semibold tabular-nums transition active:scale-95 cursor-pointer ${
+                      className={`py-2 min-h-[36px] px-1 text-center rounded-xl text-xs font-semibold tabular-nums transition active:scale-95 cursor-pointer ${
                         isSelected
                           ? "bg-netflix-red text-white font-bold shadow-sm"
                           : "bg-zinc-900/90 text-zinc-300 hover:bg-zinc-800"

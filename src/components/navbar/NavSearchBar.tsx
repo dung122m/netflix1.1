@@ -143,9 +143,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(
           type="button"
           onClick={toggleSearch}
           aria-label="Tìm kiếm phim"
-          className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
+          className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white transition cursor-pointer flex-shrink-0 active:scale-95"
         >
-          <Search size={16} />
+          <Search size={17} />
         </button>
 
         {/* DESKTOP SEARCH BAR */}

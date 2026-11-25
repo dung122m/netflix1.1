@@ -58,9 +58,9 @@ export function LiveFilterCommandBar({
                 type="button"
                 onClick={() => setIsMobileSearchOpen(true)}
                 aria-label="Tìm kiếm trận đấu"
-                className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 shrink-0 transition cursor-pointer"
+                className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 shrink-0 transition cursor-pointer"
               >
-                <Search className="w-3.5 h-3.5" />
+                <Search className="w-4 h-4" />
               </button>
             )}
 

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Film, Info, MessageSquare, Compass } from "lucide-react";
 
 interface MobileMovieNavProps {
   isSeries?: boolean;
@@ -10,7 +9,6 @@ interface MobileMovieNavProps {
 interface NavSection {
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string; size?: number }>;
 }
 
 export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
@@ -22,22 +20,18 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     {
       id: "section-episodes",
       label: isSeries ? "Tập phim" : "Nguồn phát",
-      icon: Film,
     },
     {
       id: "section-info",
       label: "Thông tin",
-      icon: Info,
     },
     {
       id: "section-reviews",
       label: "Bình luận",
-      icon: MessageSquare,
     },
     {
       id: "section-recommendations",
       label: "Đề xuất",
-      icon: Compass,
     },
   ], [isSeries]);
 
@@ -112,11 +106,11 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
       const isPlayerSticky =
         typeof document !== "undefined" &&
         document.documentElement.dataset.playerSticky === "true";
-      const stickyPlayerHeight = 32 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38);
+      const stickyPlayerHeight = 28 + Math.min(window.innerWidth * 0.5625, window.innerHeight * 0.38);
       const willBeSticky = isPlayerSticky || window.innerWidth < 1024;
       const navOffset = willBeSticky
-        ? (56 + stickyPlayerHeight + 44)
-        : (56 + 46);
+        ? (56 + stickyPlayerHeight + 48)
+        : (56 + 48);
       const targetY = element.getBoundingClientRect().top + window.scrollY - navOffset;
       window.scrollTo({
         top: Math.max(0, targetY),
@@ -133,10 +127,10 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     <div
       role="tablist"
       aria-label="Điều hướng nhanh nội dung phim"
-      className="mobile-movie-nav-sticky lg:hidden sticky top-[calc(var(--navbar-height,56px)-1px)] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950 backdrop-blur-xl border-t border-b border-white/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition-[background-color,border-color,box-shadow] duration-200 mb-3 sm:mb-4"
+      className="mobile-movie-nav-sticky lg:hidden sticky top-[calc(var(--navbar-height,56px)-1px)] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 bg-zinc-950/95 backdrop-blur-xl border-b border-white/[0.08] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition-[background-color,border-color,box-shadow] duration-200 mb-3 sm:mb-4"
     >
-      <div className="flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none">
-        {sections.map(({ id, label, icon: Icon }) => {
+      <div className="grid grid-cols-4 w-full">
+        {sections.map(({ id, label }) => {
           const isActive = activeSection === id;
           return (
             <button
@@ -145,17 +139,16 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
               role="tab"
               aria-selected={isActive}
               onClick={() => scrollToSection(id)}
-              className={`flex-1 min-w-fit flex items-center justify-center gap-1.5 py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-[13px] font-semibold min-h-[38px] transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap ${
+              className={`relative flex items-center justify-center py-2.5 px-1 text-xs font-semibold min-h-[42px] transition-colors duration-200 active:opacity-75 cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? "bg-white/15 text-white shadow-sm font-bold"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                  ? "text-white font-bold"
+                  : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <Icon
-                size={13}
-                className={isActive ? "text-netflix-red shrink-0" : "text-zinc-400 shrink-0"}
-              />
-              <span>{label}</span>
+              <span className="truncate">{label}</span>
+              {isActive && (
+                <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-netflix-red" />
+              )}
             </button>
           );
         })}

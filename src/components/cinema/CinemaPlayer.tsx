@@ -537,7 +537,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       {isMobileStickyActive && (
         <div
           className="w-full aspect-video md:hidden"
-          style={{ height: "var(--sticky-player-height, calc(32px + 56.25vw))" }}
+          style={{ height: "var(--sticky-player-height, calc(28px + 56.25vw))" }}
           aria-hidden="true"
         />
       )}
@@ -566,9 +566,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           }`}
       >
         {isMobileStickyActive && (
-          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 h-8 flex items-center justify-between border-b border-white/[0.08] text-xs">
+          <div className="md:hidden bg-zinc-950/95 px-3 h-7 flex items-center justify-between border-b border-white/[0.08] text-xs">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
-              <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
               <span className="text-white font-bold text-[11px] truncate">
                 {title}{" "}
                 {activeEpisodeName
@@ -579,7 +579,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <button
               type="button"
               onClick={scrollToPlayer}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 text-zinc-200 hover:text-white text-[10px] font-semibold transition cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-zinc-200 hover:text-white text-[10px] font-semibold transition cursor-pointer shrink-0"
             >
               <ArrowUpRight className="w-3 h-3" />
               <span>Lên đầu</span>
@@ -590,13 +590,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
 
         <div
-          className={`cinema-video-wrapper w-full bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto select-none group ${isFullscreen
+          className={`cinema-video-wrapper bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto select-none group ${isFullscreen
             ? "w-full h-full max-h-dvh rounded-none border-none shadow-none aspect-auto"
             : isMobileStickyActive
-              ? "aspect-video rounded-none max-h-[38dvh] shadow-2xl"
+              ? "w-full aspect-video rounded-none max-h-[38dvh] shadow-2xl"
               : isTheaterMode
                 ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100dvh-185px)]"
-                : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
+                : "aspect-video -mx-2 w-[calc(100%+1rem)] sm:w-full sm:mx-0 rounded-none sm:rounded-2xl md:rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-md:landscape:rounded-none max-md:landscape:border-none"
             }`}
         >
           {isNativeVideo ? (

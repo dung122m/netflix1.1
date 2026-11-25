@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Check,
-  Flame,
   Info,
   Play,
   Plus,
@@ -94,18 +93,14 @@ export function HeroContentOverlay({
         <div className="w-full px-4 sm:px-8 md:px-16 pb-8 sm:pb-16 md:pb-20">
           <div className="mx-auto max-w-7xl">
             <div className="max-w-2xl md:max-w-3xl mx-auto sm:mx-0 flex flex-col items-center sm:items-start text-center sm:text-left space-y-3 sm:space-y-4">
-              {/* TOP BADGE */}
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-netflix-red/30 px-2.5 sm:px-3 py-0.5 text-[11px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
-                  <Flame size={11} className="text-netflix-red fill-netflix-red" />
-                  <span>Nổi bật</span>
-                </span>
-                {heroType && (
-                  <span className="text-[11px] sm:text-xs font-semibold text-zinc-300">
-                    • {heroType}
+              {/* PHÂN LOẠI PHIM TINH GỌN */}
+              {heroType && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-zinc-300">
+                    {heroType}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* TIÊU ĐỀ PHIM */}
               <h1
@@ -211,7 +206,7 @@ export function HeroContentOverlay({
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
                     prefetch={false}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-7 py-2.5 text-sm font-black transition-all active:scale-95 shadow-lg shadow-black/40 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white hover:bg-zinc-200 text-black px-8 py-2.5 min-h-[44px] text-sm font-black transition-all active:scale-95 shadow-lg shadow-black/40 cursor-pointer"
                   >
                     <Play size={18} fill="black" className="ml-0.5" />
                     <span>{isTrailerOnly ? "Trailer" : "Phát"}</span>
@@ -321,14 +316,14 @@ export function HeroContentOverlay({
             visible={true}
           />
 
-          <div className="absolute bottom-2 sm:bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 sm:gap-1.5">
+          <div className="absolute bottom-1 sm:bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 sm:gap-1.5">
             {slides.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 aria-label={`Chuyển slide ${i + 1}`}
                 onClick={() => onGoToSlide(i)}
-                className="p-1 sm:p-2 flex items-center justify-center cursor-pointer touch-manipulation focus:outline-none"
+                className="py-2.5 px-1 sm:p-2 flex items-center justify-center cursor-pointer touch-manipulation focus:outline-none"
               >
                 <span
                   className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 block ${
