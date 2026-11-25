@@ -14,19 +14,27 @@ export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
-    const [page1, page2, page3, page4] = await Promise.allSettled([
-      movieApi.getMovies({ page: 1, limit: 25, sort: "views", posterEnrichmentBudgetMs: 0 }),
-      movieApi.getMovies({ page: 2, limit: 25, sort: "views", posterEnrichmentBudgetMs: 0 }),
-      movieApi.getMovies({ page: 1, limit: 25, sort: "latest", posterEnrichmentBudgetMs: 0 }),
-      movieApi.getMovies({ page: 1, limit: 25, sort: "rating", posterEnrichmentBudgetMs: 0 }),
-    ]);
+    const queries = [
+      { page: 1, limit: 30, sort: "views" as const, posterEnrichmentBudgetMs: 0 },
+      { page: 2, limit: 30, sort: "views" as const, posterEnrichmentBudgetMs: 0 },
+      { page: 3, limit: 30, sort: "views" as const, posterEnrichmentBudgetMs: 0 },
+      { page: 1, limit: 30, sort: "latest" as const, posterEnrichmentBudgetMs: 0 },
+      { page: 2, limit: 30, sort: "latest" as const, posterEnrichmentBudgetMs: 0 },
+      { page: 1, limit: 30, sort: "rating" as const, posterEnrichmentBudgetMs: 0 },
+      { page: 2, limit: 30, sort: "rating" as const, posterEnrichmentBudgetMs: 0 },
+    ];
+    const results = await Promise.allSettled(
+      queries.map((q) => movieApi.getMovies(q))
+    );
     const slugSet = new Set<string>();
-    for (const res of [page1, page2, page3, page4]) {
+    for (const res of results) {
       if (res.status === "fulfilled") {
         for (const m of res.value?.items || []) {
           if (m?.slug) slugSet.add(m.slug);
+          if (slugSet.size >= 180) break;
         }
       }
+      if (slugSet.size >= 180) break;
     }
     return Array.from(slugSet).map((slug) => ({ slug }));
   } catch (err) {
