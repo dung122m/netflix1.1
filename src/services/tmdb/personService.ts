@@ -571,7 +571,7 @@ export async function getDirectorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(directorQuery);
   if (!cleanKey && !tmdbPersonId) return [];
 
-  const cacheKey = `TMDB_DIR_FLOW_V3:${tmdbPersonId || cleanKey}`;
+  const cacheKey = `TMDB_DIR_FLOW_V4:${tmdbPersonId || cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -581,7 +581,7 @@ export async function getDirectorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:dir_flow_v3:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  const kvKey = `tmdb:dir_flow_v4:${tmdbPersonId || cleanKey}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
     async () => {
@@ -655,10 +655,13 @@ export async function getDirectorFilmographyFromTmdb(
         });
         const checkLimit = Math.min(
           sortedCredits.length,
-          Math.max(Math.round(maxMovies * 1.5), 60),
-          150
+          Math.max(Math.round(maxMovies * 2), 16),
+          60
         );
-        const matchedMovies = await matchTmdbMoviesWithSources(sortedCredits, checkLimit, concurrency);
+        const matchedMovies = await matchTmdbMoviesWithSources(sortedCredits, checkLimit, concurrency, {
+          budgetMs: maxMovies <= 16 ? 1500 : 3500,
+          maxMatched: maxMovies,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filmographyMovies = matchedMovies.map((m: any) => ({
           ...m,
