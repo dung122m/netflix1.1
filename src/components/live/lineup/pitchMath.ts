@@ -1,4 +1,4 @@
-import { MatchKeyEvent, MatchRosterPlayer } from "@/services/live/football-score/types";
+import { MatchKeyEvent, MatchRosterPlayer } from "@/services/live/football/types";
 
 // ============================================================================
 // 1. DATA TYPES & INTERFACES

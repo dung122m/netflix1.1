@@ -9,19 +9,19 @@ import {
   Radio,
   Clock,
 } from "lucide-react";
-import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
+import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football/types";
 import {
   calculateMatchCenterPollInterval,
   shouldRefreshOnTabFocus,
   shouldSkipDuplicateRequest,
   mergeNormalizedSummaries,
-} from "@/services/live/football-score/matchCenterRealtime";
-import { fetchDirectMatchSummary } from "@/services/live/football-score/espnDirectClient";
+} from "@/services/live/football/matchCenterRealtime";
+import { fetchDirectMatchSummary } from "@/services/live/football/espnDirectClient";
 import {
   resolveCanonicalTournament,
-} from "@/services/live/football-score/canonicalLeagues";
+} from "@/services/live/football/canonicalLeagues";
 import { getTeamAsset, getTeamInitials, resolveEsportsTeam } from "@/data/live/teamAssets";
-import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
+import { toDarkModeLogoUrl } from "@/services/live/football/footballLogoService";
 import { TacticalLineup } from "./TacticalLineup";
 import { DualTeamPitch } from "./DualTeamPitch";
 import { CountryFlag } from "./CountryFlag";

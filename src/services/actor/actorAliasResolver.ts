@@ -35,17 +35,13 @@ export const ACTOR_AI_CACHE = new Map<
 >();
 export const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
 
+import { setBoundedMap } from "@/lib/boundedMap";
+
 // In-memory cache cho danh sách phim đã tìm thấy từ kho (TTL: 12h fresh, 48h stale SWR)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ACTOR_FILM_CACHE = new Map<string, { items: any[]; expireAt: number; staleUntil: number }>();
 
-export function setBoundedCache<K, V>(map: Map<K, V>, key: K, value: V, max = 500) {
-  if (map.size >= max) {
-    const oldestKey = map.keys().next().value;
-    if (oldestKey !== undefined) map.delete(oldestKey);
-  }
-  map.set(key, value);
-}
+export const setBoundedCache = setBoundedMap;
 
 export { normalizeForMatch };
 

@@ -52,7 +52,6 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
 
   const watchContext = useWatchController();
   const currentEpSlug = watchContext?.activeEpisodeSlug || activeEpisodeSlug;
-  const currentServerIdx = watchContext?.currentServerIndex ?? 0;
   const currentActiveEp = watchContext?.activeEpisode;
 
   // Lấy stream liên kết động trực tiếp từ server và tập hiện tại trong watchContext
@@ -66,7 +65,7 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
   return (
     <div className="w-full">
       <CinemaPlayer
-        key={`cinema_${movieSlug}_s${currentServerIdx}_${currentEpSlug}`}
+        key={`cinema_${movieSlug}`}
         {...props}
         activeEpisodeSlug={currentEpSlug}
         activeEpisodeName={dynamicEpisodeName}

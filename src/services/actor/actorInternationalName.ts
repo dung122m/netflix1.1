@@ -50,38 +50,7 @@ export function parseActorIdentifier(slug: string): {
   return { personId, rawName };
 }
 
-/**
- * TÍNH TUỔI TỪ NGÀY SINH (VD: "1962-06-22" -> 64)
- */
-export function calculateAge(birthdayStr?: string, deathdayStr?: string): string | null {
-  if (!birthdayStr) return null;
-  const birthDate = new Date(birthdayStr);
-  if (isNaN(birthDate.getTime())) return null;
-
-  const endDate = deathdayStr ? new Date(deathdayStr) : new Date();
-  if (isNaN(endDate.getTime())) return null;
-
-  let age = endDate.getFullYear() - birthDate.getFullYear();
-  const m = endDate.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) {
-    age--;
-  }
-
-  if (age <= 0 || age > 120) return null;
-  return deathdayStr ? `${age} tuổi (đã mất)` : `${age} tuổi`;
-}
-
-/**
- * FORMAT NGÀY SINH (VD: "1962-06-22" -> "22/06/1962")
- */
-export function formatDate(dateStr?: string): string | null {
-  if (!dateStr) return null;
-  const parts = dateStr.split("-");
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-}
+export { calculateAgeVi as calculateAge, formatIsoDateToVn as formatDate } from "@/lib/dateFormatters";
 
 export interface ResolvedActorProfile {
   rawName: string;

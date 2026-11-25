@@ -5,7 +5,7 @@ import {
   MatchKeyEvent,
   MatchCommentaryItem,
   MatchStatItem,
-} from "@/services/live/football-score/types";
+} from "@/services/live/football/types";
 import { Activity, Clock, MessageSquare, RotateCw } from "lucide-react";
 
 import {

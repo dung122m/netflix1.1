@@ -3,11 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isR2Configured, uploadToR2 } from "@/lib/r2";
 import { validateImageMagicBytes } from "@/lib/fileValidation";
 
-export const UGC_NO_CACHE_HEADERS = {
-  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate, proxy-revalidate",
-  "CDN-Cache-Control": "no-store",
-  "Vercel-CDN-Cache-Control": "no-store",
-};
+export { NO_CACHE_HEADERS as UGC_NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
 
 interface ParseImageUploadOptions {
   maxBytes: number;

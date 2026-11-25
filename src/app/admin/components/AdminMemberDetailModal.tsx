@@ -23,6 +23,7 @@ import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { formatWatchMinutesVi } from "@/lib/dateFormatters";
 import { BaseModal } from "@/components/ui/BaseModal";
 
 interface AdminMemberDetailModalProps {
@@ -169,11 +170,7 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               <div className="min-w-0">
                 <span className="text-[10px] text-zinc-400 block">Tổng cày phim</span>
                 <span className="font-bold text-white truncate block">
-                  {selectedMember.watchTimeMinutes
-                    ? selectedMember.watchTimeMinutes >= 60
-                      ? `${Math.floor(selectedMember.watchTimeMinutes / 60)}h ${selectedMember.watchTimeMinutes % 60}m`
-                      : `${selectedMember.watchTimeMinutes} phút`
-                    : "0 phút"}
+                  {formatWatchMinutesVi(selectedMember.watchTimeMinutes, true)}
                 </span>
               </div>
             </div>

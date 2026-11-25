@@ -6,15 +6,15 @@ import type { FootballMatch, StreamServer } from "@/services/live/football/servi
 import type {
   LiveMatchScore,
   NormalizedMatchSummary,
-} from "@/services/live/football-score/types";
-import type { GroupedGoalScorer } from "@/services/live/football-score/goalScorersParser";
-import type { resolveMatchTimeInfo } from "@/services/live/football-score/liveStatus";
+} from "@/services/live/football/types";
+import type { GroupedGoalScorer } from "@/services/live/football/goalScorersParser";
+import type { resolveMatchTimeInfo } from "@/services/live/football/liveStatus";
 import {
   getTeamAsset,
   getTeamInitials,
   resolveEsportsTeam,
 } from "@/data/live/teamAssets";
-import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
+import { toDarkModeLogoUrl } from "@/services/live/football/footballLogoService";
 import { CountryFlag } from "./CountryFlag";
 import { FotmobSoccerBallIcon } from "./icons/FotmobPitchIcons";
 

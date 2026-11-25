@@ -12,19 +12,19 @@ import {
   SAFE_AD_SKIP_OFFSET,
   snapTimePastAdBoundaries,
   type AdBoundary,
-} from "@/lib/adBoundaryDetector";
+} from "@/lib/player/adBoundaryDetector";
 import {
   evaluateBufferProgress,
   evaluateStallRecoveryAttempt,
   evaluateTimeUpdatePlayback,
   MAX_STALL_RECOVERY_ATTEMPTS,
-} from "@/lib/playbackStallController";
+} from "@/lib/player/playbackStallController";
 import {
   endAdTransition,
   isAdTransitionTimedOut,
   startAdTransition,
   type AdTransitionState,
-} from "@/lib/adTransitionController";
+} from "@/lib/player/adTransitionController";
 import {
   getBufferAhead,
   INITIAL_BUFFER_START_SECONDS,

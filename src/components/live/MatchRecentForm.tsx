@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { MatchSummaryTeam, TeamPastGameItem, MatchHeadToHead } from "@/services/live/football-score/types";
+import { MatchSummaryTeam, TeamPastGameItem, MatchHeadToHead } from "@/services/live/football/types";
 import { TrendingUp } from "lucide-react";
-import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
+import { toDarkModeLogoUrl } from "@/services/live/football/footballLogoService";
 
 interface MatchRecentFormProps {
   homeTeam: MatchSummaryTeam;

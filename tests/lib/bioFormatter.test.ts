@@ -5,7 +5,7 @@ import {
   stripTrailingDanglingHeadings,
   selectBestBiography,
   parseBioContent,
-} from "@/lib/bioFormatter";
+} from "@/services/actor/bioFormatter";
 
 describe("BioFormatter & Dangling Heading Detection", () => {
   it("TC1: Should detect Vietnamese dangling headings at end of text", () => {

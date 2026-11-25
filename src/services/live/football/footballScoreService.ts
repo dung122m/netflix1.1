@@ -26,7 +26,7 @@ import {
 } from "./types";
 import { cacheService } from "@/lib/cache";
 import { mergeNormalizedSummaries } from "./matchCenterRealtime";
-import { toDarkModeLogoUrl } from "../football-logo/service";
+import { toDarkModeLogoUrl } from "./footballLogoService";
 
 export const VERIFIED_SCOREBOARD_LEAGUES = [
   "eng.1", // Premier League

@@ -1,4 +1,4 @@
-import { stripTrailingDanglingHeadings } from "@/lib/bioFormatter";
+import { stripTrailingDanglingHeadings } from "@/services/actor/bioFormatter";
 import { cacheService } from "@/lib/cache";
 import { setBoundedMap } from "@/lib/boundedMap";
 

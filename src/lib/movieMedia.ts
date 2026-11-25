@@ -635,19 +635,6 @@ export function isClientSafeCdnImageUrl(url?: string | null): boolean {
 }
 
 /**
- * Trả thẳng URL trực tiếp:
- * - Ưu tiên 100% TMDb CDN (image.tmdb.org) và Cloudflare R2 (media.nanaflix.asia).
- * - CẤM TUYỆT ĐỐI nạp trực tiếp nguồn phimimg/nguonc lên thẻ <img> phía client
- *   để tuân thủ nghiêm ngặt quy tắc Media, Image CDN & Cost Guard (AGENTS.md).
- */
-export function toFastCdnImageUrl(url: string): string {
-  if (!url || typeof url !== "string") return "";
-  const clean = url.trim();
-  if (!clean) return "";
-  return clean;
-}
-
-/**
  * Nhận diện các nguồn ảnh chậm / dung lượng nặng / chưa qua CDN tối ưu
  * (phimimg, nguonc, ophim, phimapi) để ưu tiên nâng cấp sang TMDb CDN chính hãng.
  */

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowLeft, ArrowLeftRight } from "lucide-react";
 import type { FootballMatch } from "@/services/live/football/service";
-import type { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
+import type { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football/types";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { LivePlayer } from "./LivePlayer";
 import { MatchCenter } from "./MatchCenter";

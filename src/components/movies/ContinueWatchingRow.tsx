@@ -21,7 +21,6 @@ import {
   pickBestMoviePoster,
   pickBestMovieThumb,
   toOptimizedCardPosterUrl,
-  toFastCdnImageUrl,
 } from "@/lib/movieMedia";
 import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import { CarouselContainer } from "@/components/ui/CarouselContainer";
@@ -114,40 +113,40 @@ interface ContinueWatchingCardProps {
 function getInitialPoster(item: WatchHistoryItem): string {
   // 1. Ưu tiên TMDb poster CDN nếu đã có sẵn trong item
   if (item.poster && item.poster.includes("image.tmdb.org")) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(item.poster));
+    return toOptimizedCardPosterUrl(item.poster);
   }
   if (item.thumb && item.thumb.includes("image.tmdb.org")) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(item.thumb));
+    return toOptimizedCardPosterUrl(item.thumb);
   }
 
   // 2. Tra cứu tức thì từ GLOBAL_POSTER_CACHE (0ms RAM/LocalStorage)
   if (item.slug && GLOBAL_POSTER_CACHE.has(item.slug)) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(item.slug)!));
+    return toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(item.slug)!);
   }
   const cleanType = item.type || "movie";
   if (item.tmdbId && GLOBAL_POSTER_CACHE.has(`v3:tmdb:${item.tmdbId}:${cleanType}`)) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(`v3:tmdb:${item.tmdbId}:${cleanType}`)!));
+    return toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(`v3:tmdb:${item.tmdbId}:${cleanType}`)!);
   }
   const legacyKey = `${item.title || ""}_${item.year || ""}`.trim();
   if (legacyKey && GLOBAL_POSTER_CACHE.has(legacyKey)) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(legacyKey)!));
+    return toOptimizedCardPosterUrl(GLOBAL_POSTER_CACHE.get(legacyKey)!);
   }
 
   // 3. Tra cứu từ continueWatchingThumbCache
   if (item.slug && continueWatchingThumbCache.has(item.slug)) {
-    return toFastCdnImageUrl(continueWatchingThumbCache.get(item.slug)!);
+    return continueWatchingThumbCache.get(item.slug)!.trim();
   }
 
   // 4. Chọn poster dọc tối ưu nhất
   const bestPoster = pickBestMoviePoster({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestPoster && !bestPoster.includes("/default-")) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestPoster));
+    return toOptimizedCardPosterUrl(bestPoster);
   }
 
   // 5. Dự phòng thumb ngang nếu chưa có poster
   const bestThumb = pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "");
   if (bestThumb && !bestThumb.includes("/default-")) {
-    return toFastCdnImageUrl(toOptimizedCardPosterUrl(bestThumb));
+    return toOptimizedCardPosterUrl(bestThumb);
   }
   return "";
 }
@@ -175,7 +174,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     upgradePhimimg: true,
   });
 
-  const safeDisplaySrc = toFastCdnImageUrl(displaySrc);
+  const safeDisplaySrc = (displaySrc || "").trim();
   const targetInitialSrc = safeDisplaySrc || initialPoster;
   const [imgSrc, setImgSrc] = useState<string>(() => targetInitialSrc);
   const [isLoaded, setIsLoaded] = useState<boolean>(() => {
@@ -204,7 +203,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
   }, [imgSrc, item.slug]);
 
   useEffect(() => {
-    const safeDisplay = toFastCdnImageUrl(displaySrc);
+    const safeDisplay = (displaySrc || "").trim();
     if (safeDisplay && safeDisplay !== imgSrc) {
       setImgSrc(safeDisplay);
       setIsLoaded(true);
@@ -229,15 +228,16 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   const handleImgError = useCallback(() => {
     // 1. Thử thumb ngang dự phòng nếu có và khác link đang lỗi
-    const rawThumb = item.thumb ? toFastCdnImageUrl(toOptimizedCardPosterUrl(item.thumb)) : "";
+    const rawThumb = item.thumb ? toOptimizedCardPosterUrl(item.thumb) : "";
     if (rawThumb && rawThumb !== imgSrc && !rawThumb.includes("/default-")) {
       setImgSrc(rawThumb);
       return;
     }
 
     // 2. Ưu tiên kích hoạt fallback TMDb chính hãng khi ảnh lỗi
-    if (displaySrc && displaySrc !== imgSrc && !displaySrc.includes("/default-")) {
-      setImgSrc(toFastCdnImageUrl(displaySrc));
+    const safeDisplay = (displaySrc || "").trim();
+    if (safeDisplay && safeDisplay !== imgSrc && !safeDisplay.includes("/default-")) {
+      setImgSrc(safeDisplay);
       return;
     }
     triggerFallback();
@@ -287,7 +287,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               ref={checkImageComplete}
-              src={toFastCdnImageUrl(imgSrc)}
+              src={imgSrc.trim()}
               alt={item.title}
               className={`relative z-10 w-full h-full object-cover group-hover:scale-105 transition-[transform,opacity] duration-300 ease-out ${
                 isFallbackLoading && isBlockedByIsp ? "opacity-0" : "opacity-100"
@@ -296,7 +296,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
               loading={index < 8 ? "eager" : "lazy"}
               fetchPriority={index < 4 ? "high" : "auto"}
               onLoad={() => {
-                const safeLoaded = toFastCdnImageUrl(imgSrc);
+                const safeLoaded = imgSrc.trim();
                 if (safeLoaded) {
                   loadedPostersCache.add(safeLoaded);
                   persistLoadedPoster(safeLoaded);

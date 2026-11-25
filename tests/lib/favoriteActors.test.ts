@@ -51,7 +51,7 @@ import {
   toggleFavoriteActor,
   clearFavoriteActors,
   subscribeToFavoriteActors,
-} from "@/lib/favoriteActors";
+} from "@/services/actor/favoriteActors";
 
 describe("Nanaflix Favorite Actors Store Tests", () => {
   beforeEach(() => {

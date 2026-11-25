@@ -105,7 +105,7 @@ export {
   type ResolvedActorProfile,
 };
 import { fetchActorProfile, type ActorProfile } from "@/services/wikipediaService";
-import { selectBestBiography } from "@/lib/bioFormatter";
+import { selectBestBiography } from "@/services/actor/bioFormatter";
 import { ActorDetailClient } from "@/components/actors/ActorDetailClient";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { FavoriteActorButton } from "@/components/actors/FavoriteActorButton";

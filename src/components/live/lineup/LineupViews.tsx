@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { ArrowUp, ArrowDown, ArrowUpRight, ChevronDown } from "lucide-react";
-import { MatchRosterPlayer } from "@/services/live/football-score/types";
+import { MatchRosterPlayer } from "@/services/live/football/types";
 import { SoccerBallIcon } from "../MatchTimelineSidebar";
 import {
   FotmobSoccerBallIcon,

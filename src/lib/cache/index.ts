@@ -465,14 +465,7 @@ export const cacheService: CacheService = {
     const safeTtl = Math.max(1, Math.floor(ttlSeconds));
 
     // 1. Save to L1 Memory Cache
-    if (L1_CACHE.size >= MAX_L1_ENTRIES) {
-      const oldestKey = L1_CACHE.keys().next().value;
-      if (oldestKey) L1_CACHE.delete(oldestKey);
-    }
-    L1_CACHE.set(key, {
-      value,
-      expireAt: now + Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS),
-    });
+    setL1Bounded(key, value, Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS));
 
     // 2. Kiểm tra Circuit Breaker cho cả DB 1, DB 2 & DB 3: Chống cháy quota khi có bot quét bão dữ liệu
     // Dữ liệu cốt lõi (catalog phim, chi tiết phim, poster TMDb) luôn được ưu tiên lưu bền vững vào Redis
@@ -524,14 +517,7 @@ export const cacheService: CacheService = {
       const safeTtl = Math.max(1, Math.floor(entry.ttlSeconds ?? 86400));
 
       // 1. Save to L1 Memory Cache
-      if (L1_CACHE.size >= MAX_L1_ENTRIES) {
-        const oldestKey = L1_CACHE.keys().next().value;
-        if (oldestKey) L1_CACHE.delete(oldestKey);
-      }
-      L1_CACHE.set(key, {
-        value: entry.value,
-        expireAt: now + Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS),
-      });
+      setL1Bounded(key, entry.value, Math.min(safeTtl * 1000, DEFAULT_L1_TTL_MS));
 
       // 2. Queue in corresponding Redis pipeline (with per-DB write burst shield)
       const isCoreCatalogKey = isCoreCatalogCacheKey(key);
@@ -644,11 +630,7 @@ export const cacheService: CacheService = {
           await this.set(key, freshData, ttlSeconds);
         } else {
           // Negative cache in L1 RAM only (60s) to prevent hammering upstream while avoiding poisoning Redis for days
-          if (L1_CACHE.size >= MAX_L1_ENTRIES) {
-            const oldestKey = L1_CACHE.keys().next().value;
-            if (oldestKey) L1_CACHE.delete(oldestKey);
-          }
-          L1_CACHE.set(sanitized, { value: freshData, expireAt: Date.now() + 60 * 1000 });
+          setL1Bounded(sanitized, freshData, 60 * 1000);
         }
         return freshData;
       } finally {

@@ -11,7 +11,7 @@ import {
   MAX_STALL_RECOVERY_ATTEMPTS,
   PlayheadState,
   TimeRangesLike,
-} from "@/lib/playbackStallController";
+} from "@/lib/player/playbackStallController";
 
 describe("playbackStallController — TC-PLAYBACK-STABILITY-03", () => {
   describe("checkPlayheadAdvancement", () => {

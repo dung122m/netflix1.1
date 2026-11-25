@@ -8,11 +8,11 @@ import { FootballMatch, StreamServer } from "@/services/live/football/service";
 import {
   LiveMatchScore,
   NormalizedMatchSummary,
-} from "@/services/live/football-score/types";
+} from "@/services/live/football/types";
 import {
   resolveMatchDisplayStatus,
   resolveMatchTimeInfo,
-} from "@/services/live/football-score/liveStatus";
+} from "@/services/live/football/liveStatus";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useMediaFullscreen } from "./hooks/useMediaFullscreen";
 import { useMediaVolume } from "./hooks/useMediaVolume";
@@ -28,7 +28,7 @@ import { LiveServerSection } from "./LiveServerSection";
 import {
   type GroupedGoalScorer,
   parseGoalScorers,
-} from "@/services/live/football-score/goalScorersParser";
+} from "@/services/live/football/goalScorersParser";
 import {
   type LiveStallRecord,
   calculateLiveLatency,
@@ -552,7 +552,7 @@ function LivePlayerInner({
     return match?.timeline === "upcoming";
   }, [match?.timestamp, match?.timeline]);
 
-  useBodyScrollLock(Boolean(isRailVisible && useMobilePortal));
+  useBodyScrollLock(Boolean(isFullscreen || (isRailVisible && useMobilePortal)));
 
   const sourceDrawerMarkup = (
     <LiveSourceDrawer
@@ -609,7 +609,7 @@ function LivePlayerInner({
         }}
         onDoubleClick={toggleFullscreen}
         className={`relative w-full mx-auto bg-black transition-all duration-300 group select-none outline-none focus:outline-none focus-visible:outline-none contain-paint isolate ${isFullscreen
-          ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto -none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
+          ? "fixed inset-0 z-[80] w-full h-full max-w-none max-h-none rounded-none aspect-auto shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
           : "aspect-video lg:max-h-[calc(100dvh-210px)] lg:max-w-[calc((100dvh-210px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl"
           } ${isFullscreen && isPlaying && !showControls ? "cursor-none" : "cursor-default"}`}
       >

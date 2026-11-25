@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import Link from "next/link";
 import {
   ShieldAlert,
@@ -18,14 +18,13 @@ import {
   Ban,
   Clock,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { MovieComment } from "@/types/comment";
 import { MemberWithStats } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { AdminTablePagination, useClientPagination } from "./AdminTablePagination";
 
 export type SortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_liked";
 
@@ -79,44 +78,23 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
     onDeleteComment,
     formatDate,
   }) {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState<number>(10);
     const commentsListRef = useRef<HTMLDivElement>(null);
-
-    // Reset về trang 1 khi thay đổi bộ lọc tìm kiếm hoặc sắp xếp
-    useEffect(() => {
-      setCurrentPage(1);
-    }, [searchQuery, starFilter, spoilerFilter, flaggedFilter, sortBy]);
-
-    const totalFiltered = filteredComments.length;
-    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
-
-    // Đảm bảo currentPage hợp lệ nếu số lượng kết quả bị giảm sau khi lọc
-    useEffect(() => {
-      if (currentPage > totalPages) {
-        setCurrentPage(totalPages);
-      }
-    }, [currentPage, totalPages]);
-
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = Math.min(startIndex + pageSize, totalFiltered);
-    const paginatedComments = useMemo(() => {
-      return filteredComments.slice(startIndex, endIndex);
-    }, [filteredComments, startIndex, endIndex]);
-
-    // Tạo danh sách số trang hiển thị gọn gàng (vd: 1, 2, 3, '...', 10)
-    const pageNumbers = useMemo(() => {
-      if (totalPages <= 5) {
-        return Array.from({ length: totalPages }, (_, i) => i + 1);
-      }
-      if (currentPage <= 3) {
-        return [1, 2, 3, 4, "...", totalPages];
-      }
-      if (currentPage >= totalPages - 2) {
-        return [1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-      }
-      return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
-    }, [currentPage, totalPages]);
+    const {
+      currentPage,
+      setCurrentPage,
+      pageSize,
+      handlePageSizeChange,
+      totalFiltered,
+      totalPages,
+      startIndex,
+      endIndex,
+      paginatedItems: paginatedComments,
+      pageNumbers,
+    } = useClientPagination(
+      filteredComments,
+      10,
+      `${searchQuery}|${starFilter}|${spoilerFilter}|${flaggedFilter}|${sortBy}`,
+    );
     return (
       <div className="space-y-4">
         {/* AUTO CLEAN & PURGE CONTROL BAR */}
@@ -321,10 +299,7 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
               <span className="text-[11px]">Hiển thị:</span>
               <select
                 value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-200 cursor-pointer focus:outline-none focus:border-netflix-red"
               >
                 <option value={10}>10 / trang</option>
@@ -568,68 +543,18 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = React.memo(
         )}
 
         {/* PAGINATION CONTROLS */}
-        {!loadingData && totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5 text-xs text-zinc-400">
-            <span className="font-sans tabular-nums text-zinc-400">
-              Đang hiển thị mục <strong className="text-white">{startIndex + 1}</strong> -{" "}
-              <strong className="text-white">{endIndex}</strong> trong số{" "}
-              <strong className="text-white">{totalFiltered}</strong> bình luận
-            </span>
-
-            <div className="flex items-center gap-1.5 flex-wrap justify-center">
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => {
-                  setCurrentPage((p) => Math.max(1, p - 1));
-                  commentsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
-              >
-                <ChevronLeft size={13} />
-                <span>Trước</span>
-              </button>
-
-              <div className="flex items-center gap-1">
-                {pageNumbers.map((p, idx) =>
-                  typeof p === "number" ? (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setCurrentPage(p);
-                        commentsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                      className={`min-w-8 h-8 px-2 rounded-xl font-sans tabular-nums text-xs font-semibold transition cursor-pointer ${
-                        p === currentPage
-                          ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                          : "bg-zinc-900 border border-white/5 hover:bg-zinc-800 text-zinc-300 hover:text-white"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ) : (
-                    <span key={idx} className="px-1 text-zinc-600 font-sans tabular-nums select-none">
-                      ...
-                    </span>
-                  )
-                )}
-              </div>
-
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => {
-                  setCurrentPage((p) => Math.min(totalPages, p + 1));
-                  commentsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
-              >
-                <span>Sau</span>
-                <ChevronRight size={13} />
-              </button>
-            </div>
-          </div>
+        {!loadingData && (
+          <AdminTablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalFiltered={totalFiltered}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            pageNumbers={pageNumbers}
+            itemLabel="bình luận"
+            onPageChange={setCurrentPage}
+            scrollTargetRef={commentsListRef}
+          />
         )}
       </div>
     );

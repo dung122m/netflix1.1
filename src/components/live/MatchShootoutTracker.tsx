@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MatchShootoutTeam, MatchSummaryTeam } from "@/services/live/football-score/types";
+import { MatchShootoutTeam, MatchSummaryTeam } from "@/services/live/football/types";
 import { Check, X } from "lucide-react";
 
 interface MatchShootoutTrackerProps {

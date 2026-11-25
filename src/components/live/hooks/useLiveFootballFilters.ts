@@ -7,12 +7,12 @@ import {
   evaluateEventLifecycle,
 } from "@/services/live/football/service";
 import { getServerProbeStatus } from "@/services/live/football/clientSourceProbe";
-import type { LiveMatchScore } from "@/services/live/football-score/types";
-import { resolveMatchDisplayStatus } from "@/services/live/football-score/liveStatus";
+import type { LiveMatchScore } from "@/services/live/football/types";
+import { resolveMatchDisplayStatus } from "@/services/live/football/liveStatus";
 import {
   resolveCanonicalTournament,
   isGenericSportTournament,
-} from "@/services/live/football-score/canonicalLeagues";
+} from "@/services/live/football/canonicalLeagues";
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
 
 export type MatchStatusFilter = "all" | "live" | "upcoming" | "finished";

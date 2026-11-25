@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movies/service";
-import { matchesActorAlias } from "@/lib/actorAlias";
+import { matchesActorAlias } from "@/services/actor/actorAlias";
 import { queryMoviesByActor } from "@/services/aiActorService";
 import { getTmdbMovieRecommendations, getDirectorFilmographyFromTmdb } from "@/services/tmdbService";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";

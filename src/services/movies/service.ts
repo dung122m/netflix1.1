@@ -686,10 +686,6 @@ export function buildMovieCacheKey(params: MovieFilterParams): string {
   });
 }
 
-function sanitizeMovieImages<T>(data: T): T {
-  return data;
-}
-
 export const movieApi = {
   // ==========================================
   // 1. LẤY DANH SÁCH PHIM (STALE-WHILE-REVALIDATE 0MS)
@@ -723,19 +719,18 @@ export const movieApi = {
       }
       // Trả về dữ liệu ngay lập tức nếu cache còn tươi
       if (entry.expireAt > now) {
-        return sanitizeMovieImages(entry.data);
+        return entry.data;
       }
       // Nếu hết hạn tươi nhưng vẫn trong hạn stale -> trả về ngay lập tức (0ms) và revalidate ngầm!
       if (entry.staleUntil > now) {
         executeGetMovies(params, cacheKey).catch(() => { });
-        return sanitizeMovieImages(entry.data);
+        return entry.data;
       }
     }
 
     // Nếu yêu cầu bỏ qua KV (như search suggestions limit: 8), chỉ thực thi fetcher & cache vào RAM
     if (params.skipKvCache) {
-      const res = await executeGetMovies(params, cacheKey);
-      return sanitizeMovieImages(res);
+      return await executeGetMovies(params, cacheKey);
     }
 
     // Phân trang sâu thông minh (Deep Pagination Caching):
@@ -743,8 +738,7 @@ export const movieApi = {
     // Trang > 50 (rất hiếm gặp ở người dùng thật) sẽ chỉ xử lý trực tiếp và lưu RAM để bảo vệ dung lượng
     const pageNum = params.page || 1;
     if (pageNum > 50 && !params.keyword) {
-      const res = await executeGetMovies(params, cacheKey);
-      return sanitizeMovieImages(res);
+      return await executeGetMovies(params, cacheKey);
     }
 
     const kvKey = `movie:list:${cacheKey}`;
@@ -803,7 +797,7 @@ export const movieApi = {
             await cacheService.set(kvKey, res, ttlSeconds).catch(() => { });
           }
         }
-        return sanitizeMovieImages(res);
+        return res;
       } finally {
         inFlightGetMovies.delete(inFlightKey);
       }
@@ -860,8 +854,7 @@ export const movieApi = {
       ? await attachRequestedEpisodeStreams(baseData, targetEpSlug)
       : baseData;
 
-    const res = sanitizeMovieDetailEpisodes(dataWithStreams);
-    return sanitizeMovieImages(res);
+    return sanitizeMovieDetailEpisodes(dataWithStreams);
   },
 
   /**
@@ -887,7 +880,7 @@ export const movieApi = {
       const localKey = `${slug}_${source || "any"}`;
       const entry = movieDetailMemoryCache.get(localKey);
       if (entry && entry.expireAt > now && entry.data) {
-        result[slug] = sanitizeMovieImages(entry.data);
+        result[slug] = entry.data;
       } else {
         missingSlugs.push(slug);
       }
@@ -916,7 +909,7 @@ export const movieApi = {
             expireAt: now + 600 * 1000,
             staleUntil: now + 3600 * 1000,
           });
-          result[slug] = sanitizeMovieImages(data);
+          result[slug] = data;
           continue;
         }
       } else if (raw && typeof raw === "object" && "_isNegative" in raw) {

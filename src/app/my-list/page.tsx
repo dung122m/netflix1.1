@@ -48,7 +48,7 @@ import {
   removeFavoriteActor,
   clearFavoriteActors,
   FavoriteActorItem,
-} from "@/lib/favoriteActors";
+} from "@/services/actor/favoriteActors";
 
 type MyListTab = "watchlist" | "history" | "collections" | "comments" | "actors";
 

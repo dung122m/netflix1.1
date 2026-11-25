@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ExternalLink, Film, Loader2, BookOpen, Calendar, MapPin, Globe, Tag, UserCheck } from "lucide-react";
-import { splitBlockIntoNaturalParagraphs } from "@/lib/bioFormatter";
+import { splitBlockIntoNaturalParagraphs } from "@/services/actor/bioFormatter";
 import { cleanBioExtract } from "@/services/wikipediaService";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import type { EnhancedActorProfile } from "@/types/actor";

@@ -11,7 +11,7 @@ import {
   YouTubePlayIcon,
 } from "@/components/player/PlayerNativeControls";
 import { formatEpisodeName } from "@/lib/formatEpisode";
-import { toOptimizedCardBackdropUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
 import { type EpisodeItem } from "@/components/cinema/cinemaStreamHelpers";
 import {
   type DesktopFeedbackState,
@@ -354,7 +354,7 @@ export const CinemaIframeOrFallbackStage: React.FC<
     return (
       <div className="w-full h-full flex flex-col items-center justify-center relative">
         <Image
-          src={toFastCdnImageUrl(toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl) || "/default-hero.jpg"}
+          src={toOptimizedCardBackdropUrl(posterUrl, 640) || posterUrl || "/default-hero.jpg"}
           alt={title}
           fill
           unoptimized

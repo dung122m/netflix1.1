@@ -3,7 +3,7 @@ import {
   footballScoreService,
   VERIFIED_SCOREBOARD_LEAGUES,
   LeagueSlug,
-} from "@/services/live/football-score/service";
+} from "@/services/live/football/footballScoreService";
 import {
   enforceRateLimit,
   buildRateLimitResponse,

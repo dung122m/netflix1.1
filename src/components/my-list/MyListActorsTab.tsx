@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Users, Trash2, Film, ArrowRight } from "lucide-react";
-import { FavoriteActorItem } from "@/lib/favoriteActors";
+import { FavoriteActorItem } from "@/services/actor/favoriteActors";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Tooltip } from "@/components/ui/Tooltip";

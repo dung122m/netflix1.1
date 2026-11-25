@@ -26,7 +26,7 @@ import { getPaginationPages } from "@/lib/pagination";
 
 const PAGE_SIZE = 24;
 
-import { parseBioContent } from "@/lib/bioFormatter";
+import { parseBioContent } from "@/services/actor/bioFormatter";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getMovieRating(movie: any): number {

@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import type { FootballMatch } from "@/services/live/football/service";
-import type { LiveMatchScore } from "@/services/live/football-score/types";
-import { shouldRefreshOnTabFocus } from "@/services/live/football-score/matchCenterRealtime";
-import { isVerifiedScoreboardMatch } from "@/services/live/football-score/canonicalLeagues";
+import type { LiveMatchScore } from "@/services/live/football/types";
+import { shouldRefreshOnTabFocus } from "@/services/live/football/matchCenterRealtime";
+import { isVerifiedScoreboardMatch } from "@/services/live/football/canonicalLeagues";
 import {
   fetchDirectScoreboardEvents,
   extractActiveLeagueSlugs,
-} from "@/services/live/football-score/espnDirectClient";
-import { buildScoresMap } from "@/services/live/football-score/matcher";
+} from "@/services/live/football/espnDirectClient";
+import { buildScoresMap } from "@/services/live/football/matcher";
 
 export interface UseLiveScoresRealtimeOptions {
   initialMatches: FootballMatch[];

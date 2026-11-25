@@ -13,12 +13,12 @@ import {
   SAFE_AD_SKIP_OFFSET,
   snapTimePastAdBoundaries,
   calculateRewindTargetPastAd,
-} from "@/lib/adBoundaryDetector";
+} from "@/lib/player/adBoundaryDetector";
 import {
   type AdTransitionState,
   startAdTransition,
-} from "@/lib/adTransitionController";
-import { createInitialKeyboardSeekState } from "@/lib/keyboardSeekManager";
+} from "@/lib/player/adTransitionController";
+import { createInitialKeyboardSeekState } from "@/lib/player/keyboardSeekManager";
 import { type PendingKeyboardSeekRefValue } from "@/components/cinema/hooks/useCinemaOsdAndControls";
 import { type QualityLevelItem } from "@/components/cinema/hooks/useCinemaHlsEngine";
 

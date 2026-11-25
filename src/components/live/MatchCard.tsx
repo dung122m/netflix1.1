@@ -4,18 +4,18 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Play, Mic, Radio, Trophy } from "lucide-react";
 import { PlayingEqualizer } from "./PlayingEqualizer";
 import { FootballMatch } from "@/services/live/football/service";
-import { LiveMatchScore } from "@/services/live/football-score/types";
+import { LiveMatchScore } from "@/services/live/football/types";
 import {
   getTeamAsset,
   getTeamInitials,
   resolveEsportsTeam,
 } from "@/data/live/teamAssets";
-import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
+import { toDarkModeLogoUrl } from "@/services/live/football/footballLogoService";
 import {
   resolveMatchDisplayStatus,
   resolveMatchTimeInfo,
-} from "@/services/live/football-score/liveStatus";
-import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+} from "@/services/live/football/liveStatus";
+import { resolveCanonicalTournament } from "@/services/live/football/canonicalLeagues";
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
 import { toCanonicalSourceUrl } from "@/services/live/shared/streamUrlHelper";
 import { isOffensiveCommentatorName } from "@/services/live/football/service";

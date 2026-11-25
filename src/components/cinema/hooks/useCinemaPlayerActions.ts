@@ -7,7 +7,7 @@ import { updatePlayerSettings } from "@/services/userService";
 import {
   updateUserMutePreferenceDuringTransition,
   type AdTransitionState,
-} from "@/lib/adTransitionController";
+} from "@/lib/player/adTransitionController";
 import { type DesktopFeedbackState } from "@/components/cinema/hooks/useCinemaOsdAndControls";
 import { type QualityLevelItem } from "@/components/cinema/hooks/useCinemaHlsEngine";
 

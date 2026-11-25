@@ -7,15 +7,10 @@ import {
   RATE_LIMIT_PRESETS,
 } from "@/lib/rateLimit";
 import { safeParseJson } from "@/lib/securityValidation";
+import { NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-
-const NO_CACHE_HEADERS = {
-  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate, proxy-revalidate",
-  "CDN-Cache-Control": "no-store",
-  "Vercel-CDN-Cache-Control": "no-store",
-};
 
 /**
  * GET /api/user/watchlist

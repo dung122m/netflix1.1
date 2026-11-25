@@ -11,7 +11,7 @@ import {
   snapTimePastAdBoundaries,
   calculateRewindTargetPastAd,
   parseM3u8PlaylistFragments,
-} from "@/lib/adBoundaryDetector";
+} from "@/lib/player/adBoundaryDetector";
 
 describe("adBoundaryDetector", () => {
   describe("isVerifiedAdSegmentUri", () => {
@@ -442,7 +442,7 @@ describe("adBoundaryDetector", () => {
         evaluatePreRollAdDecision({
           targetProgress: 0,
           hasStartedInitialPlayback: false,
-          boundaries: null as unknown as import("@/lib/adBoundaryDetector").AdBoundary[],
+          boundaries: null as unknown as import("@/lib/player/adBoundaryDetector").AdBoundary[],
         }),
         null
       );

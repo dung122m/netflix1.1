@@ -1,7 +1,6 @@
 import {
   pickHeroBackdropImage,
   toHighResBackdropUrl,
-  toFastCdnImageUrl,
   formatCountryName,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
@@ -160,15 +159,13 @@ export function computeHeroMovieMeta(
   const resolvedHeroSrc =
     !featuredMovie || (currentSlug && failedHeroImages[currentSlug])
       ? ""
-      : toFastCdnImageUrl(
-          toHighResBackdropUrl(
-            pickHeroBackdropImage(
-              featuredMovie,
-              "/default-hero.jpg",
-              targetWidth,
-            ),
+      : toHighResBackdropUrl(
+          pickHeroBackdropImage(
+            featuredMovie,
+            "/default-hero.jpg",
             targetWidth,
           ),
+          targetWidth,
         );
   const heroImageSrc = resolvedHeroSrc || "/default-hero.jpg";
 

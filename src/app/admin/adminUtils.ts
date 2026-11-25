@@ -38,15 +38,7 @@ export function formatAdminDate(ts?: number): string {
   return `${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} • ${d.toLocaleDateString("vi-VN")}`;
 }
 
-export function formatWatchMinutes(minutes?: number): string {
-  if (!minutes || minutes <= 0) return "0 phút";
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${mins}m`;
-}
+export { formatWatchMinutesVi as formatWatchMinutes } from "@/lib/dateFormatters";
 
 export function computeAllMembers(
   rawUsers: UserProfile[],

@@ -12,15 +12,15 @@ import {
   SAFE_AD_SKIP_OFFSET,
   type AdBoundary,
   type FragmentLike,
-} from "@/lib/adBoundaryDetector";
+} from "@/lib/player/adBoundaryDetector";
 import {
   evaluateHlsError,
-} from "@/lib/playbackStallController";
+} from "@/lib/player/playbackStallController";
 import {
   endAdTransition,
   startAdTransition,
   type AdTransitionState,
-} from "@/lib/adTransitionController";
+} from "@/lib/player/adTransitionController";
 import {
   getBufferAhead,
   INITIAL_BUFFER_START_SECONDS,

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveTeamIdentity } from "@/lib/sports/logoResolver";
+import { resolveTeamIdentity } from "@/services/live/football/logoResolver";
 import { ensureR2ManifestLoaded, getR2TeamLogoUrl, getR2AssetUrl } from "@/lib/r2Manifest";
 
 test("R2 Assets Manifest & Logo Resolver dynamic offload invariant tests", async (t) => {

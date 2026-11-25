@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { sanitizeSafeText } from "@/lib/security";
 import { cacheService } from "@/lib/cache";
+import { NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -11,12 +12,6 @@ import {
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-
-const NO_CACHE_HEADERS = {
-  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate, proxy-revalidate",
-  "CDN-Cache-Control": "no-store",
-  "Vercel-CDN-Cache-Control": "no-store",
-};
 
 const COLLECTION_SELECT_FIELDS =
   "id, user_id, user_name, user_avatar, name, description, is_public, color_gradient, movies, likes_count, views_count, created_at, updated_at";

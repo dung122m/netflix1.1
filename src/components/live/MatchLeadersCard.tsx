@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { MatchLeadersGroup, MatchLeaderAthlete } from "@/services/live/football-score/types";
+import { MatchLeadersGroup, MatchLeaderAthlete } from "@/services/live/football/types";
 import { Award, Target, Crosshair, ShieldCheck, HandMetal } from "lucide-react";
-import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
+import { toDarkModeLogoUrl } from "@/services/live/football/footballLogoService";
 
 interface MatchLeadersCardProps {
   leaders?: MatchLeadersGroup[];

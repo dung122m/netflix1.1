@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { MatchRosterPlayer, MatchKeyEvent } from "@/services/live/football-score/types";
+import { MatchRosterPlayer, MatchKeyEvent } from "@/services/live/football/types";
 import {
   FotmobSoccerBallIcon,
   FotmobYellowCardIcon,

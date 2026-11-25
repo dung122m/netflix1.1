@@ -204,8 +204,12 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
     const typeFrequency: Record<string, number> = {};
     for (const h of historyItems.slice(0, 15)) {
       if (h.category) {
-        const cat = String(h.category).toLowerCase().trim();
-        genreFrequency[cat] = (genreFrequency[cat] || 0) + 1;
+        for (const rawCat of String(h.category).split(",")) {
+          const cat = rawCat.toLowerCase().trim();
+          if (cat) {
+            genreFrequency[cat] = (genreFrequency[cat] || 0) + 1;
+          }
+        }
       }
       if (h.type) {
         const typ = String(h.type).toLowerCase().trim();

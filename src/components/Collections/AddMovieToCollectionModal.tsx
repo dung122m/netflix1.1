@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { addMovieToCollection } from "@/services/collectionService";
 import { CollectionMovieItem } from "@/types/collection";
 import { toast } from "@/components/ui/Toast";
-import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { BaseModal } from "@/components/ui/BaseModal";
 
 interface SearchResultItem {
@@ -277,7 +277,7 @@ export const AddMovieToCollectionModal: React.FC<AddMovieToCollectionModalProps>
                   <div className="relative w-11 h-15 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={toFastCdnImageUrl(toOptimizedCardPosterUrl(item.poster, 192)) || "/default-poster.jpg"}
+                      src={toOptimizedCardPosterUrl(item.poster, 192) || "/default-poster.jpg"}
                       alt={item.title}
                       className="w-full h-full object-cover"
                     />

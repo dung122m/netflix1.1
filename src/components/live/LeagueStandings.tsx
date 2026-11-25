@@ -13,7 +13,7 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
-import { NormalizedLeagueStandings, StandingGroup } from "@/services/live/football-score/types";
+import { NormalizedLeagueStandings, StandingGroup } from "@/services/live/football/types";
 import { CountryFlag } from "./CountryFlag";
 import { Tooltip } from "@/components/ui/Tooltip";
 

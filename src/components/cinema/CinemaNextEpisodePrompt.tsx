@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { Play, X } from "lucide-react";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 
 export interface CinemaNextEpisodePromptProps {
@@ -35,7 +35,7 @@ export const CinemaNextEpisodePrompt: React.FC<CinemaNextEpisodePromptProps> = (
       {posterUrl && (
         <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900">
           <Image
-            src={toFastCdnImageUrl(toOptimizedCardPosterUrl(posterUrl, 192) || posterUrl) || "/default-poster.jpg"}
+            src={toOptimizedCardPosterUrl(posterUrl, 192) || posterUrl || "/default-poster.jpg"}
             alt={nextEpisode.name || "Tập tiếp theo"}
             fill
             unoptimized

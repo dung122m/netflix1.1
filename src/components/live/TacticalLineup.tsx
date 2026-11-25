@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Users, Shirt, LayoutGrid, CircleDot } from "lucide-react";
-import { MatchRosterPlayer } from "@/services/live/football-score/types";
+import { MatchRosterPlayer } from "@/services/live/football/types";
 import {
   getPositionAbbreviation,
   inferContextualRole,

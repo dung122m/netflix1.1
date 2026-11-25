@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   createInitialKeyboardSeekState,
   type KeyboardSeekState,
-} from "@/lib/keyboardSeekManager";
+} from "@/lib/player/keyboardSeekManager";
 
 export interface DesktopFeedbackState {
   type: "play" | "pause" | "seek-left" | "seek-right";

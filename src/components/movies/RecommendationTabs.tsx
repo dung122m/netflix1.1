@@ -14,7 +14,6 @@ import {
   RecommendedMovieCard,
   RecommendedMovieItem,
 } from "./RecommendedMovieCard";
-import { RecommendedSidebarCard } from "./RecommendedSidebarCard";
 
 export type { RecommendedMovieItem };
 
@@ -348,10 +347,11 @@ export function RecommendationTabs({
           <div className="space-y-3">
             <div className="space-y-1.5 pr-0.5">
               {displayedMovies.map((item, index) => (
-                <RecommendedSidebarCard
+                <RecommendedMovieCard
                   key={item.slug}
                   item={item}
                   index={index}
+                  variant="sidebar"
                   displayCategory={resolveDisplayCategory(item, activeTab, genreName)}
                 />
               ))}

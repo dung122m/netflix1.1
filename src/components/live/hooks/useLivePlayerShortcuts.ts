@@ -38,6 +38,8 @@ export function useLivePlayerShortcuts({
   closeRail,
 }: UseLivePlayerShortcutsOptions) {
   useEffect(() => {
+    if (!isActive) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Vô hiệu hóa phím tắt khi người dùng đang nhập liệu trong modal, form hoặc input
       const target = e.target as HTMLElement | null;

@@ -22,7 +22,7 @@ import {
   resolveR2Logo,
   resolveNationalTeam,
   resolveTeamIdentity,
-} from "@/lib/sports/logoResolver";
+} from "@/services/live/football/logoResolver";
 
 export {
   resolveEsportsTeam,

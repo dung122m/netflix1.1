@@ -3,7 +3,7 @@
 import React from "react";
 import { Search } from "lucide-react";
 import type { FootballMatch } from "@/services/live/football/service";
-import type { LiveMatchScore } from "@/services/live/football-score/types";
+import type { LiveMatchScore } from "@/services/live/football/types";
 import { LeagueStandings } from "./LeagueStandings";
 import { MatchCard } from "./MatchCard";
 

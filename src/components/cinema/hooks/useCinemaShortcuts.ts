@@ -7,11 +7,7 @@ import {
   createInitialKeyboardSeekState,
   KEYBOARD_SEEK_CYCLE_TIMEOUT_MS,
   KEYBOARD_SEEK_DEBOUNCE_MS,
-} from "@/lib/keyboardSeekManager";
-import {
-  updateUserMutePreferenceDuringTransition,
-  type AdTransitionState,
-} from "@/lib/adTransitionController";
+} from "@/lib/player/keyboardSeekManager";
 import { type EpisodeItem } from "@/components/cinema/cinemaStreamHelpers";
 import { type PendingKeyboardSeekRefValue } from "@/components/cinema/hooks/useCinemaOsdAndControls";
 
@@ -20,19 +16,17 @@ interface UseCinemaShortcutsOptions {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   pendingKeyboardSeekRef: React.RefObject<PendingKeyboardSeekRefValue>;
   singleTapTimerRef: React.RefObject<NodeJS.Timeout | null>;
-  automatedAdSkipRef: React.RefObject<AdTransitionState | null>;
   isNativeVideo: boolean;
   isFullscreen: boolean;
-  volume: number;
-  setIsMuted: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsTheaterMode: React.Dispatch<React.SetStateAction<boolean>>;
+  onToggleMute: () => void;
+  onToggleTheaterMode: () => void;
+  togglePiP?: () => void;
   effectivePrevEpisode: EpisodeItem | null;
   effectiveNextEpisode: EpisodeItem | null;
   switchEpisode?: (slug: string) => void;
   togglePlayPause: () => void;
   toggleFullscreen: () => void;
   handleVolumeDelta: (delta: number) => void;
-  triggerVolumeOsd: (newVol: number, muted: boolean) => void;
   showHud: (icon?: React.ReactNode, text?: string) => void;
   resetControlsTimeout: () => void;
   triggerDesktopFeedback: (
@@ -46,27 +40,25 @@ interface UseCinemaShortcutsOptions {
 
 export function useCinemaShortcuts({
   containerRef,
-  videoRef,
   pendingKeyboardSeekRef,
   singleTapTimerRef,
-  automatedAdSkipRef,
   isNativeVideo,
   isFullscreen,
-  volume,
-  setIsMuted,
-  setIsTheaterMode,
+  onToggleMute,
+  onToggleTheaterMode,
+  togglePiP,
   effectivePrevEpisode,
   effectiveNextEpisode,
   switchEpisode,
   togglePlayPause,
   toggleFullscreen,
   handleVolumeDelta,
-  triggerVolumeOsd,
   showHud,
   resetControlsTimeout,
   triggerDesktopFeedback,
   getEffectiveDuration,
   requestPlayerSeek,
+  videoRef,
 }: UseCinemaShortcutsOptions) {
   // Dedicated unmount teardown for keyboard seek timers to avoid cancelling in-flight seeks during normal re-renders
   useEffect(() => {
@@ -204,18 +196,8 @@ export function useCinemaShortcuts({
         if (e.repeat) return;
         e.preventDefault();
         resetControlsTimeout();
-        if (isNativeVideo && videoRef.current) {
-          const nextMuted = !videoRef.current.muted;
-          videoRef.current.muted = nextMuted;
-          setIsMuted(nextMuted);
-          if (automatedAdSkipRef.current && automatedAdSkipRef.current.active) {
-            automatedAdSkipRef.current =
-              updateUserMutePreferenceDuringTransition(
-                automatedAdSkipRef.current,
-                nextMuted,
-              );
-          }
-          triggerVolumeOsd(volume, nextMuted);
+        if (isNativeVideo) {
+          onToggleMute();
         }
         return;
       }
@@ -224,11 +206,12 @@ export function useCinemaShortcuts({
         if (e.repeat) return;
         e.preventDefault();
         resetControlsTimeout();
-        setIsTheaterMode((prev) => !prev);
+        onToggleTheaterMode();
         return;
       }
 
       if (
+        e.shiftKey &&
         (e.key === "p" || e.key === "P") &&
         effectivePrevEpisode?.slug &&
         switchEpisode
@@ -245,6 +228,19 @@ export function useCinemaShortcuts({
       }
 
       if (
+        !e.shiftKey &&
+        (e.key === "p" || e.key === "P") &&
+        togglePiP
+      ) {
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        togglePiP();
+        return;
+      }
+
+      if (
+        e.shiftKey &&
         (e.key === "n" || e.key === "N") &&
         effectiveNextEpisode?.slug &&
         switchEpisode
@@ -266,8 +262,9 @@ export function useCinemaShortcuts({
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         if (
           active &&
-          active.tagName === "INPUT" &&
-          active.getAttribute("type") === "range"
+          ((active.tagName === "INPUT" &&
+            active.getAttribute("type") === "range") ||
+            active.getAttribute("role") === "slider")
         ) {
           return;
         }
@@ -335,8 +332,9 @@ export function useCinemaShortcuts({
       if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         if (
           active &&
-          active.tagName === "INPUT" &&
-          active.getAttribute("type") === "range"
+          ((active.tagName === "INPUT" &&
+            active.getAttribute("type") === "range") ||
+            active.getAttribute("role") === "slider")
         ) {
           return;
         }
@@ -351,7 +349,7 @@ export function useCinemaShortcuts({
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       // NOTE: Không hủy pendingKeyboardSeekRef timer ở đây vì cleanup này chạy mỗi khi dependencies
-      // (như volume, isFullscreen) thay đổi trong lúc player đang render. Unmount effect riêng sẽ dọn dẹp an toàn.
+      // (như isFullscreen) thay đổi trong lúc player đang render. Unmount effect riêng sẽ dọn dẹp an toàn.
       if (singleTapTimerContainer.current) {
         clearTimeout(singleTapTimerContainer.current);
       }
@@ -362,23 +360,21 @@ export function useCinemaShortcuts({
     videoRef,
     pendingKeyboardSeekRef,
     singleTapTimerRef,
-    automatedAdSkipRef,
     isNativeVideo,
     effectivePrevEpisode,
     effectiveNextEpisode,
     switchEpisode,
     togglePlayPause,
     toggleFullscreen,
+    togglePiP,
     handleVolumeDelta,
-    triggerVolumeOsd,
+    onToggleMute,
+    onToggleTheaterMode,
     showHud,
-    volume,
-    getEffectiveDuration,
     isFullscreen,
     resetControlsTimeout,
     triggerDesktopFeedback,
-    setIsMuted,
-    setIsTheaterMode,
+    getEffectiveDuration,
     requestPlayerSeek,
   ]);
 }

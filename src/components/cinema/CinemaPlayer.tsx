@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { useWatchController } from "@/components/cinema/WatchController";
@@ -503,24 +503,30 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     getEffectiveDuration,
   });
 
+  const handleToggleTheaterMode = useCallback(() => {
+    setIsTheaterMode((prev) => {
+      const next = !prev;
+      updatePlayerSettings(user?.uid, { defaultTheaterMode: next });
+      return next;
+    });
+  }, [setIsTheaterMode, user?.uid]);
+
   useCinemaShortcuts({
     containerRef,
     videoRef,
     pendingKeyboardSeekRef,
     singleTapTimerRef,
-    automatedAdSkipRef,
     isNativeVideo,
     isFullscreen,
-    volume,
-    setIsMuted,
-    setIsTheaterMode,
+    onToggleMute: handleToggleMuteControl,
+    onToggleTheaterMode: handleToggleTheaterMode,
+    togglePiP,
     effectivePrevEpisode,
     effectiveNextEpisode,
     switchEpisode,
     togglePlayPause,
     toggleFullscreen,
     handleVolumeDelta,
-    triggerVolumeOsd,
     showHud,
     resetControlsTimeout,
     triggerDesktopFeedback,
@@ -652,13 +658,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               }}
               onTogglePiP={togglePiP}
               onUseIframeFallback={() => setUseIframeFallback(true)}
-              onToggleTheaterMode={() => {
-                setIsTheaterMode((prev) => {
-                  const next = !prev;
-                  updatePlayerSettings(user?.uid, { defaultTheaterMode: next });
-                  return next;
-                });
-              }}
+              onToggleTheaterMode={handleToggleTheaterMode}
               onToggleFullscreen={toggleFullscreen}
               onSwitchEpisode={(slug) => {
                 if (switchEpisode) switchEpisode(slug);

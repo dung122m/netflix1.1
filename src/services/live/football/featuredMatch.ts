@@ -1,6 +1,6 @@
-import { LiveMatchScore } from "../football-score/types";
-import { isGenericSportTournament, WOMEN_SOCCER_KEYWORD_REGEX } from "../football-score/canonicalLeagues";
-import { normalizeTeamKey } from "../football-logo/service";
+import { LiveMatchScore } from "./types";
+import { isGenericSportTournament, WOMEN_SOCCER_KEYWORD_REGEX } from "./canonicalLeagues";
+import { normalizeTeamKey } from "./footballLogoService";
 import { normalizeClubKey } from "./service";
 
 export interface FeaturedMatchResult {

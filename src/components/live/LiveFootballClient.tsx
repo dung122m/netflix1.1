@@ -12,9 +12,9 @@ import { toCanonicalSourceUrl } from "@/services/live/shared/streamUrlHelper";
 import type {
   LiveMatchScore,
   NormalizedMatchSummary,
-} from "@/services/live/football-score/types";
-import { mergeNormalizedSummaries } from "@/services/live/football-score/matchCenterRealtime";
-import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+} from "@/services/live/football/types";
+import { mergeNormalizedSummaries } from "@/services/live/football/matchCenterRealtime";
+import { resolveCanonicalTournament } from "@/services/live/football/canonicalLeagues";
 import { useLiveScoresRealtime } from "./hooks/useLiveScoresRealtime";
 import { useLiveFootballFilters } from "./hooks/useLiveFootballFilters";
 import { LiveFilterCommandBar } from "./LiveFilterCommandBar";

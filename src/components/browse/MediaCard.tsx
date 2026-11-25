@@ -15,7 +15,6 @@ import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watc
 import { formatEpisodeName, isFullEpisodeLabel } from "@/lib/formatEpisode";
 import {
   toOptimizedCardPosterUrl,
-  toFastCdnImageUrl,
   formatCountryName,
   COUNTRY_DISPLAY_MAP,
 } from "@/lib/movieMedia";
@@ -149,7 +148,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     const list: string[] = [];
     const addUrl = (u?: string) => {
       if (!u || typeof u !== "string" || !u.trim()) return;
-      const clean = toFastCdnImageUrl(toOptimizedCardPosterUrl(u));
+      const clean = toOptimizedCardPosterUrl(u);
       if (
         clean &&
         !list.includes(clean) &&

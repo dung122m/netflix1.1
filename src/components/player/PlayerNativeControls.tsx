@@ -276,7 +276,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* CỤM TRÁI: PLAY/PAUSE, TẬP TRƯỚC/TIẾP, TUA 5S, ÂM LƯỢNG, THỜI GIAN */}
             <div className="flex items-center gap-1 sm:gap-2">
               {prevEpisode?.slug && onSwitchEpisode && (
-                <Tooltip content={`Tập trước: ${prevEpisode.name || ""}`} shortcut="P" side="top">
+                <Tooltip content={`Tập trước: ${prevEpisode.name || ""}`} shortcut="Shift+P" side="top">
                   <button
                     type="button"
                     data-player-control="true"
@@ -306,7 +306,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               </Tooltip>
 
               {nextEpisode?.slug && onSwitchEpisode && (
-                <Tooltip content={`Tập tiếp: ${nextEpisode.name || ""}`} shortcut="N" side="top">
+                <Tooltip content={`Tập tiếp: ${nextEpisode.name || ""}`} shortcut="Shift+N" side="top">
                   <button
                     type="button"
                     data-player-control="true"

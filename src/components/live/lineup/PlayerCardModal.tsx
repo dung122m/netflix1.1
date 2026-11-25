@@ -8,7 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { AthleteProfile, MatchRosterPlayer } from "@/services/live/football-score/types";
+import { AthleteProfile, MatchRosterPlayer } from "@/services/live/football/types";
 import {
   FotmobSoccerBallIcon,
   FotmobYellowCardIcon,

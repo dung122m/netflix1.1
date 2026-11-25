@@ -11,7 +11,7 @@ import {
 import { MovieCollection } from "@/types/collection";
 import { CreateCollectionModal } from "./CreateCollectionModal";
 import { toast } from "@/components/ui/Toast";
-import { toOptimizedCardPosterUrl, toFastCdnImageUrl } from "@/lib/movieMedia";
+import { toOptimizedCardPosterUrl } from "@/lib/movieMedia";
 import { BaseModal } from "@/components/ui/BaseModal";
 
 interface AddToCollectionModalProps {
@@ -150,7 +150,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           <div className="relative w-10 h-13 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={toFastCdnImageUrl(toOptimizedCardPosterUrl(movie.poster, 192)) || "/default-poster.jpg"}
+              src={toOptimizedCardPosterUrl(movie.poster, 192) || "/default-poster.jpg"}
               alt={movie.title}
               className="w-full h-full object-cover"
             />

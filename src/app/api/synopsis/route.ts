@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { cacheService } from "@/lib/cache";
+import { setBoundedMap } from "@/lib/boundedMap";
+import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import { getR2BannerUrl } from "@/lib/r2";
 import {
   pickHeroBackdropImage,
@@ -27,16 +29,6 @@ import { validateHttpMethod } from "@/lib/securityValidation";
 const serverSynopsisCache = new Map<string, SynopsisDetailPayload>();
 const inFlightServerRequests = new Map<string, Promise<SynopsisDetailPayload | null>>();
 const MAX_SYNOPSIS_CACHE = 500;
-
-function setBoundedSynopsisCache(slug: string, payload: SynopsisDetailPayload) {
-  if (serverSynopsisCache.size >= MAX_SYNOPSIS_CACHE) {
-    const oldestKey = serverSynopsisCache.keys().next().value;
-    if (oldestKey !== undefined) {
-      serverSynopsisCache.delete(oldestKey);
-    }
-  }
-  serverSynopsisCache.set(slug, payload);
-}
 
 export async function GET(request: NextRequest) {
   const methodErr = validateHttpMethod(request, ["GET"]);
@@ -76,14 +68,11 @@ export async function GET(request: NextRequest) {
   try {
     const redisCached = await cacheService.get<SynopsisDetailPayload>(kvKey);
     if (redisCached) {
-      setBoundedSynopsisCache(slug, redisCached);
+      setBoundedMap(serverSynopsisCache, slug, redisCached, MAX_SYNOPSIS_CACHE);
       return NextResponse.json(
         { slug, ...redisCached },
         {
-          headers: {
-            "Cache-Control":
-              "public, s-maxage=86400, stale-while-revalidate=86400",
-          },
+          headers: buildEdgeCacheHeaders(86400, 86400),
         }
       );
     }
@@ -189,7 +178,7 @@ export async function GET(request: NextRequest) {
       };
 
       // Lưu vào RAM cache (bounded FIFO) & L2 Redis Cache (7 ngày)
-      setBoundedSynopsisCache(slug, payload);
+      setBoundedMap(serverSynopsisCache, slug, payload, MAX_SYNOPSIS_CACHE);
       cacheService.set(kvKey, payload, 7 * 86400).catch(() => {});
       return payload;
     } catch (err) {

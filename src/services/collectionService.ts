@@ -46,17 +46,10 @@ export {
 };
 export type { PendingSyncItem, SanitizedMovieItem, SmartCollectionConfig };
 
+import { getFirebaseAuthHeaders } from "@/lib/clientAuth";
+
 async function getAuthHeaders(): Promise<HeadersInit> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  try {
-    const token = await auth?.currentUser?.getIdToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  } catch {}
-  return headers;
+  return getFirebaseAuthHeaders();
 }
 
 /**

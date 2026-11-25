@@ -158,18 +158,17 @@ export function useNavSearch({
 
   useEffect(() => () => abortPendingSearch(), [abortPendingSearch]);
 
-  // Sync keyword from URL
+  // Sync keyword from URL without re-opening suggestion dropdown
   useEffect(() => {
+    abortPendingSearch();
     if (inputRef.current) inputRef.current.value = urlKeyword;
     if (mobileInputRef.current) mobileInputRef.current.value = urlKeyword;
     setQueryText(urlKeyword);
+    setShowDropdown(false);
     if (urlKeyword && typeof window !== "undefined" && window.innerWidth >= 768) {
       setIsSearchExpanded(true);
     }
-    if (urlKeyword.trim()) {
-      debouncedFetchSuggestions(urlKeyword.trim());
-    }
-  }, [urlKeyword, setIsSearchExpanded, debouncedFetchSuggestions]);
+  }, [urlKeyword, setIsSearchExpanded, abortPendingSearch]);
 
   // Close dropdown and collapse search on click outside
   useEffect(() => {

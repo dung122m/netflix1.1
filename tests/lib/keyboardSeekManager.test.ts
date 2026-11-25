@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   calculateKeyboardSeek,
   createInitialKeyboardSeekState,
-} from "@/lib/keyboardSeekManager";
+} from "@/lib/player/keyboardSeekManager";
 
 describe("TC-PLAYER-KEYBOARD-SEEK-01 — Keyboard Seek State & Cycle Verification", () => {
   it("Kịch bản 1: Bấm phải một lần → +5s và seek-right", () => {

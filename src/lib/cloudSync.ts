@@ -5,6 +5,7 @@ import {
   WatchHistoryItem,
 } from "./watchHistory";
 import { getWatchedEpisodes } from "./episodeTracker";
+import { getFirebaseAuthHeaders } from "./clientAuth";
 import {
   getWatchlist,
   registerWatchlistSyncHandler,
@@ -34,21 +35,7 @@ export function mergeWatchedEpisodesForCloud(item: WatchHistoryItem): string[] {
 }
 
 async function getAuthHeaders(expectedUserId?: string): Promise<HeadersInit> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const currentUser = auth?.currentUser;
-    if (expectedUserId && currentUser?.uid !== expectedUserId) {
-      return headers;
-    }
-    const token = await currentUser?.getIdToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  } catch {}
-  return headers;
+  return getFirebaseAuthHeaders({ expectedUserId });
 }
 
 const lastHistorySyncMap = new Map<string, number>();

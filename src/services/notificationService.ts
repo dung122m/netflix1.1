@@ -397,8 +397,8 @@ export async function markNotificationAsRead(
 
   // 2. Cập nhật Server API
   try {
-    const { auth } = await import("@/lib/firebase");
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const { getFirebaseIdToken } = await import("@/lib/clientAuth");
+    const idToken = await getFirebaseIdToken();
     if (idToken) {
       await fetch("/api/notifications", {
         method: "PATCH",
@@ -444,8 +444,8 @@ export async function markAllNotificationsAsRead(
 
   // 2. Cập nhật Server API
   try {
-    const { auth } = await import("@/lib/firebase");
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const { getFirebaseIdToken } = await import("@/lib/clientAuth");
+    const idToken = await getFirebaseIdToken();
     if (idToken) {
       await fetch("/api/notifications", {
         method: "PATCH",
@@ -488,8 +488,8 @@ export async function deleteNotification(
 
   // 2. Cập nhật Server API
   try {
-    const { auth } = await import("@/lib/firebase");
-    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const { getFirebaseIdToken } = await import("@/lib/clientAuth");
+    const idToken = await getFirebaseIdToken();
     if (idToken) {
       await fetch(`/api/notifications?notifId=${encodeURIComponent(notificationId)}`, {
         method: "DELETE",

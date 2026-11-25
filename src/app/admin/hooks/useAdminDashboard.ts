@@ -106,8 +106,8 @@ export function useAdminDashboard({
 
   const loadCollections = useCallback(async () => {
     try {
-      const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken().catch(() => null);
+      const { getFirebaseIdToken } = await import("@/lib/clientAuth");
+      const token = await getFirebaseIdToken();
       if (token) {
         const res = await fetch(`/api/user/collections?all=true&_t=${Date.now()}`, {
           cache: "no-store",

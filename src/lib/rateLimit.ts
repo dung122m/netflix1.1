@@ -402,6 +402,18 @@ export function recordRedisFailure(kind: RedisErrorKind, now: number = Date.now(
   }
 }
 
+function ensureMemoryStoreCapacity(now: number, windowMs: number): void {
+  if (localMemoryStore.size < 5000) return;
+  for (const [k, r] of localMemoryStore.entries()) {
+    r.timestamps = r.timestamps.filter((t) => now - t < windowMs);
+    if (r.timestamps.length === 0) localMemoryStore.delete(k);
+  }
+  if (localMemoryStore.size >= 5000) {
+    const firstKey = localMemoryStore.keys().next().value;
+    if (firstKey) localMemoryStore.delete(firstKey);
+  }
+}
+
 /**
  * Evaluates in-memory sliding window fallback when Redis is unavailable, slow, or circuit is open.
  * Protects against multi-instance quota multiplication by bounding local quotas.
@@ -415,16 +427,7 @@ function evaluateMemoryFallback(
 ): RateLimitResult {
   let rec = localMemoryStore.get(key);
   if (!rec) {
-    if (localMemoryStore.size >= 5000) {
-      for (const [k, r] of localMemoryStore.entries()) {
-        r.timestamps = r.timestamps.filter((t) => now - t < windowMs);
-        if (r.timestamps.length === 0) localMemoryStore.delete(k);
-      }
-      if (localMemoryStore.size >= 5000) {
-        const firstKey = localMemoryStore.keys().next().value;
-        if (firstKey) localMemoryStore.delete(firstKey);
-      }
-    }
+    ensureMemoryStoreCapacity(now, windowMs);
     rec = { timestamps: [] };
     localMemoryStore.set(key, rec);
   }
@@ -528,16 +531,7 @@ function evaluateInMemoryStrategy(
 ): RateLimitResult {
   let rec = localMemoryStore.get(key);
   if (!rec) {
-    if (localMemoryStore.size >= 5000) {
-      for (const [k, r] of localMemoryStore.entries()) {
-        r.timestamps = r.timestamps.filter((t) => now - t < windowMs);
-        if (r.timestamps.length === 0) localMemoryStore.delete(k);
-      }
-      if (localMemoryStore.size >= 5000) {
-        const firstKey = localMemoryStore.keys().next().value;
-        if (firstKey) localMemoryStore.delete(firstKey);
-      }
-    }
+    ensureMemoryStoreCapacity(now, windowMs);
     rec = { timestamps: [] };
     localMemoryStore.set(key, rec);
   }

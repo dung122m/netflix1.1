@@ -285,7 +285,7 @@ export function useHeroTrailerPlayer({
       if (ytId && !failedTrailerMapRef.current[targetSlug]) {
         setActiveTrailerId(ytId);
         setIsTrailerReady(false);
-      } else if (rawTrailer && !ytId) {
+      } else {
         failedTrailerMapRef.current[targetSlug] = true;
         setFailedTrailerMap((prev) => ({ ...prev, [targetSlug]: true }));
       }

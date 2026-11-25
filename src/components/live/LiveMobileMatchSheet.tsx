@@ -3,7 +3,7 @@
 import React from "react";
 import { Clock, Search, X } from "lucide-react";
 import { FootballMatch } from "@/services/live/football/service";
-import { LiveMatchScore } from "@/services/live/football-score/types";
+import { LiveMatchScore } from "@/services/live/football/types";
 import { MatchCard } from "./MatchCard";
 
 export interface LiveMobileMatchSheetProps {

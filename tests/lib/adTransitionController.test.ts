@@ -7,7 +7,7 @@ import {
   endAdTransition,
   updateUserMutePreferenceDuringTransition,
   isAdTransitionTimedOut,
-} from "@/lib/adTransitionController";
+} from "@/lib/player/adTransitionController";
 
 describe("adTransitionController — TC-AD-FLASH-02", () => {
   describe("createInitialAdTransitionState", () => {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Heart } from "lucide-react";
-import { isFavoriteActor, toggleFavoriteActor } from "@/lib/favoriteActors";
+import { isFavoriteActor, toggleFavoriteActor } from "@/services/actor/favoriteActors";
 import { toast } from "@/components/ui/Toast";
 import { cleanCountryName } from "@/lib/stringUtils";
 import { getActorSynonyms } from "@/services/actor/actorAliasResolver";

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findHistoricalArtist } from "@/data/history/historicalArtistsBirthdays";
-import { getActorMatchTerms } from "@/lib/actorAlias";
+import { getActorMatchTerms } from "@/services/actor/actorAlias";
 import { fetchActorProfile, cleanBioExtract } from "@/services/wikipediaService";
 import { searchTmdbPerson, getTmdbPersonDetail } from "@/services/tmdbService";
 import { selectBestBiography } from "@/services/actor/bioFormatter";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
+import { calculateAgeVi as calculateAge, formatIsoDateToVn as formatDate } from "@/lib/dateFormatters";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -14,33 +15,6 @@ import {
 
 import { type EnhancedActorProfile } from "@/services/aiActorService";
 export type { EnhancedActorProfile };
-
-function calculateAge(birthdayStr?: string, deathdayStr?: string): string | null {
-  if (!birthdayStr) return null;
-  const birthDate = new Date(birthdayStr);
-  if (isNaN(birthDate.getTime())) return null;
-
-  const endDate = deathdayStr ? new Date(deathdayStr) : new Date();
-  if (isNaN(endDate.getTime())) return null;
-
-  let age = endDate.getFullYear() - birthDate.getFullYear();
-  const m = endDate.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) {
-    age--;
-  }
-
-  if (age <= 0 || age > 120) return null;
-  return deathdayStr ? `${age} tuổi (đã mất)` : `${age} tuổi`;
-}
-
-function formatDate(dateStr?: string): string | null {
-  if (!dateStr) return null;
-  const parts = dateStr.split("-");
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-}
 
 export async function GET(request: NextRequest) {
   const rateLimit = await enforceRateLimit(request, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);

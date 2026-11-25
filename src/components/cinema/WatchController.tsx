@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { saveWatchHistory } from "@/lib/watchHistory";
+import { resolveNextResumeEpisode } from "@/lib/seriesResume";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { getPlayerSettings, updatePlayerSettings } from "@/services/userService";
@@ -206,12 +207,83 @@ export function WatchController({
 
   const prevInitialSlugRef = useRef(initialEpisodeSlug);
   const hasInitializedHistoryRef = useRef<string | null>(null);
+  const hasCheckedAutoResumeRef = useRef<string | null>(null);
+  const serversRef = useRef<EpisodeServer[]>(initialServers);
   const streamFetchTriedRef = useRef<Set<string>>(new Set());
 
-  // Ghi nhận lịch sử xem duy nhất 1 lần khi mount trang, đổi tập hoặc khi vừa đăng nhập tài khoản mới
+  useEffect(() => {
+    serversRef.current = servers;
+  }, [servers]);
+
+  // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang, giữ đúng provider đã chọn
+  const updateUrlQuietly = useCallback(
+    (
+      epSlug: string,
+      sIndex: number,
+      _prov?: PlaybackProviderType,
+      options?: { preserveTime?: boolean; replace?: boolean }
+    ) => {
+      if (typeof window === "undefined") return;
+      try {
+        const url = new URL(window.location.href);
+        if (epSlug) {
+          url.searchParams.set("ep", epSlug);
+        } else {
+          url.searchParams.delete("ep");
+        }
+        if (sIndex > 0) {
+          url.searchParams.set("server", String(sIndex));
+        } else {
+          url.searchParams.delete("server");
+        }
+        // Xóa provider thừa nếu có trong URL cũ
+        url.searchParams.delete("provider");
+        // Chỉ xóa mốc thời gian cũ khi người dùng chủ động đổi tập (giữ nguyên khi có preserveTime)
+        if (!options?.preserveTime) {
+          url.searchParams.delete("t");
+        }
+        if (options?.replace) {
+          window.history.replaceState(null, "", url.pathname + url.search);
+        } else {
+          window.history.pushState(null, "", url.pathname + url.search);
+        }
+      } catch {}
+    },
+    []
+  );
+
+  // Tự động tiếp tục tập đang xem dở (nếu URL không chỉ định ?ep=) rồi mới ghi nhận lịch sử xem
   useEffect(() => {
     const currentSlug = activeEpisodeSlug || episodes[0]?.slug || "";
     if (!movieSlug || !currentSlug) return;
+
+    const resumeKey = `${user?.uid || "guest"}_${movieSlug}`;
+    if (hasCheckedAutoResumeRef.current !== resumeKey) {
+      hasCheckedAutoResumeRef.current = resumeKey;
+      let hasExplicitEpParam = false;
+      if (typeof window !== "undefined") {
+        try {
+          hasExplicitEpParam = Boolean(new URLSearchParams(window.location.search).get("ep"));
+        } catch {}
+      }
+      if (!hasExplicitEpParam && episodes.length > 0) {
+        const resolved = resolveNextResumeEpisode(movieSlug, episodes);
+        if (
+          resolved &&
+          (resolved.caseType === "in_progress" || resolved.caseType === "next_episode") &&
+          resolved.episode?.slug &&
+          resolved.episode.slug !== currentSlug
+        ) {
+          setActiveEpisodeSlug(resolved.episode.slug);
+          updateUrlQuietly(resolved.episode.slug, currentServerIndex, activeProvider, {
+            replace: true,
+            preserveTime: resolved.caseType === "in_progress",
+          });
+          return;
+        }
+      }
+    }
+
     const historyKey = `${user?.uid || "guest"}_${movieSlug}_${currentSlug}`;
     if (hasInitializedHistoryRef.current === historyKey) return;
     hasInitializedHistoryRef.current = historyKey;
@@ -240,6 +312,9 @@ export function WatchController({
     thumbUrl,
     activeEpisodeSlug,
     episodes,
+    currentServerIndex,
+    activeProvider,
+    updateUrlQuietly,
     year,
     quality,
     category,
@@ -314,21 +389,22 @@ export function WatchController({
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const serverParam = urlParams.get("server");
+        const currentServers = serversRef.current;
         let targetServerIndex = initialServerIndex || 0;
         if (serverParam !== null) {
           const parsed = parseInt(serverParam, 10);
-          if (!isNaN(parsed) && parsed >= 0 && parsed < initialServers.length) {
+          if (!isNaN(parsed) && parsed >= 0 && parsed < currentServers.length) {
             targetServerIndex = parsed;
           }
-        } else if (initialServers && initialServers.length > 0) {
-          const nativeIdx = initialServers.findIndex((s) => canServerUseNanaflixPlayer(s));
+        } else if (currentServers && currentServers.length > 0) {
+          const nativeIdx = currentServers.findIndex((s) => canServerUseNanaflixPlayer(s));
           if (nativeIdx !== -1) {
             targetServerIndex = nativeIdx;
           }
         }
         setCurrentServerIndex(targetServerIndex);
 
-        const targetServer = initialServers[targetServerIndex] || initialServers[0];
+        const targetServer = currentServers[targetServerIndex] || currentServers[0];
         const targetEpisodes = targetServer?.server_data || [];
         const epParam = urlParams.get("ep");
         if (epParam && targetEpisodes.length > 0) {
@@ -342,7 +418,7 @@ export function WatchController({
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [initialServers, initialServerIndex]);
+  }, [initialServerIndex]);
 
   const activeEpisode = useMemo(() => {
     if (activeEpisodeSlug) {
@@ -367,39 +443,6 @@ export function WatchController({
       ? episodes[currentIndex + 1]
       : null;
   }, [currentIndex, episodes]);
-
-  // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang, giữ đúng provider đã chọn
-  const updateUrlQuietly = useCallback(
-    (
-      epSlug: string,
-      sIndex: number,
-      _prov?: PlaybackProviderType,
-      options?: { preserveTime?: boolean }
-    ) => {
-      if (typeof window === "undefined") return;
-      try {
-        const url = new URL(window.location.href);
-        if (epSlug) {
-          url.searchParams.set("ep", epSlug);
-        } else {
-          url.searchParams.delete("ep");
-        }
-        if (sIndex > 0) {
-          url.searchParams.set("server", String(sIndex));
-        } else {
-          url.searchParams.delete("server");
-        }
-        // Xóa provider thừa nếu có trong URL cũ
-        url.searchParams.delete("provider");
-        // Chỉ xóa mốc thời gian cũ khi người dùng chủ động đổi tập (giữ nguyên khi có preserveTime)
-        if (!options?.preserveTime) {
-          url.searchParams.delete("t");
-        }
-        window.history.pushState(null, "", url.pathname + url.search);
-      } catch {}
-    },
-    []
-  );
 
   const switchProvider = useCallback(() => {}, []);
 
