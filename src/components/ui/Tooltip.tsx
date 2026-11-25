@@ -138,7 +138,6 @@ export function Tooltip({
       positionClass = "bottom-full mb-2 left-1/2 -translate-x-1/2";
       arrowClass = "-bottom-1 left-1/2 -translate-x-1/2";
     }
-    arrowClass += " border-b border-r";
   } else if (side === "bottom") {
     if (effectiveAlign === "start") {
       positionClass = "top-full mt-2 left-0";
@@ -150,13 +149,12 @@ export function Tooltip({
       positionClass = "top-full mt-2 left-1/2 -translate-x-1/2";
       arrowClass = "-top-1 left-1/2 -translate-x-1/2";
     }
-    arrowClass += " border-t border-l";
   } else if (side === "left") {
     positionClass = "right-full mr-2 top-1/2 -translate-y-1/2";
-    arrowClass = "-right-1 top-1/2 -translate-y-1/2 border-t border-r";
+    arrowClass = "-right-1 top-1/2 -translate-y-1/2";
   } else if (side === "right") {
     positionClass = "left-full ml-2 top-1/2 -translate-y-1/2";
-    arrowClass = "-left-1 top-1/2 -translate-y-1/2 border-b border-l";
+    arrowClass = "-left-1 top-1/2 -translate-y-1/2";
   }
 
   const hasExplicitPosition = /(?:^|\s)(?:absolute|fixed|sticky|static)\b/.test(wrapperClassName);

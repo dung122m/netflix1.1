@@ -103,7 +103,7 @@ export const AdminTablePagination: React.FC<AdminTablePaginationProps> = React.m
             type="button"
             disabled={currentPage === 1}
             onClick={() => goToPage(Math.max(1, currentPage - 1))}
-            className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
           >
             <ChevronLeft size={13} />
             <span>Trước</span>
@@ -119,7 +119,7 @@ export const AdminTablePagination: React.FC<AdminTablePaginationProps> = React.m
                   className={`min-w-8 h-8 px-2 rounded-xl font-sans tabular-nums text-xs font-semibold transition cursor-pointer ${
                     p === currentPage
                       ? "bg-netflix-red text-white shadow-md shadow-black/50"
-                      : "bg-zinc-900 border border-white/5 hover:bg-zinc-800 text-zinc-300 hover:text-white"
+                      : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white"
                   }`}
                 >
                   {p}
@@ -136,7 +136,7 @@ export const AdminTablePagination: React.FC<AdminTablePaginationProps> = React.m
             type="button"
             disabled={currentPage === totalPages}
             onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
-            className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none text-zinc-200 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer"
           >
             <span>Sau</span>
             <ChevronRight size={13} />

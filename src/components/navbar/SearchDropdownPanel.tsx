@@ -167,9 +167,7 @@ export function SearchDropdownPanel({
                 >
                   <div
                     className={`relative overflow-hidden flex-none bg-zinc-800 ${
-                      isActor
-                        ? "w-11 h-14 rounded-lg ring-1 ring-amber-500/40"
-                        : "w-10 h-14 rounded ring-1 ring-white/10"
+                      isActor ? "w-11 h-14 rounded-lg" : "w-10 h-14 rounded"
                     }`}
                   >
                     <MoviePosterImage

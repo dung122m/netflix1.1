@@ -225,7 +225,7 @@ export const AccentStudio: React.FC<AccentStudioProps> = ({ className = "" }) =>
                   onClick={() => handleSelectPreset(preset.id)}
                   className={`flex items-center gap-2.5 p-2.5 rounded-2xl transition-all text-left cursor-pointer group outline-none focus-visible:ring-2 focus-visible:ring-white ${
                     isSelected
-                      ? "bg-white/15 ring-1 shadow-lg scale-[1.01]"
+                      ? "bg-white/15 shadow-lg scale-[1.01]"
                       : "bg-zinc-900/70 hover:bg-zinc-800/90"
                   }`}
                   style={

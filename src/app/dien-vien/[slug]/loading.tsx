@@ -19,7 +19,7 @@ export default function ActorDetailLoading() {
         <section className="relative">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 md:gap-10">
             {/* PORTRAIT IMAGE SKELETON */}
-            <div className="w-36 h-48 sm:w-44 sm:h-60 md:w-52 md:h-72 rounded-2xl bg-zinc-900 shadow-2xl ring-1 ring-white/10 shrink-0" />
+            <div className="w-36 h-48 sm:w-44 sm:h-60 md:w-52 md:h-72 rounded-2xl bg-zinc-900 shadow-2xl shrink-0" />
 
             {/* DETAILS SKELETON */}
             <div className="flex-1 space-y-4 text-center sm:text-left min-w-0 w-full">

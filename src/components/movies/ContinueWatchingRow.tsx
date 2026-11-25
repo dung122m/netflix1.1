@@ -316,7 +316,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
           {/* NÚT PLAY TRUNG TÂM KHI HOVER */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/85 border border-white/20 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/85 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition-transform">
               <Play className="w-4 h-4 fill-white ml-0.5 text-white" />
             </div>
           </div>

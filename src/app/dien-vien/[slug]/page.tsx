@@ -402,7 +402,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 md:gap-10">
 
             {/* 1. PORTRAIT IMAGE */}
-            <div className="relative w-36 h-48 sm:w-44 sm:h-60 md:w-52 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 shadow-2xl ring-1 ring-white/10 shrink-0 group">
+            <div className="relative w-36 h-48 sm:w-44 sm:h-60 md:w-52 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 shadow-2xl shrink-0 group">
               <ActorAvatar
                 name={canonicalName}
                 avatarUrl={bestAvatar}
@@ -421,7 +421,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
                 {country && (
                   <CountryBadge
                     country={country}
-                    className="px-3 py-1 bg-red-500/10 text-red-300 border-red-500/20 text-xs font-bold"
+                    className="px-3 py-1 bg-red-500/10 text-red-300 text-xs font-bold"
                   />
                 )}
                 <span className="px-3 py-1 rounded-full bg-white/[0.06] text-zinc-300 text-xs font-semibold">

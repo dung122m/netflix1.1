@@ -166,7 +166,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 px-1 sm:px-0">
             {/* AVATAR TRÒN & HUY HIỆU CẤP ĐỘ */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full ring-2 ring-white/15 ring-offset-4 ring-offset-[#0c0c0e] shadow-2xl p-0.5 bg-zinc-900">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full shadow-2xl bg-zinc-900">
                 <UserAvatar
                   src={avatarUrl || undefined}
                   name={profile.displayName}

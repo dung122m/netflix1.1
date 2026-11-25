@@ -85,7 +85,7 @@ const QUICK_GUIDES = [
     id: "guide-shortcuts",
     icon: Keyboard,
     color: "text-blue-400",
-    bgColor: "bg-blue-500/10 border-blue-500/20",
+    bgColor: "bg-blue-500/10",
     badge: "Bàn Phím Máy Tính",
     title: "Bảng Phím Tắt Điều Khiển Trình Phát",
     summary: "Thao tác mượt mà chuyên nghiệp như xem trên các nền tảng quốc tế mà không cần dùng chuột.",

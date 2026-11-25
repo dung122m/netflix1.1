@@ -169,7 +169,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                 <img
                   src={coverPreview}
                   alt="Preview"
-                  className="w-12 h-8 rounded-lg object-cover ring-1 ring-white/20"
+                  className="w-12 h-8 rounded-lg object-cover shadow-sm"
                 />
                 <button
                   type="button"
@@ -194,7 +194,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
             Trạng thái hiển thị
           </label>
-          <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-900/60 border border-white/5">
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-zinc-900/70">
             <div className="flex items-center gap-2.5">
               {isPublic ? (
                 <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">

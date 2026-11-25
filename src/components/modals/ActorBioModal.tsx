@@ -144,7 +144,6 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({
                 sizes="140px"
                 imageClassName="object-cover object-center group-hover:scale-105 transition-transform duration-300"
               />
-              <div className="absolute inset-0 ring-white/10 rounded-2xl pointer-events-none" />
             </div>
 
             <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">

@@ -609,7 +609,7 @@ export function PlayerDetailModal({
       size="lg"
       bodyClassName="!p-0 !max-h-[90vh] overflow-y-auto scrollbar-thin bg-[#121212]"
       showCloseButton={false}
-      className="!bg-[#121212] !rounded-3xl border border-white/[0.08] shadow-2xl"
+      className="!bg-[#121212] !rounded-3xl shadow-2xl"
     >
       {/* 1. HEADER SECTION (FOTMOB STYLE HEADER) */}
       <div className="bg-gradient-to-b from-[#112a1a] via-[#101b13] to-[#121212] px-4 pt-4 pb-3.5 relative">
@@ -655,7 +655,7 @@ export function PlayerDetailModal({
             )}
 
             {/* Avatar circle */}
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full overflow-hidden bg-zinc-900 border-2 border-white/10 flex items-center justify-center font-sans font-bold text-white shadow-xl">
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full overflow-hidden bg-zinc-900 flex items-center justify-center font-sans font-bold text-white shadow-xl">
               {photoUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -671,7 +671,7 @@ export function PlayerDetailModal({
 
             {/* Team Crest bottom right */}
             {teamLogo && (
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-zinc-900 border-2 border-zinc-950 overflow-hidden p-0.5 flex items-center justify-center shadow">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-zinc-950 overflow-hidden p-0.5 flex items-center justify-center shadow-md">
                 {/* eslint-disable-next-line @next/next/no-img-element */
                 <img src={teamLogo} alt="" className="w-full h-full object-contain" />}
               </div>
