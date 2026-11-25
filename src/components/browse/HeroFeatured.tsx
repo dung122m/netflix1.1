@@ -386,9 +386,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         )}
 
       {/* 2. CÁC LỚP MÀNG GRADIENT ĐIỆN ẢNH */}
-      <div className="hidden sm:block absolute inset-y-0 left-0 w-[60%] bg-gradient-to-r from-black/95 via-black/55 to-transparent pointer-events-none z-[1]" />
-      <div className="absolute inset-x-0 bottom-0 h-80 sm:h-52 bg-gradient-to-t from-black via-black/90 sm:via-black/50 via-50% to-transparent pointer-events-none z-[1]" />
-      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none z-[1]" />
+      <div className="hidden sm:block absolute inset-y-0 left-0 w-[62%] lg:w-[54%] bg-gradient-to-r from-black/85 via-black/45 to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-x-0 bottom-0 h-72 sm:h-80 bg-gradient-to-t from-black via-black/65 via-35% to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/75 via-black/30 to-transparent pointer-events-none z-[1]" />
 
       {/* 3 & 4. NỘI DUNG & ĐIỀU HƯỚNG SLIDE */}
       <HeroContentOverlay

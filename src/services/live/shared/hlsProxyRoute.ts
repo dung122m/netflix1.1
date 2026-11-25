@@ -9,6 +9,7 @@ import {
 import {
   generateStreamToken,
   verifyStreamToken,
+  verifyUpstreamHeaderHint,
   computeStreamId,
   DEFAULT_STREAM_TOKEN_TTL_SECONDS,
 } from "@/lib/streamToken";
@@ -26,9 +27,18 @@ export interface HlsUpstreamFetchResult {
   finalUrl: string;
 }
 
+export interface HlsProxyUpstreamHeaders {
+  referer?: string;
+  userAgent?: string;
+}
+
 export interface HlsProxyHandlerOptions {
   proxyBasePath: string;
-  fetchUpstream: (request: NextRequest, targetUrl: string) => Promise<HlsUpstreamFetchResult>;
+  fetchUpstream: (
+    request: NextRequest,
+    targetUrl: string,
+    upstreamHeaders?: HlsProxyUpstreamHeaders,
+  ) => Promise<HlsUpstreamFetchResult>;
 }
 
 /**
@@ -54,6 +64,19 @@ export async function handleHlsProxyGet(
 ): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   const targetUrl = searchParams.get("url");
+  const rawRef = searchParams.get("ref")?.trim() || "";
+  const rawUa = searchParams.get("ua")?.trim() || "";
+  const rawHsig = searchParams.get("hsig")?.trim() || "";
+  const safeRawRef = rawRef && isSafePublicUrl(rawRef) ? rawRef : "";
+  const sanitizedRawUa = rawUa ? rawUa.replace(/[\r\n\0-\x1f\x7f]/g, "").slice(0, 256) : "";
+  // Only honor custom upstream Referer/UA when cryptographically signed by server M3U parser
+  const hasValidHeaderSig = verifyUpstreamHeaderHint(
+    safeRawRef || undefined,
+    sanitizedRawUa || undefined,
+    rawHsig,
+  );
+  const customRef = hasValidHeaderSig ? safeRawRef : "";
+  const customUa = hasValidHeaderSig ? sanitizedRawUa : "";
   const st = searchParams.get("st");
   const exp = searchParams.get("exp");
   const sid = searchParams.get("sid");
@@ -145,7 +168,10 @@ export async function handleHlsProxyGet(
   try {
     let fetchResult: HlsUpstreamFetchResult;
     try {
-      fetchResult = await options.fetchUpstream(request, targetUrl);
+      fetchResult = await options.fetchUpstream(request, targetUrl, {
+        ...(customRef ? { referer: customRef } : {}),
+        ...(customUa ? { userAgent: customUa } : {}),
+      });
     } catch (fetchErr: unknown) {
       const msg = fetchErr instanceof Error ? fetchErr.message : "Fetch error";
       const isSecurityBlock = msg.includes("SSRF guard blocked") || msg.includes("Stream source is blocked");
@@ -190,7 +216,7 @@ export async function handleHlsProxyGet(
             cleanAbs.endsWith(".aac") ||
             cleanAbs.endsWith(".vtt");
 
-          if (isMediaChunk && absoluteUrl.startsWith("https://")) {
+          if (isMediaChunk && absoluteUrl.startsWith("https://") && !customRef && !customUa) {
             return absoluteUrl;
           }
         }
@@ -200,7 +226,14 @@ export async function handleHlsProxyGet(
           streamId: playlistStreamId,
           ttlSeconds: DEFAULT_STREAM_TOKEN_TTL_SECONDS,
         });
-        return `${options.proxyBasePath}?url=${encodeURIComponent(absoluteUrl)}&st=${encodeURIComponent(signed.token)}&exp=${signed.exp}&sid=${encodeURIComponent(signed.sid)}&v=${signed.v}`;
+        const extraParams = new URLSearchParams();
+        if (hasValidHeaderSig) {
+          if (customRef) extraParams.set("ref", customRef);
+          if (customUa) extraParams.set("ua", customUa);
+          extraParams.set("hsig", rawHsig);
+        }
+        const extraQuery = extraParams.toString();
+        return `${options.proxyBasePath}?url=${encodeURIComponent(absoluteUrl)}&st=${encodeURIComponent(signed.token)}&exp=${signed.exp}&sid=${encodeURIComponent(signed.sid)}&v=${signed.v}${extraQuery ? `&${extraQuery}` : ""}`;
       };
 
       const rewrittenLines = lines.map((line) => {
@@ -216,9 +249,7 @@ export async function handleHlsProxyGet(
           "Content-Type": "application/vnd.apple.mpegurl",
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Cache-Control": "public, max-age=1, s-maxage=2, stale-while-revalidate=4",
-          "CDN-Cache-Control": "public, s-maxage=2, stale-while-revalidate=4",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=2, stale-while-revalidate=4",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
         },
       });
     }
@@ -230,18 +261,27 @@ export async function handleHlsProxyGet(
     responseHeaders.set("Content-Type", contentType || "video/mp2t");
     responseHeaders.set("Access-Control-Allow-Origin", "*");
     responseHeaders.set("Access-Control-Allow-Methods", "GET, OPTIONS");
-    responseHeaders.set(
-      "Cache-Control",
-      isSafe ? "public, max-age=120, s-maxage=300, stale-while-revalidate=600" : "public, max-age=60, s-maxage=60"
-    );
-    responseHeaders.set(
-      "CDN-Cache-Control",
-      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "public, s-maxage=60"
-    );
-    responseHeaders.set(
-      "Vercel-CDN-Cache-Control",
-      isSafe ? "public, s-maxage=300, stale-while-revalidate=600" : "public, s-maxage=60"
-    );
+    if (isSafe) {
+      responseHeaders.set(
+        "Cache-Control",
+        "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
+      );
+    } else {
+      responseHeaders.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate"
+      );
+    }
+    if (isSafe) {
+      responseHeaders.set(
+        "CDN-Cache-Control",
+        "public, s-maxage=300, stale-while-revalidate=600"
+      );
+      responseHeaders.set(
+        "Vercel-CDN-Cache-Control",
+        "public, s-maxage=300, stale-while-revalidate=600"
+      );
+    }
 
     const contentLength = response.headers.get("content-length");
     if (contentLength) responseHeaders.set("Content-Length", contentLength);

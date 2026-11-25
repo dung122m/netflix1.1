@@ -20,6 +20,13 @@ export function toCanonicalSourceUrl(url?: string | null): string {
 const KNOWN_HTTPS_STREAM_HOST_REGEX =
   /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns|losartang|miekgo|msdht|monarch|byteark|fastly|splay|dethich|thvl|xoilac|vebo|tiengruoi|cakhia|mitom|thevang|thapcam|90phut/i;
 
+const SIGNED_STREAM_QUERY_REGEX =
+  /[?&](?:auth_key|wssecret|sign|signature|token|md5|hash|hdnea|verify)=/i;
+
+export function hasSignedStreamParams(url?: string | null): boolean {
+  return Boolean(url && SIGNED_STREAM_QUERY_REGEX.test(url));
+}
+
 export function upgradeKnownHttpsStreamUrl(url: string): string {
   if (!url) return "";
   if (url.startsWith("http://") && KNOWN_HTTPS_STREAM_HOST_REGEX.test(url)) {

@@ -26,16 +26,14 @@ import {
   findBestInitialServerIndex,
   findNextFallbackServerIndex,
 } from "@/services/live/shared/serverSelectionHelper";
-import {
-  toCanonicalSourceUrl,
-  extractStreamHost,
-} from "@/services/live/shared/streamUrlHelper";
+import { toCanonicalSourceUrl } from "@/services/live/shared/streamUrlHelper";
 import {
   FOOTBALL_STREAM_PROXY_ENDPOINT,
   toPlayableHlsUrl,
   getFootballStreamUrl,
   isIframeStreamUrl,
 } from "@/services/live/football/streamUrlHelper";
+import { racePlayableServer } from "@/services/live/football/clientSourceProbe";
 import type { LiveActionFeedback } from "../LiveSeekOverlay";
 
 export interface UseLiveFootballHlsOptions {
@@ -107,6 +105,9 @@ export function useLiveFootballHls({
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [useProxyFallback, setUseProxyFallback] = useState<boolean>(false);
+  const [isRacingServer, setIsRacingServer] = useState<boolean>(
+    () => servers.length > 1,
+  );
   const [isAtLiveEdge, setIsAtLiveEdge] = useState<boolean>(true);
   const [, setLiveLatency] = useState<number>(0);
 
@@ -131,12 +132,8 @@ export function useLiveFootballHls({
       const currentSet =
         failedSourcesByMatchRef.current[activeMatchId] || new Set<string>();
 
-      const host = extractStreamHost(rawUrl);
       const nextSet = new Set(currentSet);
       nextSet.add(canonical);
-      if (host) {
-        nextSet.add(`host:${host}`);
-      }
 
       failedSourcesByMatchRef.current[activeMatchId] = nextSet;
 
@@ -167,21 +164,52 @@ export function useLiveFootballHls({
       setUseProxyFallback(false);
       fallbackCountRef.current = 0;
       userPausedRef.current = false;
+      userSelectedServerRef.current = false;
       setHasError(false);
       setErrorMessage("");
       setIsLoading(true);
 
       const initialBestIdx = findBestInitialServerIndex(serversRef.current);
       setSelectedServerIndex(initialBestIdx);
+      setIsRacingServer(serversRef.current.length > 1);
       setRetryNonce((prev) => prev + 1);
     }
   }, [match?.id]);
 
-  // Reset proxy fallback khi chuyển đổi server
+  // Fast-race song song tất cả server khi chọn trận (> 1 nguồn) để phát ngay nguồn sống đầu tiên
   useEffect(() => {
-    useProxyFallbackRef.current = false;
-    setUseProxyFallback(false);
-  }, [selectedServerIndex]);
+    if (!isActive || serversRef.current.length <= 1 || userSelectedServerRef.current) {
+      setIsRacingServer(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setIsRacingServer(true);
+
+    racePlayableServer(serversRef.current, controller.signal)
+      .then((winner) => {
+        if (cancelled) return;
+        if (winner) {
+          if (winner.deadUrls.length > 0) {
+            winner.deadUrls.forEach((deadUrl) => markSourceFailed(deadUrl));
+          }
+          useProxyFallbackRef.current = winner.needsProxy;
+          setUseProxyFallback(winner.needsProxy);
+          setSelectedServerIndex(winner.index);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsRacingServer(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [match?.id, isActive, markSourceFailed]);
 
   const availableServers = useMemo(() => {
     return servers.filter((s) => {
@@ -239,6 +267,9 @@ export function useLiveFootballHls({
         currentServer.url,
         Boolean(currentServer.isHls),
         useProxyFallback,
+        currentServer.referer,
+        currentServer.userAgent,
+        currentServer.headerSig,
       )
     : "";
 
@@ -467,7 +498,7 @@ export function useLiveFootballHls({
   // Khởi tạo luồng phát HLS tối ưu độ trễ thấp + Auto ABR + Watchdog
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !currentServer || !isActive) return;
+    if (!video || !currentServer || !isActive || isRacingServer) return;
 
     if (isStoppedRef.current) {
       return;
@@ -571,7 +602,7 @@ export function useLiveFootballHls({
       }, delayMs);
     };
 
-    scheduleWatchdogCheck(8000);
+    scheduleWatchdogCheck(4500);
 
     let stallNudgeTimer: ReturnType<typeof setTimeout> | null = null;
     let mediaRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -891,12 +922,20 @@ export function useLiveFootballHls({
     activeUrl,
     isActive,
     isIframe,
+    isRacingServer,
     retryNonce,
   ]);
 
   const handleRetry = useCallback(() => {
     isStoppedRef.current = false;
     failedServersRef.current.clear();
+    delete failedSourcesByMatchRef.current[activeMatchId];
+    setFailedSourcesByMatch((prev) => {
+      if (!prev[activeMatchId]) return prev;
+      const next = { ...prev };
+      delete next[activeMatchId];
+      return next;
+    });
     fallbackCountRef.current = 0;
     useProxyFallbackRef.current = false;
     setUseProxyFallback(false);
@@ -905,11 +944,11 @@ export function useLiveFootballHls({
     setHasError(false);
     setErrorMessage("");
     setIsLoading(true);
-    const bestIdx = findBestInitialServerIndex(servers, currentMatchFailedUrls);
+    const bestIdx = findBestInitialServerIndex(servers);
     setSelectedServerIndex(bestIdx);
     setRetryNonce((prev) => prev + 1);
     triggerActionFeedback("server", "Đang thử kết nối lại...");
-  }, [servers, currentMatchFailedUrls, triggerActionFeedback]);
+  }, [servers, activeMatchId, triggerActionFeedback]);
 
   const goToLiveEdge = useCallback(() => {
     const video = videoRef.current;
@@ -980,25 +1019,41 @@ export function useLiveFootballHls({
 
   const handleSwitchServer = useCallback(
     (direction: "next" | "prev") => {
-      if (availableServers.length <= 1) return;
+      if (servers.length <= 1) return;
       fallbackCountRef.current = 0;
-      const currentIdx = availableServers.findIndex(
+
+      // Nếu tất cả hoặc chỉ còn <= 1 máy chủ chưa lỗi, reset trạng thái lỗi để xoay vòng thử lại toàn bộ nguồn
+      let pool = availableServers;
+      if (pool.length <= 1) {
+        failedServersRef.current.clear();
+        delete failedSourcesByMatchRef.current[activeMatchId];
+        setFailedSourcesByMatch((prev) => {
+          if (!prev[activeMatchId]) return prev;
+          const next = { ...prev };
+          delete next[activeMatchId];
+          return next;
+        });
+        pool = servers;
+      }
+
+      const currentIdx = pool.findIndex(
         (s) =>
           toCanonicalSourceUrl(s.url) ===
           toCanonicalSourceUrl(currentServer?.url),
       );
-      let targetAvailableIdx = 0;
+      let targetPoolIdx = 0;
       if (currentIdx !== -1) {
-        targetAvailableIdx =
+        targetPoolIdx =
           direction === "next"
-            ? (currentIdx + 1) % availableServers.length
-            : (currentIdx - 1 + availableServers.length) %
-              availableServers.length;
+            ? (currentIdx + 1) % pool.length
+            : (currentIdx - 1 + pool.length) % pool.length;
       } else {
-        targetAvailableIdx =
-          direction === "next" ? 0 : availableServers.length - 1;
+        targetPoolIdx =
+          direction === "next"
+            ? (selectedServerIndex + 1) % pool.length
+            : (selectedServerIndex - 1 + pool.length) % pool.length;
       }
-      const targetServer = availableServers[targetAvailableIdx];
+      const targetServer = pool[targetPoolIdx];
       if (!targetServer) return;
 
       const targetIdx = servers.findIndex(
@@ -1022,7 +1077,14 @@ export function useLiveFootballHls({
       const displayLabel = parseServerDisplayLabel(targetServer, targetIdx);
       triggerActionFeedback("server", `${displayLabel}${qBadge}`);
     },
-    [availableServers, currentServer?.url, servers, triggerActionFeedback],
+    [
+      availableServers,
+      activeMatchId,
+      currentServer?.url,
+      selectedServerIndex,
+      servers,
+      triggerActionFeedback,
+    ],
   );
 
   const handleSelectServerOption = useCallback(

@@ -5,7 +5,9 @@ import {
 } from "./footballLogoService";
 import { cacheService } from "@/lib/cache";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
-import { resolveEsportsTeam } from "@/data/live/teamAssets";
+import { hasSignedStreamParams } from "@/services/live/shared/streamUrlHelper";
+import { signUpstreamHeaderHint } from "@/lib/streamToken";
+import { getTeamAsset, resolveEsportsTeam } from "@/data/live/teamAssets";
 import { LiveMatchScore } from "./types";
 import { footballScoreService } from "./footballScoreService";
 import { matchFixtureToScore } from "./matcher";
@@ -66,6 +68,9 @@ export interface StreamServer {
   isHls: boolean;
   quality: "FHD" | "HD";
   sourceName?: string;
+  referer?: string;
+  userAgent?: string;
+  headerSig?: string;
 }
 
 export type MatchCategory =
@@ -485,6 +490,8 @@ export interface RawStreamItem {
   awayLogo?: string;
   tournament?: string;
   format?: "hls" | "flv" | "other" | string;
+  referer?: string;
+  userAgent?: string;
 }
 
 export function normalizeAndMergeStreams(
@@ -518,6 +525,8 @@ export function normalizeAndMergeStreams(
     tournament: string;
     normT1: string;
     normT2: string;
+    referer?: string;
+    userAgent?: string;
   }
 
   const sanitizeLiveLogoUrl = (url?: string): string => {
@@ -795,88 +804,168 @@ export function normalizeAndMergeStreams(
       tournament,
       normT1,
       normT2,
+      referer: item.referer,
+      userAgent: item.userAgent,
     });
   }
 
   const mergedMatches: FootballMatch[] = [];
+  const urlToMatchesMap = new Map<string, FootballMatch[]>();
+  const fixtureBucketIndex = new Map<string, Set<FootballMatch>>();
+  const eventTitleIndex = new Map<string, FootballMatch[]>();
+
+  const extractTeamBucketKeys = (teamName?: string): string[] => {
+    if (!teamName) return [];
+    const keys: string[] = [];
+    const clubNorm = normalizeClubKey(teamName);
+    if (clubNorm) {
+      keys.push(`n:${clubNorm}`);
+      if (clubNorm.length >= 3) keys.push(`p:${clubNorm.slice(0, 3)}`);
+    }
+    const words = teamName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[đĐ]/g, "d")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/);
+    for (const w of words) {
+      if (w.length >= 2) {
+        keys.push(`w:${w}`);
+        if (w.length >= 3) keys.push(`p:${w.slice(0, 3)}`);
+      }
+    }
+    const esp = resolveEsportsTeam(teamName);
+    if (esp?.canonicalKey) {
+      keys.push(`esp:${esp.canonicalKey}`);
+    }
+    const asset = getTeamAsset(teamName);
+    if (asset?.name) {
+      const assetNorm = normalizeClubKey(asset.name);
+      if (assetNorm) keys.push(`asset:${assetNorm}`);
+    }
+    return keys;
+  };
+
+  const indexMatchBuckets = (m: FootballMatch) => {
+    if (!m.isEvent && (m.team1 || m.team2)) {
+      const allKeys = [
+        ...extractTeamBucketKeys(m.team1),
+        ...extractTeamBucketKeys(m.team2),
+      ];
+      for (const k of allKeys) {
+        let bucket = fixtureBucketIndex.get(k);
+        if (!bucket) {
+          bucket = new Set<FootballMatch>();
+          fixtureBucketIndex.set(k, bucket);
+        }
+        bucket.add(m);
+      }
+    } else if (m.isEvent && m.title) {
+      const evtKey = normalizeText(m.title);
+      if (evtKey) {
+        const list = eventTitleIndex.get(evtKey) || [];
+        if (!list.includes(m)) {
+          list.push(m);
+          eventTitleIndex.set(evtKey, list);
+        }
+      }
+    }
+  };
+
+  const indexMatchUrl = (url: string, m: FootballMatch) => {
+    const list = urlToMatchesMap.get(url) || [];
+    if (!list.includes(m)) {
+      list.push(m);
+      urlToMatchesMap.set(url, list);
+    }
+  };
 
   for (const item of normalizedList) {
     let foundMatch: FootballMatch | null = null;
 
-    // 1. Exact canonical URL match: Chỉ merge nếu cùng fixture hoặc event tương thích
-    for (const existing of mergedMatches) {
-      if (existing.servers.some((s) => s.url === item.effectiveUrl)) {
-        if (
-          !item.isEvent &&
-          item.team1 &&
-          item.team2 &&
-          !existing.isEvent &&
-          existing.team1 &&
-          existing.team2
-        ) {
-          const isMatched = areMatchFixturesMatching(
-            {
-              team1: item.team1,
-              team2: item.team2,
-              time: item.time,
-              timestamp: item.timestamp,
-              isLiveMarker: item.isLiveMarker,
-              sport: item.sport,
-              category: item.category,
-              isCategoryExplicit: item.isCategoryExplicit,
-              isEvent: false,
-            },
-            {
-              team1: existing.team1,
-              team2: existing.team2,
-              time: existing.time,
-              timestamp: existing.timestamp,
-              isLiveMarker: existing.sourceStatus === "live",
-              sport: existing.sport,
-              category: existing.category,
-              isCategoryExplicit: existing.isCategoryExplicit,
-              isEvent: false,
-            },
+    // 1. Exact canonical URL match ($O(1)$ bucket): Chỉ merge nếu cùng fixture hoặc event tương thích
+    const urlCandidates = urlToMatchesMap.get(item.effectiveUrl) || [];
+    for (const existing of urlCandidates) {
+      if (
+        !item.isEvent &&
+        item.team1 &&
+        item.team2 &&
+        !existing.isEvent &&
+        existing.team1 &&
+        existing.team2
+      ) {
+        const isMatched = areMatchFixturesMatching(
+          {
+            team1: item.team1,
+            team2: item.team2,
+            time: item.time,
+            timestamp: item.timestamp,
+            isLiveMarker: item.isLiveMarker,
+            sport: item.sport,
+            category: item.category,
+            isCategoryExplicit: item.isCategoryExplicit,
+            isEvent: false,
+          },
+          {
+            team1: existing.team1,
+            team2: existing.team2,
+            time: existing.time,
+            timestamp: existing.timestamp,
+            isLiveMarker: existing.sourceStatus === "live",
+            sport: existing.sport,
+            category: existing.category,
+            isCategoryExplicit: existing.isCategoryExplicit,
+            isEvent: false,
+          },
+          now,
+        );
+        if (isMatched) {
+          foundMatch = existing;
+          break;
+        }
+        // Khác trận đấu hoặc khác giờ dù cùng URL => KHÔNG merge
+        continue;
+      }
+
+      // Không cho phép stream event không rõ fixture merge vào match fixture đã xác định (hoặc ngược lại)
+      if (!item.isEvent !== !existing.isEvent) {
+        continue;
+      }
+
+      // Nếu cả hai đều là generic event, chỉ merge khi có cùng tên/thời gian tương thích
+      if (item.isEvent && existing.isEvent) {
+        const normItemTitle = normalizeText(item.displayTitle);
+        const normExTitle = normalizeText(existing.title);
+        if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
+          const timeOk = areMatchTimesCompatible(
+            { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
+            { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
             now,
+            90 * 60 * 1000,
+            MAX_EVENT_DURATION_MS,
           );
-          if (isMatched) {
+          if (timeOk) {
             foundMatch = existing;
             break;
           }
-          // Khác trận đấu hoặc khác giờ dù cùng URL => KHÔNG merge
-          continue;
-        }
-
-        // Không cho phép stream event không rõ fixture merge vào match fixture đã xác định (hoặc ngược lại)
-        if (!item.isEvent !== !existing.isEvent) {
-          continue;
-        }
-
-        // Nếu cả hai đều là generic event, chỉ merge khi có cùng tên/thời gian tương thích
-        if (item.isEvent && existing.isEvent) {
-          const normItemTitle = normalizeText(item.displayTitle);
-          const normExTitle = normalizeText(existing.title);
-          if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
-            const timeOk = areMatchTimesCompatible(
-              { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
-              { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
-              now,
-              90 * 60 * 1000,
-              MAX_EVENT_DURATION_MS,
-            );
-            if (timeOk) {
-              foundMatch = existing;
-              break;
-            }
-          }
-          continue;
         }
       }
     }
 
-    // 2. Fixture match (Unordered team pair + compatible time + sport + category guard)
+    // 2. Fixture match (Indexed bucket lookup instead of $O(N^2)$ full scan)
     if (!foundMatch && !item.isEvent && item.team1 && item.team2) {
-      for (const existing of mergedMatches) {
+      const candidatePool = new Set<FootballMatch>();
+      for (const k of extractTeamBucketKeys(item.team1)) {
+        const bucket = fixtureBucketIndex.get(k);
+        if (bucket) bucket.forEach((m) => candidatePool.add(m));
+      }
+      for (const k of extractTeamBucketKeys(item.team2)) {
+        const bucket = fixtureBucketIndex.get(k);
+        if (bucket) bucket.forEach((m) => candidatePool.add(m));
+      }
+
+      for (const existing of candidatePool) {
         if (existing.isEvent) continue;
 
         const isMatched = areMatchFixturesMatching(
@@ -912,27 +1001,25 @@ export function normalizeAndMergeStreams(
       }
     }
 
-    // 3. Generic event / Stream title match
+    // 3. Generic event / Stream title match ($O(1)$ bucket)
     if (!foundMatch && item.isEvent) {
       const normItemTitle = normalizeText(item.displayTitle);
-      for (const existing of mergedMatches) {
+      const evtCandidates = normItemTitle ? eventTitleIndex.get(normItemTitle) || [] : [];
+      for (const existing of evtCandidates) {
         if (existing.sport && item.sport && existing.sport !== item.sport) continue;
         if (existing.category && item.category && existing.category !== item.category) continue;
 
         if (existing.isEvent) {
-          const normExTitle = normalizeText(existing.title);
-          if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
-            const timeOk = areMatchTimesCompatible(
-              { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
-              { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
-              now,
-              90 * 60 * 1000,
-              MAX_EVENT_DURATION_MS,
-            );
-            if (timeOk) {
-              foundMatch = existing;
-              break;
-            }
+          const timeOk = areMatchTimesCompatible(
+            { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
+            { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
+            now,
+            90 * 60 * 1000,
+            MAX_EVENT_DURATION_MS,
+          );
+          if (timeOk) {
+            foundMatch = existing;
+            break;
           }
         }
       }
@@ -942,6 +1029,11 @@ export function normalizeAndMergeStreams(
       ? `${item.cleanGroup} (${item.blv})`
       : `${item.cleanGroup}`;
 
+    const headerSig =
+      item.referer || item.userAgent
+        ? signUpstreamHeaderHint(item.referer, item.userAgent)
+        : undefined;
+
     const newServer: StreamServer = {
       name: `${serverLabel} #${(foundMatch?.servers.length || 0) + 1}${item.isFhd ? " [FHD]" : ""}`,
       url: item.effectiveUrl,
@@ -949,12 +1041,16 @@ export function normalizeAndMergeStreams(
       isHls: item.isHls,
       quality: item.serverQuality,
       sourceName: item.cleanGroup,
+      ...(item.referer ? { referer: item.referer } : {}),
+      ...(item.userAgent ? { userAgent: item.userAgent } : {}),
+      ...(headerSig ? { headerSig } : {}),
     };
 
     if (foundMatch) {
       if (!foundMatch.servers.some((s) => s.url === item.effectiveUrl)) {
         foundMatch.servers.push(newServer);
       }
+      indexMatchUrl(item.effectiveUrl, foundMatch);
 
       if (!foundMatch.groups.includes(item.cleanGroup)) {
         foundMatch.groups.push(item.cleanGroup);
@@ -994,6 +1090,7 @@ export function normalizeAndMergeStreams(
         foundMatch.team2 = item.team2;
         foundMatch.isEvent = false;
         foundMatch.title = `${item.team1} vs ${item.team2}`;
+        indexMatchBuckets(foundMatch);
       } else if (!foundMatch.isEvent && !item.isEvent && item.team1 && item.team2) {
         const espFound1 = resolveEsportsTeam(foundMatch.team1);
         const espItem1 = resolveEsportsTeam(item.team1);
@@ -1117,7 +1214,7 @@ export function normalizeAndMergeStreams(
           ? item.awayLogo
           : "");
 
-      mergedMatches.push({
+      const newMatch: FootballMatch = {
         id: matchId,
         time: item.time,
         timestamp: item.timestamp,
@@ -1140,7 +1237,10 @@ export function normalizeAndMergeStreams(
         timeline,
         quality: item.isFhd ? "FHD 1080p" : "HD 720p",
         servers: [newServer],
-      });
+      };
+      mergedMatches.push(newMatch);
+      indexMatchUrl(item.effectiveUrl, newMatch);
+      indexMatchBuckets(newMatch);
     }
   }
 
@@ -1359,7 +1459,7 @@ let memoryCache: {
   staleUntil: number;
 } | null = null;
 let inFlightFetch: Promise<LiveFootballData> | null = null;
-const FOOTBALL_REDIS_KEY = "live:football:matches:v2";
+const FOOTBALL_REDIS_KEY = "live:football:matches:v3";
 const FOOTBALL_REDIS_TTL = 600; // 10 phút (giảm 70% tải CPU & Redis)
 
 /**
@@ -1451,7 +1551,7 @@ try {
     typeof unstable_cache === "function"
       ? unstable_cache(
           async () => liveFootballService.fetchAndCacheMatchesInternal(),
-          ["nanaflix-live-football-matches-v2"],
+          ["nanaflix-live-football-matches-v3"],
           { revalidate: 600, tags: ["live-football"] }
         )
       : null;
@@ -1576,12 +1676,32 @@ export const liveFootballService = {
           if (!line.startsWith("#EXTINF")) continue;
 
           let url = "";
+          let streamReferer: string | undefined;
+          let streamUserAgent: string | undefined;
           for (let j = i + 1; j < lines.length; j++) {
             const nextLine = lines[j].trim();
-            if (nextLine && !nextLine.startsWith("#")) {
-              url = nextLine;
-              break;
+            if (!nextLine) continue;
+            if (nextLine.startsWith("#")) {
+              if (nextLine.startsWith("#EXTINF")) break;
+              if (/^#EXTVLCOPT:http-referrer=/i.test(nextLine)) {
+                const refVal = nextLine
+                  .slice("#EXTVLCOPT:http-referrer=".length)
+                  .trim();
+                if (refVal && /^https?:\/\//i.test(refVal)) {
+                  streamReferer = refVal;
+                }
+              } else if (/^#EXTVLCOPT:http-user-agent=/i.test(nextLine)) {
+                const uaVal = nextLine
+                  .slice("#EXTVLCOPT:http-user-agent=".length)
+                  .trim();
+                if (uaVal) {
+                  streamUserAgent = uaVal;
+                }
+              }
+              continue;
             }
+            url = nextLine;
+            break;
           }
 
           if (!url || isBlockedStreamUrl(url)) continue;
@@ -1661,7 +1781,7 @@ export const liveFootballService = {
             effectiveUrl = effectiveUrl
               .replace("flv.lauthaitv.cc", "hls.lauthaitv.cc")
               .replace(/\.flv(\?.*)?$/i, "/index.m3u8$1");
-          } else if (effectiveUrl.includes(".flv")) {
+          } else if (effectiveUrl.includes(".flv") && !hasSignedStreamParams(effectiveUrl)) {
             effectiveUrl = effectiveUrl.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
           }
 
@@ -1674,6 +1794,8 @@ export const liveFootballService = {
             url,
             effectiveUrl,
             extinfLine: line,
+            referer: streamReferer,
+            userAgent: streamUserAgent,
           });
         }
       }
@@ -1699,6 +1821,8 @@ export const liveFootballService = {
         // Giữ lại server ALIVE và UNKNOWN (để match vẫn hiển thị khi cold-start)
         const workingServers = m.servers.filter((s) => {
           if (isBlockedStreamUrl(s.url)) return false;
+          // Trình phát web chỉ phát được HLS/iframe; loại bỏ link .flv có chữ ký không thể rewrite sang .m3u8
+          if (!s.isHls && s.format === "flv") return false;
           const status = getStreamHealthStatus(s.url);
           return status !== "dead";
         });

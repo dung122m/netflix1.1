@@ -255,3 +255,50 @@ export function verifyStreamToken(options: VerifyStreamTokenOptions): StreamToke
   return { valid: false, status: "EXPIRED", streamId: sid, exp };
 }
 
+/**
+ * Signs optional upstream Referer/User-Agent metadata so external callers
+ * cannot spoof arbitrary Referer/Origin headers or cache-bust proxy URLs.
+ */
+export function signUpstreamHeaderHint(
+  referer?: string | null,
+  userAgent?: string | null,
+): string {
+  const cleanRef = (referer || "").trim();
+  const cleanUa = (userAgent || "").trim();
+  if (!cleanRef && !cleanUa) return "";
+  const { primary } = getStreamTokenSecrets();
+  return crypto
+    .createHmac("sha256", primary)
+    .update(`hdr:${cleanRef}\n${cleanUa}`)
+    .digest("base64url")
+    .slice(0, 22);
+}
+
+/**
+ * Constant-time verification for signed Referer/User-Agent proxy hints.
+ */
+export function verifyUpstreamHeaderHint(
+  referer: string | null | undefined,
+  userAgent: string | null | undefined,
+  sig: string | null | undefined,
+): boolean {
+  const cleanRef = (referer || "").trim();
+  const cleanUa = (userAgent || "").trim();
+  if ((!cleanRef && !cleanUa) || !sig) return false;
+
+  const { primary, secondary } = getStreamTokenSecrets();
+  const check = (secretKey: string): boolean => {
+    const expected = crypto
+      .createHmac("sha256", secretKey)
+      .update(`hdr:${cleanRef}\n${cleanUa}`)
+      .digest("base64url")
+      .slice(0, 22);
+    const expBuf = Buffer.from(expected);
+    const recBuf = Buffer.from(sig);
+    if (expBuf.length !== recBuf.length) return false;
+    return crypto.timingSafeEqual(expBuf, recBuf);
+  };
+
+  return check(primary) || (secondary ? check(secondary) : false);
+}
+

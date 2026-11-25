@@ -74,7 +74,6 @@ export function HeroContentOverlay({
     cleanDuration,
     displaySynopsis,
     heroCountry,
-    heroType,
     voteText,
   } = meta;
 
@@ -90,103 +89,91 @@ export function HeroContentOverlay({
           hasSlid ? "hero-content-enter" : ""
         }`}
       >
-        <div className="w-full px-4 sm:px-8 md:px-16 pb-8 sm:pb-16 md:pb-20">
+        <div className="w-full px-6 sm:px-10 md:px-16 pb-12 sm:pb-16 md:pb-20">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-2xl md:max-w-3xl mx-auto sm:mx-0 flex flex-col items-center sm:items-start text-center sm:text-left space-y-3 sm:space-y-4">
-              {/* PHÂN LOẠI PHIM TINH GỌN */}
-              {heroType && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-zinc-300">
-                    {heroType}
-                  </span>
-                </div>
-              )}
-
+            <div className="max-w-xl md:max-w-2xl mx-auto sm:mx-0 flex flex-col items-center sm:items-start text-center sm:text-left space-y-3 sm:space-y-4">
               {/* TIÊU ĐỀ PHIM */}
               <h1
                 style={{ color: "#ffffff" }}
-                className="hero-cinema-title text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)] text-balance"
+                className="hero-cinema-title w-full px-1.5 sm:pl-0.5 sm:pr-2 py-0.5 text-2xl sm:text-5xl md:text-[3.4rem] lg:text-[3.85rem] font-extrabold leading-[1.28] sm:leading-[1.24] text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)] text-balance"
               >
                 {title}
               </h1>
 
-              {/* HÀNG THÔNG TIN */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1 text-xs sm:text-sm font-medium text-zinc-300 leading-normal">
-                {voteText && (
-                  <span className="inline-flex items-center gap-1 text-amber-400/90 font-semibold tabular-nums">
-                    <Star
-                      size={12}
-                      className="fill-amber-400/90 text-amber-400/90"
-                    />
-                    <span>{voteText}</span>
-                  </span>
-                )}
-
-                {featuredMovie?.year && (
-                  <>
-                    <span className="text-zinc-500 select-none">•</span>
-                    <span className="text-zinc-300 tabular-nums">
-                      {featuredMovie.year}
+              {/* HÀNG THÔNG TIN & THỂ LOẠI (THOÁNG NHỊP, TÁCH BẠCH MÀU) */}
+              <div className="space-y-1.5 sm:space-y-2">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1 text-xs sm:text-sm font-medium text-zinc-200/90 leading-normal">
+                  {voteText && (
+                    <span className="inline-flex items-center gap-1 text-amber-400 font-semibold tabular-nums">
+                      <Star
+                        size={12}
+                        className="fill-amber-400 text-amber-400"
+                      />
+                      <span>{voteText}</span>
                     </span>
-                  </>
-                )}
+                  )}
 
-                {isEpisodeUseful ? (
-                  <>
-                    <span className="text-zinc-500 select-none">•</span>
-                    <span className="text-emerald-400/95 font-medium">
-                      {rawEpisode}
+                  {featuredMovie?.year && (
+                    <>
+                      {voteText && (
+                        <span className="text-zinc-500 select-none">·</span>
+                      )}
+                      <span className="tabular-nums">{featuredMovie.year}</span>
+                    </>
+                  )}
+
+                  {isEpisodeUseful ? (
+                    <>
+                      <span className="text-zinc-500 select-none">·</span>
+                      <span>{rawEpisode}</span>
+                    </>
+                  ) : cleanDuration ? (
+                    <>
+                      <span className="text-zinc-500 select-none">·</span>
+                      <span>{cleanDuration}</span>
+                    </>
+                  ) : null}
+
+                  {heroCountry && (
+                    <span className="hidden sm:inline-flex items-center gap-x-2.5">
+                      <span className="text-zinc-500 select-none">·</span>
+                      <span>{heroCountry}</span>
                     </span>
-                  </>
-                ) : cleanDuration ? (
-                  <>
-                    <span className="text-zinc-500 select-none">•</span>
-                    <span className="text-zinc-300">{cleanDuration}</span>
-                  </>
-                ) : null}
+                  )}
 
-                {featuredMovie?.quality && (
-                  <>
-                    <span className="text-zinc-500 select-none">•</span>
-                    <span className="px-1.5 py-0.5 rounded-[4px] bg-white/5 text-[11px] font-bold text-zinc-200 uppercase tracking-wider backdrop-blur-sm">
-                      {featuredMovie.quality}
+                  {featuredMovie?.lang && (
+                    <span className="inline-flex items-center gap-x-2.5">
+                      <span className="text-zinc-500 select-none">·</span>
+                      <span>{featuredMovie.lang}</span>
                     </span>
-                  </>
-                )}
+                  )}
 
-                {featuredMovie?.lang && (
-                  <>
-                    <span className="text-zinc-500 select-none">•</span>
-                    <span className="text-zinc-300 font-medium">
-                      {featuredMovie.lang}
+                  {featuredMovie?.quality && (
+                    <span className="hidden sm:inline-flex items-center gap-x-2.5">
+                      <span className="text-zinc-500 select-none">·</span>
+                      <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                        {featuredMovie.quality}
+                      </span>
                     </span>
-                  </>
-                )}
+                  )}
+                </div>
 
-                {heroCountry && (
-                  <span className="hidden sm:inline-flex items-center gap-x-2">
-                    <span className="text-zinc-500 select-none">•</span>
-                    <span className="text-zinc-300">{heroCountry}</span>
-                  </span>
+                {genresList.length > 0 && (
+                  <div className="text-xs sm:text-[13px] text-zinc-400 font-medium line-clamp-1">
+                    {genresList.slice(0, 3).join(" · ")}
+                  </div>
                 )}
               </div>
 
-              {/* THỂ LOẠI */}
-              {genresList.length > 0 && (
-                <p className="text-xs sm:text-sm text-zinc-400 font-medium line-clamp-1">
-                  {genresList.slice(0, 4).join("  •  ")}
-                </p>
-              )}
-
-              {/* TÓM TẮT NỘI DUNG */}
+              {/* TÓM TẮT NỘI DUNG (GIỚI HẠN CHUẨN 2 DÒNG TRÊN DESKTOP) */}
               {displaySynopsis ? (
-                <p className="hero-cinema-desc hidden sm:block max-w-[50ch] text-xs sm:text-sm md:text-[15px] leading-relaxed text-zinc-300 line-clamp-2 md:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
+                <p className="hero-cinema-desc hidden sm:line-clamp-2 max-w-[50ch] text-sm md:text-[15px] leading-relaxed text-zinc-300/90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
                   {displaySynopsis}
                 </p>
               ) : null}
 
               {/* MOBILE SIGNATURE NETFLIX 3-COLUMN ACTION BAR */}
-              <div className="flex sm:hidden items-center justify-between w-full max-w-[340px] pt-2 px-2">
+              <div className="flex sm:hidden items-center justify-between w-full max-w-[330px] pt-1 px-2">
                 <button
                   type="button"
                   onClick={onToggleWatchlist}
@@ -228,14 +215,14 @@ export function HeroContentOverlay({
               </div>
 
               {/* DESKTOP CTA BUTTONS */}
-              <div className="hidden sm:flex flex-wrap items-center gap-3 pt-2">
+              <div className="hidden sm:flex flex-wrap items-center gap-3.5 pt-1.5">
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
                     prefetch={false}
-                    className="inline-flex items-center gap-2.5 rounded-2xl bg-netflix-red hover:brightness-110 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 shadow-xl shadow-black/60 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white hover:bg-zinc-200 text-black px-6 sm:px-7 py-2.5 sm:py-3 text-sm sm:text-[15px] font-bold transition-all duration-200 active:scale-95 shadow-lg shadow-black/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
-                    <Play size={19} fill="white" className="ml-0.5" />
+                    <Play size={18} fill="black" className="ml-0.5" />
                     <span>{isTrailerOnly ? "Xem Trailer" : "Xem Ngay"}</span>
                   </Link>
                 )}
@@ -243,7 +230,7 @@ export function HeroContentOverlay({
                 <button
                   type="button"
                   onClick={onToggleWatchlist}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white px-5 py-3.5 sm:py-4 text-xs sm:text-sm font-bold backdrop-blur-md transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 cursor-pointer shadow-md shadow-black/40"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white/15 hover:bg-white/25 text-white px-5 py-2.5 sm:py-3 text-sm font-semibold backdrop-blur-md transition-all duration-200 active:scale-95 cursor-pointer shadow-md shadow-black/40"
                 >
                   {inWatchlist ? (
                     <>
@@ -265,35 +252,12 @@ export function HeroContentOverlay({
                   />
                 )}
               </div>
-
-              {/* THANH TIẾN TRÌNH AUTO-SLIDE (DESKTOP ONLY - GPU COMPOSITED SCALE-X, 0 LAYOUT REFLOW) */}
-              {slides.length > 1 && (
-                <div className="hidden sm:block pt-3 max-w-sm w-full">
-                  <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
-                    <div
-                      key={`progress-${index}-${paused ? "pause" : "play"}-${isTrailerDuration ? "trailer" : "normal"}`}
-                      style={
-                        paused
-                          ? { transform: "scaleX(0)" }
-                          : {
-                              animation: `heroProgressFill ${
-                                (isTrailerDuration
-                                  ? AUTO_SLIDE_TRAILER_MS
-                                  : AUTO_SLIDE_NORMAL_MS) / 1000
-                              }s linear forwards`,
-                            }
-                      }
-                      className="h-full w-full rounded-full bg-netflix-red origin-left transform-gpu"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* NÚT ĐIỀU HƯỚNG & DOTS (Đồng bộ chuẩn CarouselNavButton với các hàng phim bên dưới) */}
+      {/* NÚT ĐIỀU HƯỚNG & DOTS (Đồng bộ chuẩn CarouselNavButton + Progress tích hợp) */}
       {slides.length > 1 && (
         <>
           <CarouselNavButton
@@ -313,24 +277,41 @@ export function HeroContentOverlay({
             visible={true}
           />
 
-          <div className="absolute bottom-1 sm:bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 sm:gap-1.5">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Chuyển slide ${i + 1}`}
-                onClick={() => onGoToSlide(i)}
-                className="py-2.5 px-1 sm:p-2 flex items-center justify-center cursor-pointer touch-manipulation focus:outline-none"
-              >
-                <span
-                  className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 block ${
-                    i === index
-                      ? "w-6 sm:w-8 bg-netflix-red shadow-sm shadow-black/50"
-                      : "w-1.5 sm:w-2 bg-white/30 hover:bg-white/70"
-                  }`}
-                />
-              </button>
-            ))}
+          <div className="absolute bottom-2 sm:bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 sm:gap-1.5">
+            {slides.map((_, i) => {
+              const isActive = i === index;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Chuyển slide ${i + 1}`}
+                  onClick={() => onGoToSlide(i)}
+                  className="py-2.5 px-1 sm:p-1.5 flex items-center justify-center cursor-pointer touch-manipulation focus:outline-none"
+                >
+                  {isActive ? (
+                    <span className="relative h-1.5 w-7 sm:w-9 overflow-hidden rounded-full bg-white/25 shadow-sm shadow-black/50 block">
+                      <span
+                        key={`progress-${index}-${paused ? "pause" : "play"}-${isTrailerDuration ? "trailer" : "normal"}`}
+                        style={
+                          paused
+                            ? { transform: "scaleX(1)", opacity: 0.85 }
+                            : {
+                                animation: `heroProgressFill ${
+                                  (isTrailerDuration
+                                    ? AUTO_SLIDE_TRAILER_MS
+                                    : AUTO_SLIDE_NORMAL_MS) / 1000
+                                }s linear forwards`,
+                              }
+                        }
+                        className="block h-full w-full rounded-full bg-white origin-left transform-gpu"
+                      />
+                    </span>
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/35 hover:bg-white/75 transition-colors duration-200 block" />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {isDesktop && activeTrailerEmbedUrl && isTrailerReady && (

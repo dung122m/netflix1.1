@@ -1,121 +1,81 @@
 /**
- * CLOUDFLARE WORKER: SMART EDGE CACHING FOR NANAFLIX MEDIA
+ * CLOUDFLARE WORKER: NANAFLIX STATIC MEDIA CDN (R2 + EDGE CACHE)
  * Domain: media.nanaflix.asia
  * R2 Binding: MEDIA_BUCKET -> nanaflix-media
- * 
+ *
  * Luồng hoạt động:
- * 1. Khách truy cập: https://media.nanaflix.asia/cache/{domain}/{path}
- * 2. Worker kiểm tra R2 Bucket qua internal binding (độ trễ 0-5ms, không tốn egress).
- * 3. Nếu ĐÃ CÓ: Trả về trực tiếp với cache vĩnh viễn (immutable).
- * 4. Nếu CHƯA CÓ: Kéo từ nguồn gốc (phimimg.com, tmdb, v.v.), lưu vào R2 ngầm và trả ngay cho khách.
- * 5. Vercel hoàn toàn đứng ngoài: 0% CPU, 0 MB Băng thông Vercel.
+ * 1. Phục vụ asset tĩnh từ R2 (`avatars/`, `tv-channels/`, `teams/`, `players/`, `actors/`, `banners/`, `tournaments/`...).
+ * 2. Tận dụng Cloudflare Edge Cache (`caches.default`) để giảm R2 Class B reads và giảm độ trễ xuống <10ms.
+ * 3. Đã ngừng nhánh proxy `/cache/{domain}/...` (trả 410 Gone, không kéo hay ghi ảnh nguồn ngoài vào R2 nữa).
  */
 
-// Danh sách domain cho phép proxy để chống lợi dụng làm open proxy
-// TUYỆT ĐỐI KHÔNG chứa image.tmdb.org vì TMDb có CDN toàn cầu riêng
-const ALLOWED_UPSTREAMS = [
-  "phimimg.com",
-  "img.phimapi.com",
-  "img.ophim.cc",
-];
-
 const IMMUTABLE_CACHE_HEADER = "public, max-age=31536000, s-maxage=31536000, immutable";
+const GONE_CACHE_HEADER = "public, max-age=86400";
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return new Response("Method Not Allowed", { status: 405 });
+    }
+
     const url = new URL(request.url);
     const pathname = url.pathname.replace(/^\/+/, "");
 
-    // 1. Chỉ xử lý các đường dẫn cache: cache/{domain}/{path...}
-    if (!pathname.startsWith("cache/")) {
-      // Đối với các assets tĩnh khác (avatars/, tv-channels/, covers/), lấy trực tiếp từ R2
-      const object = await env.MEDIA_BUCKET.get(pathname);
-      if (!object) {
-        return new Response("Not Found", { status: 404 });
-      }
-
-      const headers = new Headers();
-      object.writeHttpMetadata(headers);
-      headers.set("etag", object.httpEtag);
-      headers.set("Cache-Control", IMMUTABLE_CACHE_HEADER);
-      headers.set("Access-Control-Allow-Origin", "*");
-
-      return new Response(object.body, { headers });
+    if (!pathname) {
+      return new Response("Not Found", { status: 404 });
     }
 
-    // 2. Kiểm tra xem file đã được cache trong R2 chưa
-    const cachedObject = await env.MEDIA_BUCKET.get(pathname);
-    if (cachedObject) {
-      const headers = new Headers();
-      cachedObject.writeHttpMetadata(headers);
-      headers.set("etag", cachedObject.httpEtag);
-      headers.set("Cache-Control", IMMUTABLE_CACHE_HEADER);
-      headers.set("Access-Control-Allow-Origin", "*");
-      headers.set("X-Nanaflix-Cache", "HIT-R2-EDGE");
-
-      return new Response(cachedObject.body, { headers });
-    }
-
-    // 3. Nếu chưa có: Trích xuất upstream domain và path gốc
-    // Đường dẫn có dạng: cache/phimimg.com/upload/vod/...
-    const segments = pathname.split("/");
-    if (segments.length < 3) {
-      return new Response("Invalid Cache URL Path", { status: 400 });
-    }
-
-    const targetDomain = segments[1].toLowerCase();
-    const upstreamPath = segments.slice(2).join("/");
-
-    // Nếu là domain image.tmdb.org: chuyển hướng 308 trực tiếp, không lưu R2
-    if (targetDomain.includes("image.tmdb.org")) {
-      return Response.redirect(`https://image.tmdb.org/${upstreamPath}${url.search}`, 308);
-    }
-
-    const isAllowedDomain = ALLOWED_UPSTREAMS.some((d) => targetDomain.includes(d));
-    if (!isAllowedDomain) {
-      return new Response("Forbidden Upstream Domain", { status: 403 });
-    }
-
-    const upstreamUrl = `https://${targetDomain}/${upstreamPath}${url.search}`;
-
-    try {
-      const upstreamRes = await fetch(upstreamUrl, {
+    // Đã khai tử luồng proxy ảnh nguồn ngoài /cache/{domain}/{path}
+    if (pathname.startsWith("cache/")) {
+      return new Response("Legacy cache proxy disabled", {
+        status: 410,
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 NanaflixWorker/1.0",
-          Referer: upstreamUrl,
+          "Cache-Control": GONE_CACHE_HEADER,
+          "Access-Control-Allow-Origin": "*",
         },
       });
-
-      if (!upstreamRes.ok) {
-        return new Response("Upstream Error", { status: upstreamRes.status });
-      }
-
-      const contentType = upstreamRes.headers.get("content-type") || "image/jpeg";
-
-      // Đọc arrayBuffer để vừa trả cho khách vừa ghi vào R2
-      const imageBytes = await upstreamRes.arrayBuffer();
-
-      // Ghi vào Cloudflare R2 bucket ngầm (tại Edge)
-      await env.MEDIA_BUCKET.put(pathname, imageBytes, {
-        httpMetadata: {
-          contentType,
-          cacheControl: IMMUTABLE_CACHE_HEADER,
-        },
-      });
-
-      const responseHeaders = new Headers();
-      responseHeaders.set("Content-Type", contentType);
-      responseHeaders.set("Cache-Control", IMMUTABLE_CACHE_HEADER);
-      responseHeaders.set("Access-Control-Allow-Origin", "*");
-      responseHeaders.set("X-Nanaflix-Cache", "MISS-FETCHED-AND-CACHED");
-
-      return new Response(imageBytes, {
-        status: 200,
-        headers: responseHeaders,
-      });
-    } catch (err) {
-      return new Response(`Worker Fetch Error: ${err.message}`, { status: 502 });
     }
+
+    // 1. Kiểm tra Cloudflare Edge Cache trước khi gọi vào R2 bucket
+    const cache = caches.default;
+    const cacheKey = new Request(url.origin + "/" + pathname, { method: "GET" });
+    const edgeHit = await cache.match(cacheKey);
+    if (edgeHit) {
+      const hitHeaders = new Headers(edgeHit.headers);
+      hitHeaders.set("X-Nanaflix-Cache", "HIT-EDGE");
+      return new Response(request.method === "HEAD" ? null : edgeHit.body, {
+        status: edgeHit.status,
+        headers: hitHeaders,
+      });
+    }
+
+    // 2. Miss Edge Cache -> đọc từ R2 binding và lưu ngược lại Edge Cache
+    const object = await env.MEDIA_BUCKET.get(pathname);
+    if (!object) {
+      return new Response("Not Found", { status: 404 });
+    }
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set("etag", object.httpEtag);
+    headers.set("Cache-Control", IMMUTABLE_CACHE_HEADER);
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("X-Nanaflix-Cache", "HIT-R2");
+
+    const response = new Response(object.body, {
+      status: 200,
+      headers,
+    });
+
+    // Chỉ put GET full body vào caches.default
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    }
+
+    if (request.method === "HEAD") {
+      return new Response(null, { status: 200, headers });
+    }
+
+    return response;
   },
 };

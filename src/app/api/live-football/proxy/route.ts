@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import { isSafePublicUrl } from "@/lib/security";
 import { isSafePublicMediaSegment } from "@/lib/live/proxySegmentCache";
-import { handleHlsProxyGet, handleHlsProxyOptions } from "@/services/live/shared/hlsProxyRoute";
+import {
+  handleHlsProxyGet,
+  handleHlsProxyOptions,
+  type HlsProxyUpstreamHeaders,
+} from "@/services/live/shared/hlsProxyRoute";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +34,8 @@ export async function fetchWithSafeRedirects(
   timeoutMs: number = 10000,
   maxRedirects: number = MAX_SAFE_REDIRECTS,
   clientHeaders?: Headers,
-  clientSignal?: AbortSignal
+  clientSignal?: AbortSignal,
+  upstreamHeaders?: HlsProxyUpstreamHeaders,
 ): Promise<SafeFetchResult> {
   let currentUrl = initialUrl;
   const visitedUrls = new Set<string>();
@@ -54,14 +59,23 @@ export async function fetchWithSafeRedirects(
     const isFptStream = /fptplay(?:53)?\.net/i.test(parsedCurrent.hostname);
     const isColaStream = /miekgo\.app|msdht\.app/i.test(parsedCurrent.hostname);
 
+    const safeReferer =
+      upstreamHeaders?.referer && isSafePublicUrl(upstreamHeaders.referer)
+        ? upstreamHeaders.referer
+        : null;
+    const effectiveReferer = safeReferer || origin + "/";
+    const effectiveOrigin = safeReferer ? new URL(safeReferer).origin : origin;
+
     const stepHeaders: Record<string, string> = {
-      "User-Agent": isFptStream
-        ? "Mozilla/5.0 (SMART-TV; LINUX; Tizen 10.0) AppleWebKit/537.36 (KHTML, like Gecko) 130.0.6723.116/10.0 TV Safari/537.36"
-        : isColaStream
-          ? "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-          : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Referer: origin + "/",
-      Origin: origin,
+      "User-Agent": upstreamHeaders?.userAgent
+        ? upstreamHeaders.userAgent
+        : isFptStream
+          ? "Mozilla/5.0 (SMART-TV; LINUX; Tizen 10.0) AppleWebKit/537.36 (KHTML, like Gecko) 130.0.6723.116/10.0 TV Safari/537.36"
+          : isColaStream
+            ? "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Referer: effectiveReferer,
+      Origin: effectiveOrigin,
     };
 
     const clientRange = clientHeaders?.get("range");
@@ -106,8 +120,15 @@ export async function fetchWithSafeRedirects(
 export async function GET(request: NextRequest) {
   return handleHlsProxyGet(request, {
     proxyBasePath: "/api/live-football/proxy",
-    fetchUpstream: (req, targetUrl) =>
-      fetchWithSafeRedirects(targetUrl, 10000, MAX_SAFE_REDIRECTS, req.headers, req.signal),
+    fetchUpstream: (req, targetUrl, upstreamHeaders) =>
+      fetchWithSafeRedirects(
+        targetUrl,
+        10000,
+        MAX_SAFE_REDIRECTS,
+        req.headers,
+        req.signal,
+        upstreamHeaders,
+      ),
   });
 }
 

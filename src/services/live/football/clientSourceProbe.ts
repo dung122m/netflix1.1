@@ -1,7 +1,8 @@
 "use client";
 
-import { StreamServer, FootballMatch } from "./service";
+import type { StreamServer, FootballMatch } from "./service";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
+import { getFootballStreamUrl, toPlayableHlsUrl } from "./streamUrlHelper";
 
 export type ProbeStatus = "alive" | "dead" | "unknown";
 
@@ -64,19 +65,58 @@ export async function probeStreamUrl(url: string, timeoutMs = 1800): Promise<boo
 /**
  * Tải manifest HLS và kiểm tra tính hợp lệ của playlist / segment
  */
-async function fetchAndValidateHls(url: string, timeoutMs: number): Promise<boolean> {
+async function fetchAndValidateHls(
+  url: string,
+  timeoutMs: number,
+  externalSignal?: AbortSignal,
+): Promise<boolean> {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = externalSignal
+    ? AbortSignal.any([externalSignal, timeoutSignal])
+    : timeoutSignal;
+
   const res = await fetch(url, {
     method: "GET",
     headers: {
       Accept: "*/*",
     },
     cache: "no-store",
-    signal: AbortSignal.timeout(timeoutMs),
+    signal,
   });
 
   if (!res.ok) return false;
 
-  const text = await res.text();
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (
+    ct.includes("video/x-flv") ||
+    ct.includes("video/mp2t") ||
+    ct.includes("application/octet-stream")
+  ) {
+    return false;
+  }
+
+  // Chỉ đọc tối đa 8 KB đầu tiên để kiểm tra #EXTM3U, tránh treo RAM nếu upstream trả stream liên tục
+  let text = "";
+  if (res.body && typeof res.body.getReader === "function") {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let totalBytes = 0;
+    try {
+      while (totalBytes < 8192) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          totalBytes += value.byteLength;
+          text += decoder.decode(value, { stream: true });
+        }
+      }
+    } finally {
+      reader.cancel().catch(() => {});
+    }
+    text += decoder.decode();
+  } else {
+    text = (await res.text()).slice(0, 8192);
+  }
   if (!text || text.length < 10) return false;
 
   // Nếu trả về trang HTML lỗi (404/403 trả về 200 HTML page) -> Dead
@@ -102,6 +142,192 @@ async function fetchAndValidateHls(url: string, timeoutMs: number): Promise<bool
   }
 
   return true;
+}
+
+export interface RacePlayableServerResult {
+  index: number;
+  needsProxy: boolean;
+  deadUrls: string[];
+}
+
+/**
+ * Races all servers of a match in parallel (~200-500ms for healthy CDNs) so
+ * LivePlayer starts directly on a working stream instead of waiting sequentially
+ * through multiple dead/timeout servers.
+ */
+export async function racePlayableServer(
+  servers: StreamServer[],
+  externalSignal?: AbortSignal,
+): Promise<RacePlayableServerResult | null> {
+  if (!servers || servers.length === 0) return null;
+
+  // 1. Instant hit if any server is already verified alive in session probeCache
+  for (let i = 0; i < servers.length; i++) {
+    const s = servers[i];
+    if (!s?.url || isBlockedStreamUrl(s.url)) continue;
+    const playable = toPlayableHlsUrl(s.url);
+    if (getServerProbeStatus(playable) === "alive") {
+      return { index: i, needsProxy: false, deadUrls: [] };
+    }
+    if (s.referer) {
+      const proxyUrl = getFootballStreamUrl(
+        playable,
+        true,
+        true,
+        s.referer,
+        s.userAgent,
+        s.headerSig,
+      );
+      if (getServerProbeStatus(proxyUrl) === "alive") {
+        return { index: i, needsProxy: true, deadUrls: [] };
+      }
+    }
+  }
+
+  const deadUrls: string[] = [];
+  const raceController = new AbortController();
+  const abortAll = () => raceController.abort();
+  externalSignal?.addEventListener("abort", abortAll, { once: true });
+
+  const candidates = servers
+    .map((s, index) => ({
+      server: s,
+      index,
+      directUrl: getFootballStreamUrl(toPlayableHlsUrl(s?.url || ""), Boolean(s?.isHls), false),
+    }))
+    .filter((c) => Boolean(c.directUrl) && !isBlockedStreamUrl(c.directUrl))
+    .slice(0, 8);
+
+  if (candidates.length === 0) {
+    externalSignal?.removeEventListener("abort", abortAll);
+    return null;
+  }
+
+  const tryDirectRace = () =>
+    new Promise<RacePlayableServerResult | null>((resolve) => {
+      let remaining = candidates.length;
+      let resolved = false;
+
+      for (const candidate of candidates) {
+        if (getServerProbeStatus(candidate.directUrl) === "dead") {
+          deadUrls.push(candidate.server.url);
+          remaining -= 1;
+          if (remaining === 0 && !resolved) resolve(null);
+          continue;
+        }
+
+        const isHttpsDirect = candidate.directUrl.startsWith("https://");
+        const isProxyUrl = candidate.directUrl.startsWith("/");
+
+        fetchAndValidateHls(candidate.directUrl, 2200, raceController.signal)
+          .then((ok) => {
+            if (resolved) return;
+            if (ok) {
+              resolved = true;
+              probeCache.set(candidate.directUrl, {
+                status: "alive",
+                expiresAt: Date.now() + 5 * 60 * 1000,
+              });
+              raceController.abort();
+              resolve({
+                index: candidate.index,
+                needsProxy: isProxyUrl,
+                deadUrls,
+              });
+              return;
+            }
+            if (isHttpsDirect && !candidate.server.referer) {
+              probeCache.set(candidate.directUrl, {
+                status: "dead",
+                expiresAt: Date.now() + 90 * 1000,
+              });
+              deadUrls.push(candidate.server.url);
+            }
+          })
+          .catch(() => {
+            if (!resolved && isHttpsDirect && !candidate.server.referer && !raceController.signal.aborted) {
+              deadUrls.push(candidate.server.url);
+            }
+          })
+          .finally(() => {
+            remaining -= 1;
+            if (remaining === 0 && !resolved) {
+              resolve(null);
+            }
+          });
+      }
+    });
+
+  const directWinner = await tryDirectRace();
+  if (directWinner || externalSignal?.aborted) {
+    externalSignal?.removeEventListener("abort", abortAll);
+    return directWinner;
+  }
+
+  // 2. Fallback race via Proxy ONLY for Referer-protected servers (e.g. EXTVLCOPT) when no direct stream responded
+  const proxyCandidates = candidates
+    .filter((c) => Boolean(c.server.referer) && c.directUrl.startsWith("https://"))
+    .slice(0, 4);
+
+  if (proxyCandidates.length === 0) {
+    externalSignal?.removeEventListener("abort", abortAll);
+    return null;
+  }
+
+  const proxyController = new AbortController();
+  const abortProxy = () => proxyController.abort();
+  externalSignal?.addEventListener("abort", abortProxy, { once: true });
+
+  const proxyWinner = await new Promise<RacePlayableServerResult | null>((resolve) => {
+    let remaining = proxyCandidates.length;
+    let resolved = false;
+
+    for (const candidate of proxyCandidates) {
+      const proxyUrl = getFootballStreamUrl(
+        toPlayableHlsUrl(candidate.server.url),
+        Boolean(candidate.server.isHls),
+        true,
+        candidate.server.referer,
+        candidate.server.userAgent,
+        candidate.server.headerSig,
+      );
+
+      fetchAndValidateHls(proxyUrl, 3000, proxyController.signal)
+        .then((ok) => {
+          if (resolved) return;
+          if (ok) {
+            resolved = true;
+            probeCache.set(proxyUrl, {
+              status: "alive",
+              expiresAt: Date.now() + 5 * 60 * 1000,
+            });
+            proxyController.abort();
+            resolve({
+              index: candidate.index,
+              needsProxy: true,
+              deadUrls,
+            });
+            return;
+          }
+          deadUrls.push(candidate.server.url);
+        })
+        .catch(() => {
+          if (!resolved && !proxyController.signal.aborted) {
+            deadUrls.push(candidate.server.url);
+          }
+        })
+        .finally(() => {
+          remaining -= 1;
+          if (remaining === 0 && !resolved) {
+            resolve(null);
+          }
+        });
+    }
+  });
+
+  externalSignal?.removeEventListener("abort", abortAll);
+  externalSignal?.removeEventListener("abort", abortProxy);
+  return proxyWinner;
 }
 
 /**

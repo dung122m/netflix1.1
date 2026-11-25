@@ -53,7 +53,6 @@ export interface HeroMovieMeta {
   cleanDuration: string | null;
   displaySynopsis: string;
   heroCountry: string;
-  heroType: string;
   voteText: string | null;
   heroImageSrc: string;
 }
@@ -68,7 +67,41 @@ const USELESS_EPISODE_TAGS = new Set([
   "sd",
   "đang cập nhật",
   "updating",
+  "hoàn tất",
+  "hoan tat",
+  "completed",
+  "end",
 ]);
+
+function formatHeroEpisodeLabel(rawEpisode: string): string | null {
+  const trimmed = rawEpisode.trim();
+  if (!trimmed || USELESS_EPISODE_TAGS.has(trimmed.toLowerCase())) {
+    return null;
+  }
+
+  // "Hoàn Tất (16/16)" -> "16 tập"; bỏ qua "Hoàn Tất (1/1)" vì đây là phim lẻ
+  const completedRatioMatch = trimmed.match(
+    /ho[àa]n\s*t[ấa]t\s*\(\s*(\d+)\s*\/\s*(\d+)\s*\)/i,
+  );
+  if (completedRatioMatch) {
+    const totalEpisodes = Number(completedRatioMatch[2]);
+    return totalEpisodes > 1 ? `${totalEpisodes} tập` : null;
+  }
+
+  const completedCountMatch = trimmed.match(
+    /ho[àa]n\s*t[ấa]t\s*(\d+)(?:\s*t[ậa]p)?/i,
+  );
+  if (completedCountMatch) {
+    const totalEpisodes = Number(completedCountMatch[1]);
+    return totalEpisodes > 1 ? `${totalEpisodes} tập` : null;
+  }
+
+  if (/^ho[àa]n\s*t[ấa]t\b/i.test(trimmed) || /^1\s*t[ậa]p$/i.test(trimmed)) {
+    return null;
+  }
+
+  return trimmed;
+}
 
 /**
  * Normalizes hero slide metadata (title, duration, episode status, genres,
@@ -96,10 +129,11 @@ export function computeHeroMovieMeta(
         )
     : [];
 
-  const rawEpisode = featuredMovie?.episode_current?.trim() || "";
-  const isEpisodeUseful = Boolean(
-    rawEpisode && !USELESS_EPISODE_TAGS.has(rawEpisode.toLowerCase()),
+  const formattedEpisode = formatHeroEpisodeLabel(
+    featuredMovie?.episode_current || "",
   );
+  const rawEpisode = formattedEpisode || "";
+  const isEpisodeUseful = Boolean(formattedEpisode);
 
   const cleanDuration = (() => {
     if (!featuredMovie?.time) return null;
@@ -139,15 +173,6 @@ export function computeHeroMovieMeta(
       (featuredMovie?.country as unknown),
   );
 
-  const isSeries = Boolean(
-    (featuredMovie?.episode_current &&
-      String(featuredMovie.episode_current).toLowerCase().includes("tập")) ||
-      (featuredMovie?.time &&
-        String(featuredMovie.time).toLowerCase().includes("tập")) ||
-      genresList.some((g) => g.toLowerCase().includes("phim bộ")),
-  );
-  const heroType = isSeries ? "Phim Bộ" : "Phim Lẻ";
-
   const voteAverage = featuredMovie?.tmdb?.vote_average;
   const voteText =
     voteAverage !== undefined && voteAverage !== null && voteAverage !== ""
@@ -178,7 +203,6 @@ export function computeHeroMovieMeta(
     cleanDuration,
     displaySynopsis,
     heroCountry,
-    heroType,
     voteText,
     heroImageSrc,
   };
