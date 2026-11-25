@@ -27,6 +27,7 @@ export interface TmdbMetadataPayload {
   name?: string;
   original_title?: string;
   original_name?: string;
+  alternative_titles?: string[];
   release_date?: string;
   first_air_date?: string;
 }
@@ -109,10 +110,11 @@ export function isTmdbPayloadMatchingMovie(
   const tmdbYear = tmdbDate ? parseInt(tmdbDate.slice(0, 4), 10) : NaN;
 
   // Xác định xem phim có nguồn gốc Việt Nam không
-  const countryStr = typeof movie.country === "string"
-    ? movie.country
-    : Array.isArray(movie.country)
-      ? movie.country
+  const rawCountry = movie.country ?? (movie as { countries?: unknown }).countries;
+  const countryStr = typeof rawCountry === "string"
+    ? rawCountry
+    : Array.isArray(rawCountry)
+      ? rawCountry
           .map((c) => {
             if (c && typeof c === "object") {
               const obj = c as Record<string, unknown>;
@@ -127,10 +129,9 @@ export function isTmdbPayloadMatchingMovie(
     /vi[eêệ]t\s*nam/i.test(countryStr) ||
     /viet-?nam/i.test(countryStr);
 
+  // Bất kỳ quốc gia cụ thể nào được ghi nhận khác Việt Nam (Brazil, Mexico, Úc, Hàn, Mỹ...) đều là phim nước ngoài
   const hasForeignCountry =
-    Boolean(countryStr) &&
-    !isExplicitVietnameseCountry &&
-    /(âu\s*mỹ|hàn\s*quốc|nhật\s*bản|trung\s*quốc|thái\s*lan|đài\s*loan|hồng\s*kông|ấn\s*độ|anh|pháp|đức|ý|nga|tây\s*ban\s*nha|mỹ|korea|japan|china|thailand|us|uk)/i.test(countryStr);
+    Boolean(countryStr.trim()) && !isExplicitVietnameseCountry;
 
   // Thu thập danh sách tiêu đề chính thống của phim Nanaflix
   const primaryMovieTitles = [
@@ -185,6 +186,7 @@ export function isTmdbPayloadMatchingMovie(
     tmdbData.name,
     tmdbData.original_title,
     tmdbData.original_name,
+    ...(Array.isArray(tmdbData.alternative_titles) ? tmdbData.alternative_titles : []),
   ].filter((t): t is string => Boolean(t && t.trim().length >= 2));
 
   const hasOverlap = checkTitlesOverlap(movieTitles, tmdbTitles);

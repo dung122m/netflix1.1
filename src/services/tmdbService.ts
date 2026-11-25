@@ -90,14 +90,32 @@ export async function getTmdbBackdropUrl(
 }
 
 // 5.0 CACHE POSTER & BACKDROP TMDB CHO THẺ PHIM (24h RAM L1, Next.js Data Cache 24h)
+interface TmdbMediaImagesEntry {
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  title?: string | null;
+  originalTitle?: string | null;
+  altTitles?: string[];
+  releaseDate?: string | null;
+}
+
+function pickBestAppendImagePath(
+  images?: Array<{ file_path?: string; iso_639_1?: string | null }>
+): string | null {
+  if (!Array.isArray(images) || images.length === 0) return null;
+  const preferredLangs = ["vi", "en", null, ""];
+  for (const lang of preferredLangs) {
+    const match = images.find((img) => img?.file_path && (img.iso_639_1 ?? null) === lang);
+    if (match?.file_path) return match.file_path;
+  }
+  return images.find((img) => img?.file_path)?.file_path || null;
+}
+
 const TMDB_MEDIA_IMAGES_CACHE = new Map<
   string,
-  { posterUrl: string | null; backdropUrl: string | null; expireAt: number }
+  TmdbMediaImagesEntry & { expireAt: number }
 >();
-const inFlightTmdbIdImages = new Map<
-  string,
-  Promise<{ posterUrl: string | null; backdropUrl: string | null }>
->();
+const inFlightTmdbIdImages = new Map<string, Promise<TmdbMediaImagesEntry>>();
 
 const TMDB_META_CACHE = new Map<string, { data: TmdbMetadataPayload; expireAt: number }>();
 
@@ -193,17 +211,26 @@ export async function getTmdbMediaImagesById(
   }
 
   const cleanType = normalizeTmdbLookupMediaType(type);
-
-  // Xác thực ngữ nghĩa nếu truyền expectedMovie: đối chiếu chéo metadata TMDb thực tế
-  if (expectedMovie) {
-    const meta = await getTmdbBasicMetadata(cleanId, cleanType, externalSignal);
-    if (meta && !isTmdbPayloadMatchingMovie(meta, expectedMovie)) {
-      console.warn(
-        `[TMDB Sanity Guard] Rejected mismatched tmdbId ${cleanId} for "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year}) -> TMDb title: "${meta.title || meta.name}", release_date: "${meta.release_date || meta.first_air_date}"`
-      );
-      return { posterUrl: null, backdropUrl: null };
+  const validateExpected = (entry: TmdbMediaImagesEntry): boolean => {
+    if (!expectedMovie || (!entry.title && !entry.originalTitle && !entry.releaseDate)) {
+      return true;
     }
-  }
+    const matches = isTmdbPayloadMatchingMovie(
+      {
+        title: entry.title || undefined,
+        original_title: entry.originalTitle || undefined,
+        alternative_titles: entry.altTitles,
+        release_date: entry.releaseDate || undefined,
+      },
+      expectedMovie
+    );
+    if (!matches) {
+      console.warn(
+        `[TMDB Sanity Guard] Rejected mismatched tmdbId ${cleanId} for "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year}) -> TMDb title: "${entry.title || entry.originalTitle}", release_date: "${entry.releaseDate}"`
+      );
+    }
+    return matches;
+  };
 
   const cacheKey = `v5:${cleanType}:${cleanId}`;
   const redisKey = `tmdb:images:v3:${cleanType}:${cleanId}`;
@@ -211,122 +238,102 @@ export async function getTmdbMediaImagesById(
   const now = Date.now();
   const memoryHit = TMDB_MEDIA_IMAGES_CACHE.get(cacheKey);
   if (memoryHit && memoryHit.expireAt > now) {
+    if (!validateExpected(memoryHit)) {
+      return { posterUrl: null, backdropUrl: null };
+    }
     return { posterUrl: memoryHit.posterUrl, backdropUrl: memoryHit.backdropUrl };
   }
 
   try {
-    const redisHit = await cacheService.get<{
-      posterUrl: string | null;
-      backdropUrl: string | null;
-      title?: string | null;
-      originalTitle?: string | null;
-      releaseDate?: string | null;
-    }>(redisKey);
+    const redisHit = await cacheService.get<TmdbMediaImagesEntry>(redisKey);
     if (redisHit && typeof redisHit === "object") {
-      if (expectedMovie && (redisHit.title || redisHit.releaseDate)) {
-        const matches = isTmdbPayloadMatchingMovie(
-          {
-            title: redisHit.title || undefined,
-            original_title: redisHit.originalTitle || undefined,
-            release_date: redisHit.releaseDate || undefined,
-          },
-          expectedMovie
-        );
-        if (!matches) {
-          console.warn(
-            `[TMDB Sanity Guard] Cached image mismatch for tmdbId ${cleanId} on "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year})`
-          );
-          return { posterUrl: null, backdropUrl: null };
-        }
-      }
       setBoundedMap(TMDB_MEDIA_IMAGES_CACHE, cacheKey, {
         posterUrl: redisHit.posterUrl ?? null,
         backdropUrl: redisHit.backdropUrl ?? null,
+        title: redisHit.title ?? null,
+        originalTitle: redisHit.originalTitle ?? null,
+        releaseDate: redisHit.releaseDate ?? null,
         expireAt: Date.now() + (redisHit.posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
       });
+      if (!validateExpected(redisHit)) {
+        return { posterUrl: null, backdropUrl: null };
+      }
       return { posterUrl: redisHit.posterUrl ?? null, backdropUrl: redisHit.backdropUrl ?? null };
     }
   } catch {
     // Graceful fallback nếu Redis timeout
   }
 
-  const existingFlight = inFlightTmdbIdImages.get(cacheKey);
-  if (existingFlight) {
-    return awaitWithAbort(existingFlight, externalSignal, { posterUrl: null, backdropUrl: null });
-  }
-
-  const task = (async (): Promise<{ posterUrl: string | null; backdropUrl: string | null }> => {
-    try {
-      // 1. Thử lấy poster tiếng Việt theo cleanType
-      let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}?language=vi-VN`, 86400, externalSignal);
-
-      // 2. Nếu có phim nhưng chưa có poster tiếng Việt, lấy poster mặc định quốc tế
-      if (!data?.poster_path && data?.id && !externalSignal?.aborted) {
-        data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}`, 86400, externalSignal);
-      }
-
-      // 3. Nếu không tìm thấy theo cleanType (404), thử qua altType (movie <-> tv) đề phòng dữ liệu phân loại nhầm
-      if (!data?.id && !externalSignal?.aborted) {
-        const altType = cleanType === "tv" ? "movie" : "tv";
-        let altData = await fetchTmdbEndpoint(`/${altType}/${cleanId}?language=vi-VN`, 86400, externalSignal);
-        if (!altData?.poster_path && altData?.id && !externalSignal?.aborted) {
-          altData = await fetchTmdbEndpoint(`/${altType}/${cleanId}`, 86400, externalSignal);
-        }
-        if (altData?.poster_path && altData?.id) {
-          data = altData;
-        }
-      }
-
-      // Xác thực đối chiếu metadata TMDb trả về với danh tính bộ phim yêu cầu
-      if (expectedMovie && data && !isTmdbPayloadMatchingMovie(data, expectedMovie)) {
-        console.warn(
-          `[TMDB Sanity Guard] Rejected mismatched tmdbId ${cleanId} for "${expectedMovie.name || expectedMovie.title}" (${expectedMovie.year}) -> TMDb title: "${data.title || data.name}", release_date: "${data.release_date || data.first_air_date}"`
-        );
-        return { posterUrl: null, backdropUrl: null };
-      }
-
-      const posterUrl = data?.poster_path
-        ? `https://image.tmdb.org/t/p/w500${data.poster_path}`
-        : null;
-      const backdropUrl = data?.backdrop_path
-        ? `https://image.tmdb.org/t/p/w780${data.backdrop_path}`
-        : null;
-
-      if (!externalSignal?.aborted || posterUrl) {
-        setBoundedMap(TMDB_MEDIA_IMAGES_CACHE, cacheKey, {
-          posterUrl,
-          backdropUrl,
-          expireAt: Date.now() + (posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
-        });
-        const redisTtl = posterUrl ? 30 * 86400 : 3600;
-        cacheService
-          .set(
-            redisKey,
-            {
-              posterUrl,
-              backdropUrl,
-              title: data?.title || data?.name || null,
-              originalTitle: data?.original_title || data?.original_name || null,
-              releaseDate: data?.release_date || data?.first_air_date || null,
-            },
-            redisTtl
-          )
-          .catch(() => {});
-      }
-
-      return { posterUrl, backdropUrl };
-    } catch (err) {
-      if (!externalSignal?.aborted) {
-        console.warn(`[TMDB] Error fetching poster for ${cleanType}/${cleanId}:`, err);
-      }
-      return { posterUrl: null, backdropUrl: null };
-    } finally {
-      inFlightTmdbIdImages.delete(cacheKey);
+  const resolveTask = async (): Promise<TmdbMediaImagesEntry> => {
+    const existingFlight = inFlightTmdbIdImages.get(cacheKey);
+    if (existingFlight) {
+      return awaitWithAbort(existingFlight, externalSignal, { posterUrl: null, backdropUrl: null });
     }
-  })();
 
-  inFlightTmdbIdImages.set(cacheKey, task);
-  return task;
+    const task = (async (): Promise<TmdbMediaImagesEntry> => {
+      try {
+        // 1 request duy nhất lấy cả metadata + poster vi/en/null + backdrop + tên tiếng Anh (giảm 3x độ trễ & 66% số request)
+        const query = "language=vi-VN&append_to_response=images,translations&include_image_language=vi,en,null";
+        let data = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}?${query}`, 86400, externalSignal);
+
+        // Nếu không tìm thấy theo cleanType (404), thử qua altType (movie <-> tv)
+        if (!data?.id && !externalSignal?.aborted) {
+          const altType = cleanType === "tv" ? "movie" : "tv";
+          const altData = await fetchTmdbEndpoint(`/${altType}/${cleanId}?${query}`, 86400, externalSignal);
+          if (altData?.id) {
+            data = altData;
+          }
+        }
+
+        const posterPath = data?.poster_path || pickBestAppendImagePath(data?.images?.posters);
+        const backdropPath = data?.backdrop_path || pickBestAppendImagePath(data?.images?.backdrops);
+        const altTitles: string[] = Array.isArray(data?.translations?.translations)
+          ? data.translations.translations
+              .filter((t: { iso_639_1?: string; data?: { title?: string; name?: string } }) =>
+                t?.iso_639_1 === "en" || t?.iso_639_1 === "vi"
+              )
+              .map((t: { data?: { title?: string; name?: string } }) => t?.data?.title || t?.data?.name)
+              .filter((s: unknown): s is string => typeof s === "string" && s.trim().length >= 2)
+          : [];
+
+        const entry: TmdbMediaImagesEntry = {
+          posterUrl: posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null,
+          backdropUrl: backdropPath ? `https://image.tmdb.org/t/p/w780${backdropPath}` : null,
+          title: data?.title || data?.name || null,
+          originalTitle: data?.original_title || data?.original_name || null,
+          altTitles: altTitles.length > 0 ? altTitles : undefined,
+          releaseDate: data?.release_date || data?.first_air_date || null,
+        };
+
+        if (!externalSignal?.aborted || entry.posterUrl) {
+          setBoundedMap(TMDB_MEDIA_IMAGES_CACHE, cacheKey, {
+            ...entry,
+            expireAt: Date.now() + (entry.posterUrl ? 24 * 3600 * 1000 : 120 * 1000),
+          });
+          const redisTtl = entry.posterUrl ? 30 * 86400 : 3600;
+          cacheService.set(redisKey, entry, redisTtl).catch(() => {});
+        }
+
+        return entry;
+      } catch (err) {
+        if (!externalSignal?.aborted) {
+          console.warn(`[TMDB] Error fetching poster for ${cleanType}/${cleanId}:`, err);
+        }
+        return { posterUrl: null, backdropUrl: null };
+      } finally {
+        inFlightTmdbIdImages.delete(cacheKey);
+      }
+    })();
+
+    inFlightTmdbIdImages.set(cacheKey, task);
+    return awaitWithAbort(task, externalSignal, { posterUrl: null, backdropUrl: null });
+  };
+
+  const resolved = await resolveTask();
+  if (!validateExpected(resolved)) {
+    return { posterUrl: null, backdropUrl: null };
+  }
+  return { posterUrl: resolved.posterUrl, backdropUrl: resolved.backdropUrl };
 }
 
 export async function getTmdbPosterUrl(

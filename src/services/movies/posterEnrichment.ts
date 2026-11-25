@@ -110,6 +110,7 @@ async function fastBatchEnrichFromCache(movieList: any[]): Promise<void> {
                   release_date: hit.releaseDate,
                   title: hit.title,
                   original_title: hit.originalTitle,
+                  alternative_titles: hit.altTitles,
                 },
                 item
               );

@@ -670,7 +670,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   return payload;
 }
 
-export const MOVIE_CACHE_VERSION = 26;
+export const MOVIE_CACHE_VERSION = 28;
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
