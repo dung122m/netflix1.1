@@ -33,26 +33,7 @@ export function normalizeForMatch(str?: string | null): string {
 export const cleanStringForMatch = normalizeForMatch;
 export const cleanNormalizedString = normalizeForMatch;
 
-const RAW_COUNTRY_CODE_MAP: Record<string, string> = {
-  CN: "Trung Quốc",
-  HK: "Hồng Kông",
-  TW: "Đài Loan",
-  VN: "Việt Nam",
-  KR: "Hàn Quốc",
-  JP: "Nhật Bản",
-  US: "Mỹ",
-  TH: "Thái Lan",
-  GB: "Anh",
-  UK: "Anh",
-  FR: "Pháp",
-  DE: "Đức",
-  IT: "Ý",
-  ES: "Tây Ban Nha",
-  IN: "Ấn Độ",
-  RU: "Nga",
-  AU: "Úc",
-  CA: "Canada",
-};
+import { COUNTRY_DISPLAY_MAP } from "@/data/movies/taxonomy";
 
 /**
  * Chuẩn hóa tên quốc gia, loại bỏ cờ emoji (Regional Indicator Symbols như 🇨🇳, 🇻🇳, 🇺🇸...)
@@ -63,10 +44,10 @@ export function cleanCountryName(country?: string | null): string {
   const trimmed = country.trim();
   if (!trimmed) return "";
 
-  // Nếu chỉ là mã quốc gia 2 ký tự (e.g. "CN", "HK", "VN")
-  const upperCode = trimmed.toUpperCase();
-  if (RAW_COUNTRY_CODE_MAP[upperCode]) {
-    return RAW_COUNTRY_CODE_MAP[upperCode];
+  // Nếu chỉ là mã quốc gia 2-3 ký tự (e.g. "CN", "HK", "VN")
+  if (trimmed.length <= 3) {
+    const mapped = COUNTRY_DISPLAY_MAP[trimmed.toLowerCase()];
+    if (mapped) return mapped;
   }
 
   // 1. Loại bỏ các emoji cờ quốc gia (Regional Indicator Symbols Unicode range: \uD83C\uDDE6 - \uD83C\uDDFF)
@@ -79,8 +60,9 @@ export function cleanCountryName(country?: string | null): string {
   clean = clean.replace(/\s+/g, " ").trim();
 
   // 4. Nếu kết quả sau khi lọc chỉ là mã quốc gia
-  if (RAW_COUNTRY_CODE_MAP[clean.toUpperCase()]) {
-    return RAW_COUNTRY_CODE_MAP[clean.toUpperCase()];
+  if (clean.length <= 3) {
+    const mapped = COUNTRY_DISPLAY_MAP[clean.toLowerCase()];
+    if (mapped) return mapped;
   }
 
   return clean;

@@ -12,12 +12,17 @@ function NavigationProgressBarInner() {
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const popStateDelayRef = useRef<NodeJS.Timeout | null>(null);
   const isRunningRef = useRef(false);
 
   const currentUrl = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
   const lastUrlRef = useRef(currentUrl);
 
   const stopLoading = useCallback(() => {
+    if (popStateDelayRef.current) {
+      clearTimeout(popStateDelayRef.current);
+      popStateDelayRef.current = null;
+    }
     if (!isRunningRef.current) return;
     isRunningRef.current = false;
 
@@ -89,8 +94,8 @@ function NavigationProgressBarInner() {
   // 2. Bắt sự kiện click toàn trang trên thẻ <a> (Link nội bộ, Tab, Menu, Thẻ phim) để kích hoạt loading NGAY TỨC THÌ (0ms)
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
-      // Bỏ qua click chuột giữa, chuột phải hoặc phím tắt mở tab mới
-      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+      // Bỏ qua click chuột giữa, chuột phải, phím tắt mở tab mới hoặc event đã bị chặn
+      if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
         return;
       }
 
@@ -125,7 +130,21 @@ function NavigationProgressBarInner() {
     };
 
     const handlePopState = () => {
-      startLoading();
+      if (popStateDelayRef.current) {
+        clearTimeout(popStateDelayRef.current);
+      }
+      // Chờ ngắn để Next.js Router Cache xử lý quay lại tức thì (tránh kẹt "Đang tải..." khi popstate chạy sau lúc URL đã đổi)
+      popStateDelayRef.current = setTimeout(() => {
+        popStateDelayRef.current = null;
+        const nextUrl = `${window.location.pathname}${window.location.search}`;
+        if (nextUrl !== lastUrlRef.current) {
+          startLoading();
+        }
+      }, 80);
+    };
+
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) stopLoading();
     };
 
     const handleCustomStart = () => startLoading();
@@ -133,12 +152,18 @@ function NavigationProgressBarInner() {
 
     document.addEventListener("click", handleDocumentClick, { capture: true, passive: true });
     window.addEventListener("popstate", handlePopState);
+    window.addEventListener("pageshow", handlePageShow);
     window.addEventListener("app:loading-start", handleCustomStart);
     window.addEventListener("app:loading-end", handleCustomEnd);
 
     return () => {
+      if (popStateDelayRef.current) {
+        clearTimeout(popStateDelayRef.current);
+        popStateDelayRef.current = null;
+      }
       document.removeEventListener("click", handleDocumentClick, { capture: true });
       window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("pageshow", handlePageShow);
       window.removeEventListener("app:loading-start", handleCustomStart);
       window.removeEventListener("app:loading-end", handleCustomEnd);
     };

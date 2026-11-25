@@ -5,37 +5,15 @@
  * - Hạn chế concurrency và tối ưu timeout
  */
 
-import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
+import { normalizeForMatch as cleanStringForMatch, isAsianScript } from "@/lib/stringUtils";
 import { checkCandidateTitleMatch } from "@/lib/movieTitle";
 import { TMDB_GENRE_ID_MAP } from "@/lib/movieMedia";
+import { runWithConcurrencyLimit } from "@/lib/asyncPool";
+import { searchPhimApiByKeyword, searchNguonCByKeyword } from "@/services/movies/upstreamSearch";
 import { TmdbMovieCredit, MatchTmdbOptions } from "./types";
 import { getTmdbPosterUrl } from "../tmdbService";
 
-// Concurrency pool runner
-export async function runWithConcurrencyLimit<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T, index: number) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let currentIndex = 0;
-
-  async function worker() {
-    while (true) {
-      const idx = currentIndex++;
-      if (idx >= items.length) break;
-      try {
-        results[idx] = await fn(items[idx], idx);
-      } catch {
-        // Safe skip on error
-      }
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
-  await Promise.all(workers);
-  return results;
-}
+export { runWithConcurrencyLimit };
 
 interface SingleMovieMatchEntry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -146,8 +124,7 @@ export async function matchTmdbMoviesWithSources(
       const isLatinOriginal =
         credit.original_title && /^[A-Za-z0-9\s\-':,.]+$/.test(credit.original_title);
 
-      const isAsianTitle = (s?: string) =>
-        Boolean(s && /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(s));
+      const isAsianTitle = isAsianScript;
 
       const cleanOrigTitle = credit.original_title ? credit.original_title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim() : "";
       const cleanViTitle = credit.title ? credit.title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim() : "";
@@ -191,15 +168,8 @@ export async function matchTmdbMoviesWithSources(
         const trySearchAndMatch = async (searchKw: string): Promise<{ candidate: any; matchType: "tmdb_id" | "imdb_id" | "title_year" } | null> => {
           if (!searchKw || searchKw.length < 2) return null;
 
-          const phimApiRes = await fetch(
-            `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(searchKw)}&limit=6`,
-            { signal: AbortSignal.timeout(2200), next: { revalidate: 3600 } }
-          )
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null);
-
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const phimApiItems: any[] = phimApiRes?.data?.items || [];
+          const phimApiItems: any[] = await searchPhimApiByKeyword(searchKw, { limit: 6, timeoutMs: 2200 });
 
           for (const item of phimApiItems) {
             if (item?.tmdb?.id && String(item.tmdb.id) === tmdbIdStr) {
@@ -233,15 +203,8 @@ export async function matchTmdbMoviesWithSources(
             }
           }
 
-          const nguonCRes = await fetch(
-            `https://phim.nguonc.com/api/films/search?keyword=${encodeURIComponent(searchKw)}`,
-            { signal: AbortSignal.timeout(2200), next: { revalidate: 3600 } }
-          )
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null);
-
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const nguonCItems: any[] = Array.isArray(nguonCRes?.items) ? nguonCRes.items : [];
+          const nguonCItems: any[] = await searchNguonCByKeyword(searchKw, { timeoutMs: 2200 });
           if (nguonCItems.length > 0) {
             for (const nc of nguonCItems) {
               const isMatch = checkCandidateTitleMatch(
@@ -257,15 +220,7 @@ export async function matchTmdbMoviesWithSources(
               );
 
               if (isMatch) {
-                const formattedNc = {
-                  ...nc,
-                  origin_name: nc.original_name || nc.name,
-                  poster_url: nc.poster_url || nc.thumb_url,
-                  thumb_url: nc.thumb_url || nc.poster_url,
-                  quality: nc.quality || "HD",
-                  lang: nc.language || "Vietsub",
-                };
-                return { candidate: formattedNc, matchType: "title_year" };
+                return { candidate: nc, matchType: "title_year" };
               }
             }
           }

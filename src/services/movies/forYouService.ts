@@ -3,6 +3,11 @@ import { movieApi } from "@/services/movies/service";
 import { setBoundedMap } from "@/lib/boundedMap";
 import { cacheService } from "@/lib/cache";
 import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
+import {
+  DEFAULT_GENRES,
+  DEFAULT_COUNTRIES,
+  MOVIE_TYPE_DISPLAY_MAP,
+} from "@/data/movies/taxonomy";
 
 /**
  * For-You Personalized Recommendation Engine
@@ -17,52 +22,29 @@ import { enrichMovieListPosters } from "@/services/movies/posterEnrichment";
 export const FOR_YOU_L1_CACHE = new Map<string, { data: any; expireAt: number }>();
 export const L1_TTL_MS = 15 * 60 * 1000;
 
-// Bảng ánh xạ slug thể loại chuẩn của hệ thống
-export const CATEGORY_MAP: Record<string, { slug: string; name: string }> = {
-  "hanh-dong": { slug: "hanh-dong", name: "Hành Động" },
-  "tinh-cam": { slug: "tinh-cam", name: "Tình Cảm" },
-  "co-trang": { slug: "co-trang", name: "Cổ Trang" },
-  "tam-ly": { slug: "tam-ly", name: "Tâm Lý" },
-  "hai-huoc": { slug: "hai-huoc", name: "Hài Hước" },
-  "hoat-hinh": { slug: "hoat-hinh", name: "Hoạt Hình" },
-  "kinh-di": { slug: "kinh-di", name: "Kinh Dị" },
-  "vien-tuong": { slug: "vien-tuong", name: "Viễn Tưởng" },
-  "vo-thuat": { slug: "vo-thuat", name: "Võ Thuật" },
-  "phieu-luu": { slug: "phieu-luu", name: "Phiêu Lưu" },
-  "hinh-su": { slug: "hinh-su", name: "Hình Sự" },
-  "chien-tranh": { slug: "chien-tranh", name: "Chiến Tranh" },
-  "tai-lieu": { slug: "tai-lieu", name: "Tài Liệu" },
-  "bi-an": { slug: "bi-an", name: "Bí Ẩn" },
-  "hoc-duong": { slug: "hoc-duong", name: "Học Đường" },
-  "gia-dinh": { slug: "gia-dinh", name: "Gia Đình" },
-  "am-nhac": { slug: "am-nhac", name: "Âm Nhạc" },
-  "the-thao": { slug: "the-thao", name: "Thể Thao" },
-  "khoa-hoc": { slug: "khoa-hoc", name: "Khoa Học" },
-  "than-thoai": { slug: "than-thoai", name: "Thần Thoại" },
-};
+export const CATEGORY_MAP: Record<string, { slug: string; name: string }> = Object.fromEntries(
+  DEFAULT_GENRES.map((g) => [g.slug, g])
+);
 
-// Bảng ánh xạ quốc gia chuẩn
-export const COUNTRY_MAP: Record<string, { slug: string; name: string }> = {
-  "han-quoc": { slug: "han-quoc", name: "Hàn Quốc" },
-  "trung-quoc": { slug: "trung-quoc", name: "Trung Quốc" },
-  "au-my": { slug: "au-my", name: "Âu Mỹ" },
-  "nhat-ban": { slug: "nhat-ban", name: "Nhật Bản" },
-  "viet-nam": { slug: "viet-nam", name: "Việt Nam" },
-  "thai-lan": { slug: "thai-lan", name: "Thái Lan" },
-  "hong-kong": { slug: "hong-kong", name: "Hồng Kông" },
-  "dai-loan": { slug: "dai-loan", name: "Đài Loan" },
-  "an-do": { slug: "an-do", name: "Ấn Độ" },
-  "anh": { slug: "anh", name: "Anh" },
-  "phap": { slug: "phap", name: "Pháp" },
-};
+const FOR_YOU_COUNTRY_SLUGS = new Set([
+  "han-quoc",
+  "trung-quoc",
+  "au-my",
+  "nhat-ban",
+  "viet-nam",
+  "thai-lan",
+  "hong-kong",
+  "dai-loan",
+  "an-do",
+  "anh",
+  "phap",
+]);
 
-// Bảng ánh xạ loại phim chuẩn
-export const TYPE_MAP: Record<string, { slug: string; name: string }> = {
-  "phim-le": { slug: "phim-le", name: "Phim Lẻ" },
-  "phim-bo": { slug: "phim-bo", name: "Phim Bộ" },
-  "hoat-hinh": { slug: "hoat-hinh", name: "Hoạt Hình" },
-  "tv-shows": { slug: "tv-shows", name: "TV Shows" },
-};
+export const COUNTRY_MAP: Record<string, { slug: string; name: string }> = Object.fromEntries(
+  DEFAULT_COUNTRIES.filter((c) => FOR_YOU_COUNTRY_SLUGS.has(c.slug)).map((c) => [c.slug, c])
+);
+
+export const TYPE_MAP = MOVIE_TYPE_DISPLAY_MAP;
 
 export interface WatchHistoryInputItem {
   slug?: string;

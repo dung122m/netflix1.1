@@ -8,6 +8,8 @@ import {
   TMDB_GENRE_ID_MAP,
   TMDB_SAFE_LANGUAGE_COUNTRY_MAP,
   NGUONC_HASH_MAP,
+  CANONICAL_GENRE_ALIAS_MAP,
+  CANONICAL_COUNTRY_ALIAS_MAP,
 } from "@/data/movies/taxonomy";
 
 export {
@@ -1257,10 +1259,7 @@ export function getCanonicalGenreSlug(name?: string | null, rawSlug?: string | n
   if (rawSlug && typeof rawSlug === "string") {
     const trimmed = rawSlug.trim().toLowerCase().replace(/_/g, "-");
     if (!isRawId(trimmed) && trimmed.length >= 2) {
-      if (trimmed === "khoa-hoc-vien-tuong" || trimmed === "gia-tuong") return "vien-tuong";
-      if (trimmed === "phim-hai") return "hai-huoc";
-      if (trimmed === "phim-nhac") return "am-nhac";
-      return trimmed;
+      return CANONICAL_GENRE_ALIAS_MAP[trimmed] || trimmed;
     }
   }
 
@@ -1268,34 +1267,8 @@ export function getCanonicalGenreSlug(name?: string | null, rawSlug?: string | n
   if (name && typeof name === "string") {
     const norm = normalizeForMatch(name).replace(/\s+/g, "-");
     if (!norm) return "";
-    if (norm === "hanh-dong" || norm === "action") return "hanh-dong";
-    if (norm === "tinh-cam" || norm === "romance") return "tinh-cam";
-    if (norm === "kinh-di" || norm === "horror") return "kinh-di";
-    if (norm === "hai-huoc" || norm === "comedy" || norm === "phim-hai") return "hai-huoc";
-    if (norm.includes("vien-tuong") || norm.includes("sci-fi") || norm === "gia-tuong") return "vien-tuong";
-    if (norm === "co-trang") return "co-trang";
-    if (norm === "tam-ly" || norm === "drama") return "tam-ly";
-    if (norm === "vo-thuat" || norm === "martial-arts") return "vo-thuat";
-    if (norm === "trinh-tham" || norm === "detective") return "trinh-tham";
-    if (norm === "chien-tranh" || norm === "war") return "chien-tranh";
-    if (norm === "phieu-luu" || norm === "adventure") return "phieu-luu";
-    if (norm === "am-nhac" || norm === "music" || norm === "phim-nhac") return "am-nhac";
-    if (norm === "the-thao" || norm === "sports" || norm === "sport") return "the-thao";
-    if (norm === "tai-lieu" || norm === "documentary") return "tai-lieu";
-    if (norm === "khoa-hoc" || norm === "science") return "khoa-hoc";
-    if (norm === "hoat-hinh" || norm === "animation" || norm === "anime") return "hoat-hinh";
-    if (norm === "hinh-su" || norm === "crime") return "hinh-su";
-    if (norm === "bi-an" || norm === "mystery") return "bi-an";
-    if (norm === "hoc-duong" || norm === "school") return "hoc-duong";
-    if (norm === "gia-dinh" || norm === "family") return "gia-dinh";
-    if (norm === "than-thoai" || norm === "mythology" || norm === "fantasy") return "than-thoai";
-    if (norm === "lich-su" || norm === "history") return "lich-su";
-    if (norm === "chinh-kich") return "chinh-kich";
-    if (norm === "giat-gan" || norm === "thriller") return "giat-gan";
-    if (norm === "gay-can") return "gay-can";
-    if (norm === "lang-man") return "lang-man";
-    if (norm === "chieu-rap") return "chieu-rap";
-    return norm;
+    if (norm.includes("vien-tuong") || norm.includes("sci-fi")) return "vien-tuong";
+    return CANONICAL_GENRE_ALIAS_MAP[norm] || norm;
   }
 
   return "";
@@ -1309,35 +1282,17 @@ export function getCanonicalCountrySlug(name?: string | null, rawSlug?: string |
   if (rawSlug && typeof rawSlug === "string") {
     const trimmed = rawSlug.trim().toLowerCase().replace(/_/g, "-");
     if (!isRawId(trimmed) && trimmed.length >= 2) {
-      if (trimmed === "korea" || trimmed === "south-korea") return "han-quoc";
-      if (trimmed === "china") return "trung-quoc";
-      if (trimmed === "japan") return "nhat-ban";
-      if (trimmed === "us" || trimmed === "usa" || trimmed === "united-states" || trimmed === "my") return "au-my";
-      if (trimmed === "thailand") return "thai-lan";
-      if (trimmed === "vietnam") return "viet-nam";
-      if (trimmed === "hongkong") return "hong-kong";
-      if (trimmed === "taiwan") return "dai-loan";
-      if (trimmed === "india") return "an-do";
-      if (trimmed === "uk") return "anh";
-      if (trimmed === "france") return "phap";
-      return trimmed;
+      return CANONICAL_COUNTRY_ALIAS_MAP[trimmed] || trimmed;
     }
   }
 
   if (name && typeof name === "string") {
     const norm = normalizeForMatch(name).replace(/\s+/g, "-");
     if (!norm) return "";
-    if (norm.includes("han-quoc") || norm.includes("korea")) return "han-quoc";
-    if (norm.includes("trung-quoc") || norm.includes("china")) return "trung-quoc";
-    if (norm.includes("nhat-ban") || norm.includes("japan")) return "nhat-ban";
-    if (norm.includes("au-my") || norm.includes("my") || norm.includes("usa") || norm.includes("hoa-ky") || norm.includes("canada") || norm.includes("duc") || norm.includes("tay-ban-nha") || norm.includes("uc")) return "au-my";
-    if (norm.includes("thai-lan") || norm.includes("thailand")) return "thai-lan";
-    if (norm.includes("viet-nam") || norm.includes("vietnam")) return "viet-nam";
-    if (norm.includes("hong-kong") || norm.includes("hongkong")) return "hong-kong";
-    if (norm.includes("dai-loan") || norm.includes("taiwan")) return "dai-loan";
-    if (norm.includes("an-do") || norm.includes("india")) return "an-do";
-    if (norm.includes("anh") || norm.includes("uk")) return "anh";
-    if (norm.includes("phap") || norm.includes("france")) return "phap";
+    if (CANONICAL_COUNTRY_ALIAS_MAP[norm]) return CANONICAL_COUNTRY_ALIAS_MAP[norm];
+    for (const [alias, canonical] of Object.entries(CANONICAL_COUNTRY_ALIAS_MAP)) {
+      if (norm.includes(alias)) return canonical;
+    }
     return norm;
   }
 

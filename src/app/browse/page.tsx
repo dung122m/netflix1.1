@@ -334,50 +334,6 @@ async function runActorSearch(options: ActorSearchOptions) {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-const GENRE_NAMES: Record<string, string> = {
-  "hanh-dong": "Hành Động",
-  "tinh-cam": "Tình Cảm",
-  "kinh-di": "Kinh Dị",
-  "hai-huoc": "Hài Hước",
-  "vien-tuong": "Viễn Tưởng",
-  "co-trang": "Cổ Trang",
-  "tam-ly": "Tâm Lý",
-  "vo-thuat": "Võ Thuật",
-  "trinh-tham": "Trinh Thám",
-  "chien-tranh": "Chiến Tranh",
-  "phieu-luu": "Phiêu Lưu",
-  "am-nhac": "Âm Nhạc",
-  "the-thao": "Thể Thao",
-  "tai-lieu": "Tài Liệu",
-  "khoa-hoc": "Khoa Học",
-  "hoat-hinh": "Hoạt Hình",
-  "hinh-su": "Hình Sự",
-  "bi-an": "Bí Ẩn",
-  "hoc-duong": "Học Đường",
-  "gia-dinh": "Gia Đình",
-  "than-thoai": "Thần Thoại",
-  "lich-su": "Lịch Sử",
-  "chinh-kich": "Chính Kịch",
-  "giat-gan": "Giật Gân",
-  "gay-can": "Gây Cấn",
-  "lang-man": "Lãng Mạn",
-  "chieu-rap": "Chiếu Rạp",
-};
-
-const COUNTRY_NAMES: Record<string, string> = {
-  "han-quoc": "Hàn Quốc",
-  "trung-quoc": "Trung Quốc",
-  "au-my": "Âu Mỹ",
-  "nhat-ban": "Nhật Bản",
-  "thai-lan": "Thái Lan",
-  "viet-nam": "Việt Nam",
-  "hong-kong": "Hồng Kông",
-  "dai-loan": "Đài Loan",
-  "an-do": "Ấn Độ",
-  "anh": "Anh",
-  "phap": "Pháp",
-};
-
 // ==========================================
 export default async function BrowsePage({
   searchParams,
@@ -613,30 +569,30 @@ export default async function BrowsePage({
       ? `${detectedActor.name} (${detectedActor.englishName})`
       : detectedActor.name;
     if (country) {
-      title = `Tuyển Tập Phim: ${actorDisplayName} • ${COUNTRY_NAMES[country] || country}`;
+      title = `Tuyển Tập Phim: ${actorDisplayName} • ${formatCountryName(country) || country}`;
     } else {
       title = `Tuyển Tập Phim: ${actorDisplayName}`;
     }
   } else if (keyword) {
     if (country) {
-      title = `Kết quả tìm kiếm: "${keyword}" • ${COUNTRY_NAMES[country] || country}`;
+      title = `Kết quả tìm kiếm: "${keyword}" • ${formatCountryName(country) || country}`;
     } else {
       title = `Kết quả tìm kiếm: "${keyword}"`;
     }
   } else if (type && category) {
     const typeLabel = TYPE_TITLES[type] || type;
-    const catLabel = formatGenreName(category) || GENRE_NAMES[category] || category;
+    const catLabel = formatGenreName(category) || category;
     title = `${typeLabel} • ${catLabel}`;
   } else if (type && country) {
     const typeLabel = TYPE_TITLES[type] || type;
-    const ctryLabel = formatCountryName(country) || COUNTRY_NAMES[country] || country;
+    const ctryLabel = formatCountryName(country) || country;
     title = `${typeLabel} • ${ctryLabel}`;
   } else if (type && TYPE_TITLES[type]) {
     title = TYPE_TITLES[type];
   } else if (category) {
-    title = `Phim ${formatGenreName(category) || GENRE_NAMES[category] || category}`;
+    title = `Phim ${formatGenreName(category) || category}`;
   } else if (country) {
-    title = `Phim ${formatCountryName(country) || COUNTRY_NAMES[country] || country}`;
+    title = `Phim ${formatCountryName(country) || country}`;
   } else if (year) {
     title = `Phim Năm ${year}`;
   } else if (rawSort === "rating" || rawSort === "rating-desc") {

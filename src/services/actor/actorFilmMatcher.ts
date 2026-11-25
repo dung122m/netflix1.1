@@ -1,9 +1,10 @@
-import { normalizeForMatch } from "@/lib/stringUtils";
+import { normalizeForMatch, isAsianScript } from "@/lib/stringUtils";
 import { escapeRegex, ACTOR_FILM_CACHE, setBoundedCache } from "./actorAliasResolver";
 import { cacheService } from "@/lib/cache";
+import { runWithConcurrencyLimit as runTitlesWithConcurrencyLimit } from "@/lib/asyncPool";
+import { searchPhimApiByKeyword, searchNguonCByKeyword } from "@/services/movies/upstreamSearch";
 
-export const isAsianScript = (s: string) =>
-  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(s);
+export { isAsianScript };
 
 /**
  * Trích xuất toàn bộ diễn viên, đạo diễn từ mọi biến thể tên trường trong Database
@@ -135,91 +136,14 @@ export function slimActorMovieItem(m: any): any {
   };
 }
 
-export async function runTitlesWithConcurrencyLimit<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T, index: number) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let currentIndex = 0;
-
-  async function worker() {
-    while (true) {
-      const idx = currentIndex++;
-      if (idx >= items.length) break;
-      try {
-        results[idx] = await fn(items[idx], idx);
-      } catch {
-        // Safe skip on error
-      }
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
-  await Promise.all(workers);
-  return results;
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function searchPhimApiForTitle(keyword: string): Promise<any[]> {
-  try {
-    const res = await fetch(
-      `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=6`,
-      { signal: AbortSignal.timeout(2400), next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    const json = await res.json();
-    const imageDomain =
-      json.data?.APP_DOMAIN_CDN_IMAGE ||
-      json.data?.APP_DOMAIN_FRONTEND ||
-      "https://phimimg.com/";
-    const cdnClean = imageDomain.replace(/\/+$/, "");
-    const items = json.data?.items || json.items || [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return items.map((item: any) => {
-      const rawThumb = typeof item.thumb_url === "string" ? item.thumb_url.trim() : "";
-      const rawPoster = typeof item.poster_url === "string" ? item.poster_url.trim() : "";
-      const formatImg = (path: string) => {
-        if (!path) return "";
-        if (path.startsWith("http://") || path.startsWith("https://")) return path;
-        return `${cdnClean}/${path.replace(/^\/+/, "")}`;
-      };
-      const formattedThumb = formatImg(rawThumb);
-      const formattedPoster = formatImg(rawPoster);
-      return {
-        ...item,
-        thumb_url: formattedThumb || formattedPoster,
-        poster_url: formattedPoster || formattedThumb,
-      };
-    });
-  } catch {
-    return [];
-  }
+  return searchPhimApiByKeyword(keyword, { limit: 6, timeoutMs: 2400, normalizeImages: true });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function searchNguonCForTitle(keyword: string): Promise<any[]> {
-  try {
-    const res = await fetch(
-      `https://phim.nguonc.com/api/films/search?keyword=${encodeURIComponent(keyword)}&page=1`,
-      { signal: AbortSignal.timeout(2400), next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    const json = await res.json();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawItems: any[] = json.items || json.data?.items || [];
-    return rawItems.map((item) => ({
-      ...item,
-      origin_name: item.original_name || item.name,
-      poster_url: item.poster_url || item.thumb_url || "",
-      thumb_url: item.thumb_url || item.poster_url || "",
-      quality: item.quality || "HD",
-      lang: item.language || "Vietsub",
-      year: Number(item.year) || undefined,
-    }));
-  } catch {
-    return [];
-  }
+  return searchNguonCByKeyword(keyword, { timeoutMs: 2400 });
 }
 
 export interface FetchMoviesOptions {
