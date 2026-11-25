@@ -8,7 +8,7 @@ import {
   User,
   ChevronDown,
   ChevronUp,
-  Globe,
+  Languages,
   RotateCcw,
   Loader2,
 } from "lucide-react";
@@ -272,7 +272,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                         onClick={() => handleToggleTranslate(rev.id, rev.content)}
                         className="inline-flex items-center gap-1.5 text-xs text-amber-400/90 hover:text-amber-300 font-medium py-0.5 transition cursor-pointer"
                       >
-                        <Globe className="w-3.5 h-3.5 text-amber-400" />
+                        <Languages className="w-3.5 h-3.5" />
                         <span>Dịch sang tiếng Việt</span>
                       </button>
                     )}

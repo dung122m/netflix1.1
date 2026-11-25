@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, Globe } from "lucide-react";
+import { MessageSquare, Star } from "lucide-react";
 import { MovieCommentsSection } from "./MovieCommentsSection";
 import { TmdbAudienceReviews } from "./TmdbAudienceReviews";
 import { useWatchController } from "@/components/cinema/WatchController";
@@ -71,7 +71,7 @@ export const MovieReviewsContainer: React.FC<MovieReviewsContainerProps> = ({
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Globe className="w-3.5 h-3.5 text-amber-400" />
+            <Star className={`w-3.5 h-3.5 ${activeTab === "tmdb" ? "fill-amber-300" : ""}`} />
             <span>TMDb Quốc Tế</span>
           </button>
         </div>
