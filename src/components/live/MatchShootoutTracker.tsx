@@ -24,7 +24,7 @@ export function MatchShootoutTracker({
   const shotIndices = Array.from({ length: maxShots }, (_, i) => i + 1);
 
   return (
-    <div className="rounded-2xl bg-zinc-950/80 p-3.5 sm:p-4 border border-rose-500/20 shadow-lg space-y-3">
+    <div className="rounded-2xl bg-zinc-950/80 p-3.5 sm:p-4 shadow-lg space-y-3">
       {/* Tiêu đề & Tỷ số luân lưu */}
       <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
         <h4 className="text-xs sm:text-sm font-black text-white font-sans uppercase tracking-wider">

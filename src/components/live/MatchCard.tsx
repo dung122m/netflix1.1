@@ -437,8 +437,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
           isSelected
             ? "bg-zinc-850 ring-1 ring-inset ring-white/30 shadow-md shadow-black/50"
             : isConfirmedLive
-              ? "bg-zinc-900/80 hover:bg-zinc-800/80 shadow-sm border border-white/[0.04]"
-              : "bg-zinc-900/55 hover:bg-zinc-800/75 shadow-sm border border-white/[0.03]"
+              ? "bg-zinc-900/80 hover:bg-zinc-800/80 shadow-sm"
+              : "bg-zinc-900/55 hover:bg-zinc-800/75 shadow-sm"
         }`}
       >
         {/* DÒNG 1: HEADER MINI */}
@@ -561,8 +561,8 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
         isSelected
           ? "bg-zinc-850 ring-1 ring-white/30 shadow-2xl shadow-black/80"
           : isConfirmedLive
-            ? "bg-zinc-900/80 hover:bg-zinc-850/90 shadow-md shadow-black/30 border border-white/[0.04]"
-            : "bg-zinc-900/60 hover:bg-zinc-850/80 shadow-sm border border-white/[0.03]"
+            ? "bg-zinc-900/80 hover:bg-zinc-850/90 shadow-md shadow-black/30"
+            : "bg-zinc-900/60 hover:bg-zinc-850/80 shadow-sm"
       }`}
     >
       <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1 gap-2 sm:gap-2.5">

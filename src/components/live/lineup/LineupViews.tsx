@@ -652,7 +652,7 @@ export function FotmobSubstitutesSection({
   };
 
   return (
-    <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
+    <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-5 shadow-sm space-y-3">
       {/* TIÊU ĐỀ SECTION CHÍNH GIỮA */}
       <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
         Thay người

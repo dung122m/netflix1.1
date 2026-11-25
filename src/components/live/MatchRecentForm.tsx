@@ -191,7 +191,7 @@ function HeadToHeadCard({
   const events = headToHead.events || [];
 
   return (
-    <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
+    <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-5 shadow-sm space-y-3">
       {/* HEADER: TỔNG QUAN TỶ SỐ ĐỐI ĐẦU */}
       <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] gap-2 flex-wrap">
         <h4 className="text-xs sm:text-sm font-bold text-white font-sans">
@@ -367,7 +367,7 @@ export function MatchRecentForm({
 
       {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT - CHUẨN FORM FOTMOB */}
       {effectiveView === "recent" && hasRecent && (
-        <div className="rounded-2xl bg-zinc-950/70 border border-white/[0.06] p-3.5 sm:p-5 shadow-sm space-y-3">
+        <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-5 shadow-sm space-y-3">
           {/* TIÊU ĐỀ SECTION CHÍNH GIỮA */}
           <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
             Phong độ gần đây

@@ -138,7 +138,7 @@ export function LiveTheaterWatchView({
           type="button"
           onClick={onClosePlayer}
           aria-label="Quay lại danh sách trận đấu"
-          className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white text-xs font-semibold border border-white/5 transition cursor-pointer shrink-0 active:scale-95 shadow-sm"
+          className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white text-xs font-semibold transition cursor-pointer shrink-0 active:scale-95 shadow-sm"
         >
           <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">Danh sách</span>
@@ -159,7 +159,7 @@ export function LiveTheaterWatchView({
             type="button"
             onClick={() => setIsMobileSheetOpen(true)}
             aria-label={`Đổi trận (${filteredMatches.length} trận khả dụng)`}
-            className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 active:bg-zinc-800 text-zinc-200 hover:text-white font-medium text-xs border border-white/10 shadow-sm transition cursor-pointer active:scale-95"
+            className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 active:bg-zinc-800 text-zinc-200 hover:text-white font-medium text-xs shadow-sm transition cursor-pointer active:scale-95"
           >
             <ArrowLeftRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
             <span>Đổi trận</span>

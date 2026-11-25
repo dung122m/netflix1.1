@@ -77,7 +77,7 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
       aria-label="Thông báo xem dở"
       className="w-full max-w-[1800px] mx-auto px-0 animate-in fade-in slide-in-from-top-1 duration-200"
     >
-      <div className="relative flex items-center justify-between gap-2 sm:gap-3 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-zinc-900/95 via-zinc-900/90 to-netflix-red/10 border border-white/[0.07] shadow-sm sm:shadow-md min-w-0">
+      <div className="relative flex items-center justify-between gap-2 sm:gap-3 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-zinc-900/95 via-zinc-900/90 to-netflix-red/10 shadow-sm sm:shadow-md min-w-0">
         <div className="flex items-center gap-1.5 sm:gap-2.5 text-xs sm:text-sm text-zinc-200 min-w-0 flex-1 truncate">
           {isInProgress ? (
             <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red flex-none" aria-hidden="true" />

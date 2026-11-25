@@ -159,7 +159,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
             style={{
               background: "radial-gradient(ellipse at center, #202226 0%, #151618 100%)",
             }}
-            className="relative w-full min-w-[540px] aspect-[16/10] select-none overflow-hidden rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.6)] border border-white/[0.08]"
+            className="relative w-full min-w-[540px] aspect-[16/10] select-none overflow-hidden rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.6)]"
           >
             {/* Vạch kẻ sân bóng đá ngang chuẩn FotMob */}
             <svg
@@ -326,7 +326,7 @@ export const DualTeamPitch: React.FC<DualTeamPitchProps> = ({
 
         {/* 3. THANH HUẤN LUYỆN VIÊN (COACH BAR) CHUẨN FOTMOB */}
         {(homeTeam.coach || awayTeam.coach) && (
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/60 border border-white/[0.04] text-xs select-none">
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/60 text-xs select-none">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-[10px] font-bold shrink-0">
                 {homeTeam.coach ? homeTeam.coach.charAt(0) : "H"}

@@ -230,7 +230,7 @@ export function LiveMatchScoreboard({
     ).length || 0;
 
   return (
-    <div className="relative rounded-2xl bg-zinc-950/90 backdrop-blur-xl border border-white/[0.08] shadow-2xl shadow-black/80 overflow-hidden w-full min-w-0">
+    <div className="relative rounded-2xl bg-zinc-950/90 backdrop-blur-xl shadow-2xl shadow-black/80 overflow-hidden w-full min-w-0">
       {isEvent ||
       !team1 ||
       !team2 ||
@@ -384,34 +384,36 @@ export function LiveMatchScoreboard({
                       </span>
                     )}
 
-                    {/* DÒNG PHÚT/TRẠNG THÁI: NẰM CHÍNH GIỮA 50.0% THẲNG HÀNG DƯỚI DẤU - */}
-                    <div className="mt-1 sm:mt-1.5 flex items-center justify-center text-center w-full leading-none">
-                      {timeInfo.state === "live" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-emerald-400 font-sans tabular-nums text-center">
-                          {timeInfo.clockBadge}
-                        </span>
-                      ) : timeInfo.state === "ht" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans text-center">
-                          HT
-                        </span>
-                      ) : timeInfo.state === "ft" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-zinc-400 font-sans text-center">
-                          FT
-                        </span>
-                      ) : timeInfo.state === "upcoming" ? (
-                        <span className="text-xs sm:text-[13px] font-semibold text-zinc-400 font-sans tabular-nums text-center">
-                          {kickoffTime || "Sắp đá"}
-                        </span>
-                      ) : timeInfo.state === "special" ? (
-                        <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans text-center">
-                          {timeInfo.clockBadge}
-                        </span>
-                      ) : (
-                        <span className="text-xs sm:text-[13px] font-semibold text-zinc-400 font-sans tabular-nums text-center">
-                          {kickoffTime || ""}
-                        </span>
-                      )}
-                    </div>
+                    {/* DÒNG PHÚT/TRẠNG THÁI: CHỈ HIỂN THỊ KHI CÓ TRẠNG THÁI LIVE/HT/FT/SPECIAL HOẶC CHƯA CÓ NGÀY GIỜ Ở HEADER */}
+                    {(timeInfo.state === "live" ||
+                      timeInfo.state === "ht" ||
+                      timeInfo.state === "ft" ||
+                      timeInfo.state === "special" ||
+                      (!matchDateStr && Boolean(kickoffTime))) && (
+                      <div className="mt-1 sm:mt-1.5 flex items-center justify-center text-center w-full leading-none">
+                        {timeInfo.state === "live" ? (
+                          <span className="text-xs sm:text-[13px] font-bold text-emerald-400 font-sans tabular-nums text-center">
+                            {timeInfo.clockBadge}
+                          </span>
+                        ) : timeInfo.state === "ht" ? (
+                          <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans text-center">
+                            HT
+                          </span>
+                        ) : timeInfo.state === "ft" ? (
+                          <span className="text-xs sm:text-[13px] font-bold text-zinc-400 font-sans text-center">
+                            FT
+                          </span>
+                        ) : timeInfo.state === "special" ? (
+                          <span className="text-xs sm:text-[13px] font-bold text-amber-300 font-sans text-center">
+                            {timeInfo.clockBadge}
+                          </span>
+                        ) : (
+                          <span className="text-xs sm:text-[13px] font-semibold text-zinc-400 font-sans tabular-nums text-center">
+                            {kickoffTime}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* ĐỘI KHÁCH (CỘT PHẢI - 50% CHIỀU RỘNG TRỪ PHẦN TỶ SỐ) */}
