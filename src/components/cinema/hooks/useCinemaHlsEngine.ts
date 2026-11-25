@@ -145,12 +145,28 @@ export function useCinemaHlsEngine({
   const latestEffectiveDurationRef = useRef(getEffectiveDuration);
   const latestEmbedSrcRef = useRef(embedSrc);
   const latestResolvedThumbRef = useRef(resolvedThumb);
+  const latestTargetProgressRef = useRef(targetProgress);
+  const latestInitialTimeRef = useRef(initialTime);
+  const latestUrlParamTRef = useRef(urlParamT);
+  const latestInitialTimeUsedRef = useRef(initialTimeUsed);
+  const latestShowHudRef = useRef(showHud);
+  const latestActiveEpisodeNameRef = useRef(activeEpisodeName);
+  const latestPosterUrlRef = useRef(posterUrl);
+  const latestTitleRef = useRef(title);
 
   useEffect(() => {
     latestRequestSeekRef.current = requestPlayerSeek;
     latestEffectiveDurationRef.current = getEffectiveDuration;
     latestEmbedSrcRef.current = embedSrc;
     latestResolvedThumbRef.current = resolvedThumb;
+    latestTargetProgressRef.current = targetProgress;
+    latestInitialTimeRef.current = initialTime;
+    latestUrlParamTRef.current = urlParamT;
+    latestInitialTimeUsedRef.current = initialTimeUsed;
+    latestShowHudRef.current = showHud;
+    latestActiveEpisodeNameRef.current = activeEpisodeName;
+    latestPosterUrlRef.current = posterUrl;
+    latestTitleRef.current = title;
   });
 
   // Reset per-episode / per-source playback flags before HLS attachment
@@ -266,9 +282,10 @@ export function useCinemaHlsEngine({
     video.load();
 
     const trySeekToTarget = () => {
-      if (targetProgress <= 0 || hasSeekedInitialRef.current) return;
+      const currentTarget = latestTargetProgressRef.current;
+      if (currentTarget <= 0 || hasSeekedInitialRef.current) return;
       hasSeekedInitialRef.current = true;
-      latestRequestSeekRef.current(targetProgress, true);
+      latestRequestSeekRef.current(currentTarget, true);
     };
 
     const applyPreRollTransition = (
@@ -277,7 +294,7 @@ export function useCinemaHlsEngine({
       requirePreRollLead: boolean,
     ) => {
       const preRollDecision = evaluatePreRollAdDecision({
-        targetProgress,
+        targetProgress: latestTargetProgressRef.current,
         hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
         boundaries: adBoundariesRef.current,
         safeOffset: SAFE_AD_SKIP_OFFSET,
@@ -304,26 +321,27 @@ export function useCinemaHlsEngine({
       v.currentTime = preRollDecision.targetSeek;
     };
 
-    if (targetProgress > 0) {
-      const mins = Math.floor(targetProgress / 60);
-      const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
-      showHud(
+    const initialTargetProgress = latestTargetProgressRef.current;
+    if (initialTargetProgress > 0) {
+      const mins = Math.floor(initialTargetProgress / 60);
+      const secs = (Math.floor(initialTargetProgress) % 60).toString().padStart(2, "0");
+      latestShowHudRef.current(
         React.createElement(RotateCcw, { className: "w-5 h-5 text-netflix-red" }),
-        !initialTimeUsed && (initialTime || urlParamT)
+        !latestInitialTimeUsedRef.current && (latestInitialTimeRef.current || latestUrlParamTRef.current)
           ? `Bắt đầu xem từ mốc: ${mins}:${secs}`
           : `Tiếp tục xem từ ${mins}:${secs}`,
       );
       if (currentMovieSlug && activeEpisodeSlug) {
         saveWatchProgress(
           currentMovieSlug,
-          targetProgress,
+          initialTargetProgress,
           video.duration || 0,
           activeEpisodeSlug,
           {
-            title,
-            poster: posterUrl,
+            title: latestTitleRef.current,
+            poster: latestPosterUrlRef.current,
             thumb: latestResolvedThumbRef.current,
-            episodeName: activeEpisodeName,
+            episodeName: latestActiveEpisodeNameRef.current,
           },
         );
       }
@@ -335,7 +353,7 @@ export function useCinemaHlsEngine({
     if (Hls.isSupported()) {
       const hls = createResilientHls({
         mode: "vod",
-        startPosition: targetProgress > 0 ? targetProgress : -1,
+        startPosition: initialTargetProgress > 0 ? initialTargetProgress : -1,
       });
       hlsRef.current = hls;
       hls.loadSource(resolvedM3u8);
@@ -465,7 +483,7 @@ export function useCinemaHlsEngine({
             adBoundariesRef.current = detected;
             // P0: Pre-roll ad detection trước khi playback bắt đầu
             const preRollDecision = evaluatePreRollAdDecision({
-              targetProgress,
+              targetProgress: latestTargetProgressRef.current,
               hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
               boundaries: detected,
               safeOffset: SAFE_AD_SKIP_OFFSET,
@@ -508,12 +526,13 @@ export function useCinemaHlsEngine({
       // Fallback seek duy nhất sau 1.5s nếu Hls.js startPosition chưa khớp target
       seekTimeouts.push(
         setTimeout(() => {
+          const currentTarget = latestTargetProgressRef.current;
           if (
             !hasSeekedInitialRef.current &&
-            targetProgress > 0 &&
+            currentTarget > 0 &&
             videoRef.current
           ) {
-            if (Math.abs(videoRef.current.currentTime - targetProgress) > 2) {
+            if (Math.abs(videoRef.current.currentTime - currentTarget) > 2) {
               trySeekToTarget();
             } else {
               hasSeekedInitialRef.current = true;
@@ -664,7 +683,7 @@ export function useCinemaHlsEngine({
               if (detected.length > 0) {
                 adBoundariesRef.current = detected;
                 const preRollDecision = evaluatePreRollAdDecision({
-                  targetProgress,
+                  targetProgress: latestTargetProgressRef.current,
                   hasStartedInitialPlayback: hasStartedInitialPlaybackRef.current,
                   boundaries: detected,
                   safeOffset: SAFE_AD_SKIP_OFFSET,
@@ -754,7 +773,7 @@ export function useCinemaHlsEngine({
         setTimeout(() => {
           if (
             !hasSeekedInitialRef.current &&
-            targetProgress > 0 &&
+            latestTargetProgressRef.current > 0 &&
             videoRef.current
           ) {
             trySeekToTarget();
@@ -842,14 +861,6 @@ export function useCinemaHlsEngine({
     contextMovieSlug,
     currentServerIndex,
     propMovieSlug,
-    targetProgress,
-    initialTime,
-    urlParamT,
-    initialTimeUsed,
-    showHud,
-    activeEpisodeName,
-    posterUrl,
-    title,
   ]);
 }
 

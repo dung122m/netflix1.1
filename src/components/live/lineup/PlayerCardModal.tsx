@@ -558,14 +558,21 @@ export function PlayerDetailModal({
   };
 
   // Keyboard navigation
+  const handlePrevRef = React.useRef(handlePrevPlayer);
+  const handleNextRef = React.useRef(handleNextPlayer);
+  useEffect(() => {
+    handlePrevRef.current = handlePrevPlayer;
+    handleNextRef.current = handleNextPlayer;
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") handlePrevPlayer();
-      if (e.key === "ArrowRight") handleNextPlayer();
+      if (e.key === "ArrowLeft") handlePrevRef.current();
+      if (e.key === "ArrowRight") handleNextRef.current();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+  }, []);
 
   const photoUrl = !imgError && (player.photoUrl || currentProfile?.photoUrl);
 

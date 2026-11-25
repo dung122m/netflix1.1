@@ -64,13 +64,6 @@ function formatCollectionResponse(row: Record<string, unknown>) {
  * - Mặc định: Lấy danh sách bộ sưu tập của chính user đã đăng nhập
  */
 export async function GET(req: NextRequest) {
-  const auth = await verifyServerAuth(req);
-  const rateLimitPreset = auth.userId ? RATE_LIMIT_PRESETS.USER_READ : RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ;
-  const rateLimit = await enforceRateLimit(req, rateLimitPreset, auth.userId || undefined);
-  if (!rateLimit.allowed) {
-    return buildRateLimitResponse(rateLimit);
-  }
-
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json({ success: true, items: [] });
@@ -78,13 +71,59 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const collectionId = searchParams.get("id");
+  const isPublicListRequest = searchParams.get("public") === "true";
+
+  const publicEdgeHeaders = {
+    "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+  };
+
+  if (isPublicListRequest) {
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);
+    if (!rateLimit.allowed) {
+      return buildRateLimitResponse(rateLimit);
+    }
+    try {
+      const listCacheKey = "community:collections:public:list";
+      const cachedList = await cacheService.get<ReturnType<typeof formatCollectionResponse>[]>(listCacheKey);
+      if (cachedList && Array.isArray(cachedList)) {
+        return NextResponse.json({ success: true, items: cachedList }, { headers: publicEdgeHeaders });
+      }
+
+      const { data, error } = await supabase
+        .from("collections")
+        .select(COLLECTION_SELECT_FIELDS)
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      const items = (data || []).map(formatCollectionResponse);
+      cacheService.set(listCacheKey, items, 900).catch(() => {});
+      return NextResponse.json({ success: true, items }, { headers: publicEdgeHeaders });
+    } catch (err) {
+      console.error("[Collections API GET public] Error:", err);
+      return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+    }
+  }
+
+  const auth = await verifyServerAuth(req);
+  const rateLimitPreset = auth.userId ? RATE_LIMIT_PRESETS.USER_READ : RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ;
+  const rateLimit = await enforceRateLimit(req, rateLimitPreset, auth.userId || undefined);
+  if (!rateLimit.allowed) {
+    return buildRateLimitResponse(rateLimit);
+  }
 
   try {
     if (collectionId) {
       const cacheKey = `community:collection:${collectionId}`;
       const cached = await cacheService.get<ReturnType<typeof formatCollectionResponse>>(cacheKey);
       if (cached) {
-        return NextResponse.json({ success: true, item: cached });
+        return NextResponse.json({ success: true, item: cached }, { headers: publicEdgeHeaders });
       }
 
       const { data, error } = await supabase
@@ -109,30 +148,10 @@ export async function GET(req: NextRequest) {
         cacheService.set(cacheKey, formatted, 900).catch(() => {});
       }
 
-      return NextResponse.json({ success: true, item: formatted });
-    }
-
-    if (searchParams.get("public") === "true") {
-      const listCacheKey = "community:collections:public:list";
-      const cachedList = await cacheService.get<ReturnType<typeof formatCollectionResponse>[]>(listCacheKey);
-      if (cachedList && Array.isArray(cachedList)) {
-        return NextResponse.json({ success: true, items: cachedList });
-      }
-
-      const { data, error } = await supabase
-        .from("collections")
-        .select(COLLECTION_SELECT_FIELDS)
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-      }
-
-      const items = (data || []).map(formatCollectionResponse);
-      cacheService.set(listCacheKey, items, 900).catch(() => {});
-      return NextResponse.json({ success: true, items });
+      return NextResponse.json(
+        { success: true, item: formatted },
+        isPublic ? { headers: publicEdgeHeaders } : undefined
+      );
     }
 
     if (searchParams.get("all") === "true") {

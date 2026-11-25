@@ -96,6 +96,7 @@ export function ProfileHeroCard({
             {isUserAdmin(email) && (
               <Link
                 href="/admin"
+                prefetch={false}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
@@ -118,6 +119,7 @@ export function ProfileHeroCard({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3 pt-4 border-t border-white/[0.08]">
         <Link
           href="/my-list?tab=history"
+          prefetch={false}
           className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] transition flex flex-col items-center justify-center text-center group"
         >
           <History className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
@@ -133,6 +135,7 @@ export function ProfileHeroCard({
 
         <Link
           href="/my-list?tab=watchlist"
+          prefetch={false}
           className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] transition flex flex-col items-center justify-center text-center group"
         >
           <Bookmark className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />
@@ -142,6 +145,7 @@ export function ProfileHeroCard({
 
         <Link
           href="/my-list?tab=collections"
+          prefetch={false}
           className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] transition flex flex-col items-center justify-center text-center group"
         >
           <FolderHeart className="w-4 h-4 text-zinc-400 group-hover:text-white mb-1 group-hover:scale-110 transition-all" />

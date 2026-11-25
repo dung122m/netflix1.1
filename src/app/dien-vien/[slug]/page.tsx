@@ -236,21 +236,25 @@ export default async function ActorDetailPage({ params }: PageProps) {
     if (movies && movies.length > 0) {
       // Giảm budget xuống 300ms để tiết kiệm tối đa CPU Serverless
       await enrichMovieListPosters(movies, { budgetMs: 300, stripProxyUrls: true });
-      cacheService
-        .set(`actor:full_page:v6:${slug}`, { profile, wikiProfile, movies }, ACTOR_PAGE_REDIS_TTL_SEC)
-        .catch(() => {});
-
-      if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
-        const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
-        if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
-      }
-      ACTOR_PAGE_RAM_CACHE.set(slug, {
-        profile,
-        wikiProfile,
-        movies,
-        expireAt: now + 7200000,
-      });
     }
+
+    const pageRedisTtl = movies && movies.length > 0 ? ACTOR_PAGE_REDIS_TTL_SEC : 1800;
+    const pageRamTtlMs = movies && movies.length > 0 ? 7200000 : 10 * 60 * 1000;
+
+    cacheService
+      .set(`actor:full_page:v6:${slug}`, { profile, wikiProfile, movies }, pageRedisTtl)
+      .catch(() => {});
+
+    if (ACTOR_PAGE_RAM_CACHE.size >= MAX_ACTOR_PAGE_RAM_ENTRIES) {
+      const oldest = ACTOR_PAGE_RAM_CACHE.keys().next().value;
+      if (oldest) ACTOR_PAGE_RAM_CACHE.delete(oldest);
+    }
+    ACTOR_PAGE_RAM_CACHE.set(slug, {
+      profile,
+      wikiProfile,
+      movies,
+      expireAt: now + pageRamTtlMs,
+    });
   }
 
   const {

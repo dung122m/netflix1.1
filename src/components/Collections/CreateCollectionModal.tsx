@@ -32,12 +32,12 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setUserProfile(null);
     if (!user?.uid) {
-      setUserProfile(null);
       return;
     }
     const unsub = subscribeUserProfile(user.uid, (p) => {
-      if (p) setUserProfile(p);
+      setUserProfile(p);
     });
     return () => unsub();
   }, [user?.uid]);

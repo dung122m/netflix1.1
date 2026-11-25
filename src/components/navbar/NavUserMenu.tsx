@@ -39,12 +39,12 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setUserProfile(activeUid ? getCachedUserProfile(activeUid) : null);
     if (!activeUid) {
-      setUserProfile(null);
       return;
     }
     const unsubProfile = subscribeUserProfile(activeUid, (p) => {
-      if (p) setUserProfile(p);
+      setUserProfile(p);
     });
     return () => unsubProfile();
   }, [activeUid]);

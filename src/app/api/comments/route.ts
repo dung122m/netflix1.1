@@ -396,30 +396,31 @@ export async function POST(req: NextRequest) {
     }
 
     const targetUserId = replyToUserId || (parentOwnerId && parentOwnerId !== userId ? parentOwnerId : null);
-    if (targetUserId && targetUserId !== userId) {
-      const isDirect = Boolean(replyToUserId);
-      try {
-        await supabaseAdmin.from("notifications").upsert({
-          id: `notif_reply_${commentId}_${targetUserId}`,
-          user_id: targetUserId,
-          type: "comment_reply",
-          title: isDirect
-            ? `${userName} đã trả lời bình luận của bạn`
-            : `${userName} đã bình luận trong bài đánh giá của bạn`,
-          message: content.length > 80 ? content.slice(0, 80) + "..." : content,
-          link: `/movies/${movieSlug}?highlightComment=${commentId}#comment-${commentId}`,
-          movie_slug: movieSlug,
-          comment_id: commentId,
-          replier_name: userName,
-          replier_avatar: userAvatar,
-          is_read: false,
-          created_at: Date.now(),
-        }, { onConflict: "id" });
-      } catch {}
-    }
+    const notifTask =
+      targetUserId && targetUserId !== userId
+        ? (() => {
+            const isDirect = Boolean(replyToUserId);
+            return supabaseAdmin.from("notifications").upsert({
+              id: `notif_reply_${commentId}_${targetUserId}`,
+              user_id: targetUserId,
+              type: "comment_reply",
+              title: isDirect
+                ? `${userName} đã trả lời bình luận của bạn`
+                : `${userName} đã bình luận trong bài đánh giá của bạn`,
+              message: content.length > 80 ? content.slice(0, 80) + "..." : content,
+              link: `/movies/${movieSlug}?highlightComment=${commentId}#comment-${commentId}`,
+              movie_slug: movieSlug,
+              comment_id: commentId,
+              replier_name: userName,
+              replier_avatar: userAvatar,
+              is_read: false,
+              created_at: Date.now(),
+            }, { onConflict: "id" });
+          })()
+        : Promise.resolve();
 
     recordRecentContent(userId, rawContent);
-    await invalidateCommentsCache(movieSlug);
+    await Promise.allSettled([notifTask, invalidateCommentsCache(movieSlug)]);
 
     return NextResponse.json({ success: true, id: commentId });
   } catch (error) {
@@ -724,9 +725,23 @@ export async function DELETE(req: NextRequest) {
           { status: 403 }
         );
       }
-      const { error } = await supabaseAdmin.from("movie_comments").delete().eq("user_id", targetUserId);
+      const { data: deletedRows, error } = await supabaseAdmin
+        .from("movie_comments")
+        .delete()
+        .eq("user_id", targetUserId)
+        .select("movie_slug");
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      const affectedSlugs = Array.from(
+        new Set(
+          ((deletedRows || []) as Array<{ movie_slug?: string | null }>)
+            .map((r) => r.movie_slug)
+            .filter((s): s is string => Boolean(s))
+        )
+      ).slice(0, 50);
+      if (affectedSlugs.length > 0) {
+        await Promise.allSettled(affectedSlugs.map((s) => invalidateCommentsCache(s)));
       }
       return NextResponse.json({ success: true, allDeletedForUser: targetUserId });
     }

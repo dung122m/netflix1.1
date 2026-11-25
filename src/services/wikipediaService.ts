@@ -289,7 +289,7 @@ export async function fetchActorProfile(
 
   const queriesToTry = Array.from(
     new Set([cleanName, ...aliases].map((q) => q.trim()).filter((q) => q.length >= 2))
-  );
+  ).slice(0, 3);
 
   for (const q of queriesToTry) {
     try {

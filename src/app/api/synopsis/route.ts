@@ -103,6 +103,15 @@ export async function GET(request: NextRequest) {
         }
       );
     }
+    return NextResponse.json(
+      { slug, content: "", origin_name: "", actor: [], director: [] },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=300",
+        },
+      }
+    );
   }
 
   const promise = (async (): Promise<SynopsisDetailPayload | null> => {

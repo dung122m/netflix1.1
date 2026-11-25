@@ -82,12 +82,25 @@ export function Tooltip({
     setIsOpen(false);
   }, [clearTimer]);
 
-  const handleFocus = useCallback(() => {
+  const handleFocus = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
     if (disabled || !content) return;
+    try {
+      const target = e.target as HTMLElement | null;
+      if (!target || typeof target.matches !== "function" || !target.matches(":focus-visible")) {
+        return;
+      }
+    } catch {
+      return;
+    }
     clearTimer();
     updateAlignment();
     setIsOpen(true);
   }, [disabled, content, clearTimer, updateAlignment]);
+
+  const handlePointerDown = useCallback(() => {
+    clearTimer();
+    setIsOpen(false);
+  }, [clearTimer]);
 
   const handleBlur = useCallback(() => {
     clearTimer();
@@ -154,6 +167,7 @@ export function Tooltip({
       className={`${hasExplicitPosition ? "" : "relative "}inline-flex items-center justify-center ${wrapperClassName}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onPointerDown={handlePointerDown}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}

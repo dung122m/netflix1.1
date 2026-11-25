@@ -472,36 +472,22 @@ export async function queryMoviesByActor(
     }
   }
 
-  if (maxMovies < 150) {
-    const fullKvKey = `actor:filmography_v14:${normSlug}:150`;
-    try {
-      const fullCached = await cacheService.get<Record<string, unknown>[]>(fullKvKey);
-      if (Array.isArray(fullCached) && fullCached.length > 0) {
-        return fullCached.slice(0, maxMovies);
-      }
-    } catch {}
-  }
-
-  const kvKey = `actor:filmography_v14:${normSlug}:${maxMovies}`;
+  const kvKey = `actor:filmography_v14:${normSlug}:150`;
+  const effectiveMax = Math.max(maxMovies, 150);
   const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {
-      const items = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, effectiveTmdbPersonId);
+      const items = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, effectiveMax, cacheKey, effectiveTmdbPersonId);
       return Array.isArray(items) ? items.map(slimActorMovieItem).filter(Boolean) : [];
     },
     3 * 86400
   );
 
-  if (!res || res.length === 0) {
-    const freshItems = await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey, effectiveTmdbPersonId);
-    if (freshItems && freshItems.length > 0) {
-      const enriched = freshItems.map(slimActorMovieItem).filter(Boolean);
-      cacheService.set(kvKey, enriched, 3 * 86400).catch(() => {});
-      return enriched;
-    }
+  if (Array.isArray(res) && res.length === 0) {
+    cacheService.set(kvKey, [], 1800).catch(() => {});
   }
 
-  return res || [];
+  return Array.isArray(res) ? res.slice(0, maxMovies) : [];
 }
 
 async function executeActorFilmQuery(

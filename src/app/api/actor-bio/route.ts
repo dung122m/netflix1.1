@@ -180,17 +180,21 @@ export async function GET(request: NextRequest) {
       notFound: !isFound,
     };
 
-    // 8. Lưu vào Cache 7 ngày
-    if (isFound) {
-      cacheService.set(cacheKey, profile, 7 * 86400).catch(() => {});
-    }
+    // 8. Lưu vào Cache (7 ngày nếu tìm thấy, 30 phút negative cache nếu không thấy)
+    cacheService.set(cacheKey, profile, isFound ? 7 * 86400 : 1800).catch(() => {});
 
     return NextResponse.json(profile, {
-      headers: {
-        "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-        "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-        "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-      },
+      headers: isFound
+        ? {
+            "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+            "CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+            "Vercel-CDN-Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+          }
+        : {
+            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+            "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+            "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          },
     });
   } catch (error) {
     console.error("Actor bio API error:", error);

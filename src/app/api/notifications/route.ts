@@ -96,8 +96,11 @@ export async function GET(req: NextRequest) {
                 movieTitleMap.set(slug, cachedTitle);
                 return;
               }
-              // 2. Fallback gọi movieApi và lưu cache 7 ngày
-              const detail = await movieApi.getMovieDetail(slug);
+              // 2. Fallback gọi movieApi với timeout 1.5s và lưu cache 7 ngày
+              const detail = await Promise.race([
+                movieApi.getMovieDetail(slug),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+              ]);
               const name = detail?.movie?.name || detail?.movie?.title;
               if (name) {
                 movieTitleMap.set(slug, name);

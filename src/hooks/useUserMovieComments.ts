@@ -30,6 +30,8 @@ export function useUserMovieComments({
 
   // Lắng nghe bình luận của người dùng theo thời gian thực
   useEffect(() => {
+    setRawComments(EMPTY_COMMENTS);
+    fetchedSlugsRef.current.clear();
     if (!userId) return;
 
     const unsub = subscribeUserComments(userId, (items) => {

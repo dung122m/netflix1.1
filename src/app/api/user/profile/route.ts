@@ -63,13 +63,18 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
-      // Lấy device_profiles của các user để hiển thị thiết bị
-      const { data: devProfiles } = await supabase
-        .from("device_profiles")
-        .select("user_id, device_type, browser, os, last_seen")
-        .not("user_id", "is", null)
-        .order("last_seen", { ascending: false })
-        .limit(1000);
+      // Lấy device_profiles chỉ cho các user thuộc trang hiện tại
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const profileUserIds = (data as any[] || []).map((d) => d.id).filter(Boolean);
+      const { data: devProfiles } =
+        profileUserIds.length > 0
+          ? await supabase
+              .from("device_profiles")
+              .select("user_id, device_type, browser, os, last_seen")
+              .in("user_id", profileUserIds)
+              .order("last_seen", { ascending: false })
+              .limit(1000)
+          : { data: [] };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const devProfileMap = new Map<string, any>();

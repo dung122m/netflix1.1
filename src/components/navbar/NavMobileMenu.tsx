@@ -67,12 +67,12 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
+    setUserProfile(activeUid ? getCachedUserProfile(activeUid) : null);
     if (!activeUid) {
-      setUserProfile(null);
       return;
     }
     const unsub = subscribeUserProfile(activeUid, (p) => {
-      if (p) setUserProfile(p);
+      setUserProfile(p);
     });
     return () => unsub();
   }, [activeUid]);

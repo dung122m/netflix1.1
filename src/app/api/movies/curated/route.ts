@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const tab = searchParams.get("tab") || "trending";
+  const rawTab = searchParams.get("tab") || "trending";
+  const tab = TAB_PARAMS[rawTab] ? rawTab : "trending";
   const limitParam = Number(searchParams.get("limit"));
   const limit = Math.min(Math.max(1, limitParam || 12), 24);
 
@@ -99,7 +100,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { success: true, items },
-      { headers: edgeHeaders }
+      {
+        headers:
+          items.length > 0
+            ? edgeHeaders
+            : { "Cache-Control": "public, max-age=30, s-maxage=60" },
+      }
     );
   } catch (err) {
     console.error(`[Curated API] Unexpected error:`, err);

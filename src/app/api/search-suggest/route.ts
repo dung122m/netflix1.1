@@ -25,6 +25,8 @@ import { logSecurityEvent } from "@/lib/securityLogger";
 
 // TTL cho Search Suggest: 1 giờ (3600s), theo convention của Nanaflix
 const SUGGEST_CACHE_TTL_SECONDS = 3600;
+const SUGGEST_NEGATIVE_TTL_SECONDS = 180;
+const inFlightSearchSuggest = new Map<string, Promise<{ items: unknown[] }>>();
 
 export async function GET(req: NextRequest) {
   try {
@@ -67,18 +69,45 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ items: [] }, { headers: emptyEdgeHeaders });
     }
 
-    // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService (chỉ dùng cache khi có ít nhất 1 kết quả)
+    // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService (gồm cả negative cache rỗng 3 phút)
     const cacheKey = `search:suggest:v4:${normKw}`;
     const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
-    if (cached && Array.isArray(cached.items) && cached.items.length > 0) {
-      return NextResponse.json(cached, {
-        headers: {
-          "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
-          "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-          "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-        },
+    if (cached && Array.isArray(cached.items)) {
+      const headers =
+        cached.items.length > 0
+          ? {
+              "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
+              "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+              "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+            }
+          : {
+              "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+              "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+              "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+            };
+      return NextResponse.json(cached, { headers });
+    }
+
+    const existingFlight = inFlightSearchSuggest.get(cacheKey);
+    if (existingFlight) {
+      const flightData = await existingFlight;
+      return NextResponse.json(flightData, {
+        headers:
+          flightData.items.length > 0
+            ? {
+                "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
+                "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+                "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+              }
+            : {
+                "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+                "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+                "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+              },
       });
     }
+
+    const computeSuggest = (async (): Promise<{ items: unknown[] }> => {
 
     // Tra cứu nhanh nghệ sĩ từ bộ dữ liệu Historical Artists O(1) (0ms)
     const histArtist = findHistoricalArtist(keyword);
@@ -328,19 +357,31 @@ export async function GET(req: NextRequest) {
     }
 
     const responseData = { items };
-    // 2. Lưu vào L1 Memory & L2 Redis (TTL 1 giờ), CHỈ cache khi có kết quả
-    if (items.length > 0) {
-      await cacheService.set(cacheKey, responseData, SUGGEST_CACHE_TTL_SECONDS).catch((err) => {
-        console.warn("[search-suggest] Lỗi ghi cache Redis:", err);
-      });
-    }
+    const ttlToUse = items.length > 0 ? SUGGEST_CACHE_TTL_SECONDS : SUGGEST_NEGATIVE_TTL_SECONDS;
+    cacheService.set(cacheKey, responseData, ttlToUse).catch((err) => {
+      console.warn("[search-suggest] Lỗi ghi cache Redis:", err);
+    });
+    return responseData;
+    })().finally(() => {
+      inFlightSearchSuggest.delete(cacheKey);
+    });
+
+    inFlightSearchSuggest.set(cacheKey, computeSuggest);
+    const responseData = await computeSuggest;
 
     return NextResponse.json(responseData, {
-      headers: {
-        "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
-        "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-        "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-      },
+      headers:
+        responseData.items.length > 0
+          ? {
+              "Cache-Control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400",
+              "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+              "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+            }
+          : {
+              "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=300",
+              "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+              "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+            },
     });
   } catch (error) {
     console.error("Lỗi tìm kiếm gợi ý:", error);

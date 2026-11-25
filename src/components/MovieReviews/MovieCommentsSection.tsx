@@ -84,13 +84,14 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   }, [isCommentsActivated, hasCommentDeepLink, movieSlug]);
 
   useEffect(() => {
+    setUserProfile(null);
+    setHasInitializedForm(false);
     if (!user?.uid) {
-      setUserProfile(null);
       return;
     }
     if (!isCommentsActivated) return;
     const unsub = subscribeUserProfile(user.uid, (p) => {
-      if (p) setUserProfile(p);
+      setUserProfile(p);
     });
     return () => unsub();
   }, [user?.uid, isCommentsActivated]);
@@ -98,9 +99,24 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
 
+  const scrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   // Hàm cuộn mượt và chính xác tới comment mục tiêu (hỗ trợ thử lại nhiều lần nếu DOM/Replies đang tải)
   const scrollToTargetComment = useCallback((targetId: string) => {
     if (!targetId || typeof document === "undefined") return;
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
 
     let attempts = 0;
     const maxAttempts = 35; // 35 x 100ms = 3.5s
@@ -109,6 +125,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       const el = document.getElementById(`comment-${targetId}`);
       if (el) {
         clearInterval(interval);
+        if (scrollIntervalRef.current === interval) scrollIntervalRef.current = null;
         el.scrollIntoView({
           behavior: "smooth",
           block: "center",
@@ -117,6 +134,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       }
       if (attempts >= maxAttempts) {
         clearInterval(interval);
+        if (scrollIntervalRef.current === interval) scrollIntervalRef.current = null;
         // Fallback: nếu không tìm thấy comment cụ thể, cuộn đến khu vực bình luận
         const section = document.getElementById("section-reviews");
         if (section) {
@@ -124,6 +142,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
         }
       }
     }, 100);
+    scrollIntervalRef.current = interval;
   }, []);
 
   // Lấy ID comment cần highlight từ query params (?highlightComment=xxx) hoặc URL hash (#comment-xxx) hoặc event

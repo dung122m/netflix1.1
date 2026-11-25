@@ -449,13 +449,8 @@ export async function getActorFilmographyFromTmdb(
     7 * 86400
   );
 
-  // Chống nhiễm bẩn mảng rỗng: nếu cache trước đó lưu [] rỗng do mạng gián đoạn, tự động fetch lại trực tiếp
-  if (!res || res.length === 0) {
-    const fresh = await executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId);
-    if (fresh && fresh.length > 0) {
-      cacheService.set(kvKey, fresh, 7 * 86400).catch(() => {});
-      return fresh;
-    }
+  if (Array.isArray(res) && res.length === 0) {
+    cacheService.set(kvKey, [], 1800).catch(() => {});
   }
 
   return res || [];

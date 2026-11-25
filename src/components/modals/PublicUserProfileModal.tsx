@@ -328,6 +328,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
                   <Link
                     key={col.id}
                     href={`/collection/${col.id}`}
+                    prefetch={false}
                     onClick={() => setIsOpen(false)}
                     className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] transition-all group cursor-pointer"
                   >

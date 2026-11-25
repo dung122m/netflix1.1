@@ -317,7 +317,10 @@ export default async function HomePage() {
       getTmdbRankedMovies("week", 20).catch(() => []),
       new Promise<[]>((resolve) => setTimeout(() => resolve([]), 5000)),
     ]),
-    getTopTrendingCommunitySupabase(10, "total").catch(() => []),
+    Promise.race([
+      getTopTrendingCommunitySupabase(10, "total").catch(() => []),
+      new Promise<[]>((resolve) => setTimeout(() => resolve([]), 5000)),
+    ]),
   ]);
 
   const rawMovies = response?.items || [];

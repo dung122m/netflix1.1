@@ -139,8 +139,13 @@ export function useLiveTvHls({
 
     const candidateUrls = buildTvCandidateUrls(selectedTvChannel);
     let candidateIndex = 0;
+    let nativeCleanup: (() => void) | null = null;
 
     const stopAndTeardown = () => {
+      if (nativeCleanup) {
+        nativeCleanup();
+        nativeCleanup = null;
+      }
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = null;
@@ -275,19 +280,26 @@ export function useLiveTvHls({
         video.volume = volumeRef.current;
         video.muted = isMutedRef.current;
 
-        video.addEventListener("loadedmetadata", () => {
+        const onLoadedMetadata = () => {
           if (playbackSessionIdRef.current !== sessionId) return;
           setIsLoading(false);
           setHasError(false);
           if (isActive && !userPausedRef.current) {
             playWithMutedFallback(video, setIsPlaying, setIsMuted);
           }
-        });
+        };
 
-        video.addEventListener("error", () => {
+        const onNativeError = () => {
           if (playbackSessionIdRef.current !== sessionId) return;
           tryNextCandidate("Native HLS video error");
-        });
+        };
+
+        video.addEventListener("loadedmetadata", onLoadedMetadata);
+        video.addEventListener("error", onNativeError);
+        nativeCleanup = () => {
+          video.removeEventListener("loadedmetadata", onLoadedMetadata);
+          video.removeEventListener("error", onNativeError);
+        };
       }
     };
 

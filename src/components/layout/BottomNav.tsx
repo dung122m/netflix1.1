@@ -28,13 +28,13 @@ export function BottomNav() {
   });
 
   useEffect(() => {
+    setUserProfile(activeUid ? getCachedUserProfile(activeUid) : null);
     if (!activeUid) {
-      setUserProfile(null);
       return;
     }
     const unsub = subscribeUserProfile(activeUid, (p) => {
-      if (!p) return;
       setUserProfile((prev) => {
+        if (!p) return null;
         if (
           prev &&
           prev.customAvatar === p.customAvatar &&

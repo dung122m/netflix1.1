@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
         {
           status: 404,
           headers: {
-            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+            "CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+            "Vercel-CDN-Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
           },
         },
       );

@@ -170,6 +170,7 @@ export function MyListCommentsTab({
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/movies/${c.movieSlug}#comments`}
+                      prefetch={false}
                       className="text-[11px] font-semibold text-zinc-400 hover:text-white transition px-2 py-1 rounded-lg hover:bg-white/5"
                     >
                       Chi tiết

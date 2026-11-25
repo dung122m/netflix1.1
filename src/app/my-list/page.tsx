@@ -158,6 +158,7 @@ function MyListContent() {
   // Lắng nghe bộ sưu tập cá nhân theo thời gian thực khi đăng nhập
   // P0 Fix: Chỉ quyết định trạng thái bộ sưu tập khi Auth đã khôi phục hoàn tất (loading === false)
   useEffect(() => {
+    setRawCollections(EMPTY_COLLECTIONS);
     if (loading || !user?.uid) {
       return;
     }

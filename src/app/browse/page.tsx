@@ -423,16 +423,29 @@ export default async function BrowsePage({
     // 2A. TÌM KIẾM THÔNG MINH 3 TẦNG (100% ZERO-AI, ZERO-HARDCODE)
     // Tầng 1: Smart Filter Tokenizer -> Tầng 2: Direct Search & Slug Normalization -> Tầng 3: TMDb & Typo Tolerance
     try {
-      const smartSearchRes = await executeSmartSearch({
-        query: keyword,
-        page: currentPage,
-        limit: PAGE_LIMIT,
-        sort: effectiveSort,
-        category,
-        country,
-        year,
-        type,
-      });
+      const smartSearchRes = await Promise.race([
+        executeSmartSearch({
+          query: keyword,
+          page: currentPage,
+          limit: PAGE_LIMIT,
+          sort: effectiveSort,
+          category,
+          country,
+          year,
+          type,
+        }),
+        new Promise<{
+          items: unknown[];
+          totalPages: number;
+          totalItems: number;
+          correctedQuery?: string;
+        }>((resolve) =>
+          setTimeout(
+            () => resolve({ items: [], totalPages: 1, totalItems: 0 }),
+            4500
+          )
+        ),
+      ]);
 
       movies = smartSearchRes.items;
       if (movies.length > 0) {

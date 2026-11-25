@@ -56,6 +56,8 @@ const continueWatchingThumbCache = initContinueWatchingThumbCache();
 
 function persistContinueWatchingThumb(slug: string, url: string) {
   if (typeof window === "undefined" || !slug || !url) return;
+  if (continueWatchingThumbCache.get(slug) === url) return;
+  continueWatchingThumbCache.set(slug, url);
   try {
     const raw = localStorage.getItem(CW_THUMB_KEY);
     const obj: Record<string, string> = raw ? JSON.parse(raw) : {};
@@ -80,6 +82,8 @@ function buildLoadedPostersCache(): Set<string> {
 }
 
 function persistLoadedPoster(url: string) {
+  if (!url || loadedPostersCache.has(url)) return;
+  loadedPostersCache.add(url);
   try {
     const raw = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
     const arr: string[] = raw ? (JSON.parse(raw) as string[]) : [];
@@ -460,6 +464,7 @@ function ContinueWatchingRowInner({ className }: ContinueWatchingRowProps = {}) 
         actions={
           <Link
             href="/my-list?tab=history"
+            prefetch={false}
             className="text-xs sm:text-sm text-zinc-400 hover:text-white transition font-medium"
           >
             Xem tất cả ({totalCount})

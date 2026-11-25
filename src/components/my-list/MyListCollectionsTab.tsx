@@ -135,6 +135,7 @@ export function MyListCollectionsTab({
                   <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 group-hover/card:shadow-[0_12px_28px_rgba(0,0,0,0.85)] transition-all duration-300">
                     <Link
                       href={`/collection/${col.id}`}
+                      prefetch={false}
                       className="block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-xl"
                       aria-label={`Xem bộ sưu tập ${col.name}`}
                     >
@@ -199,6 +200,7 @@ export function MyListCollectionsTab({
                   <div className="pt-2 sm:pt-2.5 pb-1 flex flex-col gap-0.5 sm:gap-1">
                     <Link
                       href={`/collection/${col.id}`}
+                      prefetch={false}
                       className="text-xs sm:text-[13px] md:text-sm font-semibold text-zinc-100 truncate group-hover/card:text-netflix-red transition-colors leading-snug"
                     >
                       {col.name}

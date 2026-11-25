@@ -109,7 +109,8 @@ export async function uploadToR2({
         Metadata: {
           "x-content-type-options": "nosniff",
         },
-      })
+      }),
+      { abortSignal: AbortSignal.timeout(8000) }
     );
 
     return getR2PublicUrl(key);
@@ -132,7 +133,8 @@ export async function deleteFromR2(key: string): Promise<boolean> {
       new DeleteObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME || "nanaflix-media",
         Key: cleanKey,
-      })
+      }),
+      { abortSignal: AbortSignal.timeout(8000) }
     );
     return true;
   } catch (err) {
