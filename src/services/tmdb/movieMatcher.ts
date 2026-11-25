@@ -87,6 +87,8 @@ export async function matchTmdbMoviesWithSources(
   }
 
   const candidateCredits = dedupedCredits.slice(0, maxCheckCount);
+  const budgetMs = options?.budgetMs;
+  const maxMatched = options?.maxMatched;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matchedMovies: any[] = [];
   const seenSlugs = new Set<string>();
@@ -111,10 +113,14 @@ export async function matchTmdbMoviesWithSources(
     missedL1.push(credit);
   }
 
-  const creditsToFetch: TmdbMovieCredit[] = missedL1;
+  const creditsToFetch: TmdbMovieCredit[] =
+    maxMatched && matchedMovies.length >= maxMatched ? [] : missedL1;
 
   if (creditsToFetch.length > 0) {
     await runWithConcurrencyLimit(creditsToFetch, concurrency, async (credit) => {
+      if (maxMatched && matchedMovies.length >= maxMatched) return;
+      if (budgetMs && performance.now() - tStart > budgetMs) return;
+
       const tmdbIdStr = String(credit.id);
       const tmdbYear = credit.release_date ? parseInt(credit.release_date.slice(0, 4), 10) : undefined;
       const cleanOrig = cleanStringForMatch(credit.original_title);
@@ -150,12 +156,14 @@ export async function matchTmdbMoviesWithSources(
       if (isLatinOriginal && cleanOrigTitle) {
         addSearchKw(cleanOrigTitle);
       }
-      // 4. Tiêu đề gốc châu Á
-      if (cleanViTitle && isAsianTitle(cleanViTitle)) {
-        addSearchKw(cleanViTitle);
-      }
-      if (cleanOrigTitle && !isLatinOriginal) {
-        addSearchKw(cleanOrigTitle);
+      // 4. Chỉ thử tiêu đề chữ tượng hình nếu chưa có từ khóa Latinh (tránh tốn request vô ích trên nguồn VN)
+      if (searchKeywords.length === 0) {
+        if (cleanViTitle && isAsianTitle(cleanViTitle)) {
+          addSearchKw(cleanViTitle);
+        }
+        if (cleanOrigTitle && !isLatinOriginal) {
+          addSearchKw(cleanOrigTitle);
+        }
       }
 
       if (searchKeywords.length === 0) {
@@ -168,8 +176,11 @@ export async function matchTmdbMoviesWithSources(
         const trySearchAndMatch = async (searchKw: string): Promise<{ candidate: any; matchType: "tmdb_id" | "imdb_id" | "title_year" } | null> => {
           if (!searchKw || searchKw.length < 2) return null;
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const phimApiItems: any[] = await searchPhimApiByKeyword(searchKw, { limit: 6, timeoutMs: 2200 });
+          // Chạy song song PhimAPI và NguonC để giảm một nửa thời gian chờ khi credit miss trên PhimAPI
+          const [phimApiItems, nguonCItems] = await Promise.all([
+            searchPhimApiByKeyword(searchKw, { limit: 6, timeoutMs: 1300 }),
+            searchNguonCByKeyword(searchKw, { timeoutMs: 1300 }),
+          ]);
 
           for (const item of phimApiItems) {
             if (item?.tmdb?.id && String(item.tmdb.id) === tmdbIdStr) {
@@ -203,8 +214,6 @@ export async function matchTmdbMoviesWithSources(
             }
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const nguonCItems: any[] = await searchNguonCByKeyword(searchKw, { timeoutMs: 2200 });
           if (nguonCItems.length > 0) {
             for (const nc of nguonCItems) {
               const isMatch = checkCandidateTitleMatch(
@@ -231,7 +240,8 @@ export async function matchTmdbMoviesWithSources(
         let probePromise = inFlightSourceProbes.get(credit.id);
         if (!probePromise) {
           probePromise = (async () => {
-            for (const kw of searchKeywords.slice(0, 3)) {
+            for (const kw of searchKeywords.slice(0, 2)) {
+              if (budgetMs && performance.now() - tStart > budgetMs) break;
               const res = await trySearchAndMatch(kw);
               if (res) return res;
             }
@@ -251,7 +261,8 @@ export async function matchTmdbMoviesWithSources(
             ? `https://image.tmdb.org/t/p/w500${credit.poster_path}`
             : "";
 
-          if (!synchronizedPoster && credit.id) {
+          const withinBudget = !budgetMs || performance.now() - tStart <= budgetMs;
+          if (!synchronizedPoster && credit.id && !matchedCandidate.poster_url && !matchedCandidate.thumb_url && withinBudget) {
             try {
               const fetched = await getTmdbPosterUrl(credit.id, credit.media_type || "movie");
               if (fetched) {

@@ -174,7 +174,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
         wikiProfile: ActorProfile | null;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         movies: any[];
-      }>(`actor:full_page:v6:${slug}`);
+      }>(`actor:full_page:v7:${slug}`);
 
       if (redisFull && redisFull.profile && Array.isArray(redisFull.movies) && redisFull.movies.length > 0) {
         profile = redisFull.profile;
@@ -191,8 +191,20 @@ export default async function ActorDetailPage({ params }: PageProps) {
     } catch {}
   }
 
-  // 3. Cache Miss: Chỉ thực thi resolve và query khi thực sự chưa có cache!
+  // 3. Cache Miss: Khởi chạy query phim ngay lập tức nếu URL đã có TMDb Person ID (vd: 63582-hua-thieu-hung)
   if (!profile || !movies || movies.length === 0) {
+    const parsedSlug = parseActorIdentifier(slug);
+    const optimisticName = parsedSlug.rawName ? toVietnameseTitleCase(parsedSlug.rawName) : "";
+    const optimisticMoviesPromise = parsedSlug.personId
+      ? queryMoviesByActor(
+          optimisticName || slug,
+          optimisticName ? [optimisticName] : [],
+          "",
+          72,
+          parsedSlug.personId
+        )
+      : null;
+
     profile = await resolveActorProfile(slug);
     if (profile.isCachedNotFound) {
       setBoundedMap(ACTOR_PAGE_RAM_CACHE, slug, {
@@ -205,37 +217,40 @@ export default async function ActorDetailPage({ params }: PageProps) {
       notFound();
     }
 
-    const rawCanonical = profile.canonicalName;
-    const actorAliases = profile.actorAliases;
-    const canonicalName = toVietnameseTitleCase(rawCanonical || profile.rawName);
+    const canonicalName = toVietnameseTitleCase(profile.canonicalName || profile.rawName);
+    const wikiAliases = [
+      ...(profile.englishName ? [profile.englishName] : []),
+      ...profile.actorAliases,
+    ];
 
-    // Bắt đầu promise Wikipedia & phim CHỈ KHI cache miss
+    // Bắt đầu Wikipedia với tên chuẩn + tên quốc tế song song với luồng lấy phim đang chạy
     const [fetchedWiki, fetchedMovies] = await Promise.all([
-      canonicalName ? fetchActorProfile(canonicalName, actorAliases) : Promise.resolve(null),
-      canonicalName
-        ? queryMoviesByActor(
-            canonicalName,
-            actorAliases,
-            profile.historicalItem?.country || profile.actorRes?.country || profile.actorSynonyms?.country || "",
-            150,
-            profile.tmdbPersonId
-          )
-        : Promise.resolve([]),
+      canonicalName ? fetchActorProfile(canonicalName, wikiAliases) : Promise.resolve(null),
+      optimisticMoviesPromise ??
+        (canonicalName
+          ? queryMoviesByActor(
+              canonicalName,
+              profile.actorAliases,
+              profile.historicalItem?.country || profile.actorRes?.country || profile.actorSynonyms?.country || "",
+              72,
+              profile.tmdbPersonId
+            )
+          : Promise.resolve([])),
     ]);
 
     wikiProfile = fetchedWiki;
     movies = fetchedMovies || [];
 
     if (movies && movies.length > 0) {
-      // Giảm budget xuống 300ms để tiết kiệm tối đa CPU Serverless
-      await enrichMovieListPosters(movies, { budgetMs: 300, stripProxyUrls: true });
+      // Giảm budget xuống 250ms để tiết kiệm tối đa CPU Serverless
+      await enrichMovieListPosters(movies, { budgetMs: 250, stripProxyUrls: true });
     }
 
     const pageRedisTtl = movies && movies.length > 0 ? ACTOR_PAGE_REDIS_TTL_SEC : 1800;
     const pageRamTtlMs = movies && movies.length > 0 ? 7200000 : 10 * 60 * 1000;
 
     cacheService
-      .set(`actor:full_page:v6:${slug}`, { profile, wikiProfile, movies }, pageRedisTtl)
+      .set(`actor:full_page:v7:${slug}`, { profile, wikiProfile, movies }, pageRedisTtl)
       .catch(() => {});
 
     setBoundedMap(ACTOR_PAGE_RAM_CACHE, slug, {

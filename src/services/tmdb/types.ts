@@ -47,5 +47,7 @@ export interface TmdbMovieCredit {
 
 export interface MatchTmdbOptions {
   isActorFilmography?: boolean;
+  budgetMs?: number;
+  maxMatched?: number;
 }
 

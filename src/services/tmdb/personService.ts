@@ -424,7 +424,7 @@ export async function getActorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey && !tmdbPersonId) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V10:${tmdbPersonId || cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V11:${tmdbPersonId || cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -440,7 +440,7 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow_v3:${tmdbPersonId || cleanKey}:${maxMovies}`;
+  const kvKey = `tmdb:actor_flow_v4:${tmdbPersonId || cleanKey}:${maxMovies}`;
   const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {
@@ -513,14 +513,22 @@ async function executeTmdbActorFlow(
     });
 
     const tMatchStart = performance.now();
+    // Quét tối đa 72 tác phẩm nổi bật nhất để giảm ~70% subrequests và CPU trên Vercel
     const checkLimit = Math.min(
       sortedCredits.length,
-      Math.max(Math.round(maxMovies * 1.5), 60),
-      250
+      Math.max(Math.round(maxMovies), 48),
+      72
     );
-    const matchedMovies = await matchTmdbMoviesWithSources(sortedCredits, checkLimit, concurrency, {
-      isActorFilmography: true,
-    });
+    const matchedMovies = await matchTmdbMoviesWithSources(
+      sortedCredits,
+      checkLimit,
+      Math.max(concurrency, 20),
+      {
+        isActorFilmography: true,
+        budgetMs: 3800,
+        maxMatched: maxMovies,
+      }
+    );
     const tMatchEnd = performance.now();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

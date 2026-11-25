@@ -191,7 +191,7 @@ async function fetchExtendedWikiExtract(
     const res = await fetch(url, {
       headers: { "User-Agent": "Nanaflix/2.0 (contact@nanaflix.tv)" },
       next: { revalidate: 86400 },
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(1600),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -217,7 +217,7 @@ async function fetchSummary(
       {
         headers: { "User-Agent": "Nanaflix/2.0 (contact@nanaflix.tv)" },
         next: { revalidate: 86400 },
-        signal: AbortSignal.timeout(1500),
+        signal: AbortSignal.timeout(1100),
       }
     );
     if (!res.ok) return null;
@@ -287,13 +287,31 @@ export async function fetchActorProfile(
     }
   } catch {}
 
-  const queriesToTry = Array.from(
-    new Set([cleanName, ...aliases].map((q) => q.trim()).filter((q) => q.length >= 2))
-  ).slice(0, 3);
+  const stripAccents = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/gi, "d")
+      .toLowerCase()
+      .trim();
+  const cleanNorm = stripAccents(cleanName);
+  const seenWikiNorms = new Set<string>([cleanNorm]);
+  const queriesToTry: string[] = [cleanName];
+  for (const rawAlias of aliases) {
+    const trimmed = (rawAlias || "").trim();
+    if (trimmed.length < 2) continue;
+    const norm = stripAccents(trimmed);
+    if (seenWikiNorms.has(norm)) continue;
+    seenWikiNorms.add(norm);
+    queriesToTry.push(trimmed);
+    if (queriesToTry.length >= 2) break;
+  }
 
+  const wikiDeadline = Date.now() + 2500;
   for (const q of queriesToTry) {
+    if (Date.now() > wikiDeadline) break;
     try {
-      // 1. Quét song song trên cả Wikipedia Tiếng Việt và Tiếng Anh (~150-300ms)
+      // 1. Quét song song trên cả Wikipedia Tiếng Việt và Tiếng Anh
       const [summaryVi, summaryEn] = await Promise.all([
         fetchSummary(q, "vi"),
         fetchSummary(q, "en"),
@@ -305,6 +323,8 @@ export async function fetchActorProfile(
         cacheService.set(kvKey, found, WIKI_TTL_SECONDS).catch(() => {});
         return found;
       }
+
+      if (Date.now() > wikiDeadline) break;
 
       // 2. Thử các danh xưng định hướng (vd: Trường Giang (nghệ sĩ))
       const disambiguationCandidates = [

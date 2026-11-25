@@ -454,7 +454,7 @@ export async function queryMoviesByActor(
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
   const idPrefix = effectiveTmdbPersonId ? `id_${effectiveTmdbPersonId}:` : "";
-  const cacheKey = `ACTOR_QUERY_V14:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const cacheKey = `ACTOR_QUERY_V15:${idPrefix}${matchedSlug || normalizedVariants.sort().join("|")}`;
   const normSlug = normalizeForMatch(matchedSlug || actorName).replace(/\s+/g, "_") || (effectiveTmdbPersonId ? `person_${effectiveTmdbPersonId}` : "actor");
 
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
@@ -472,8 +472,8 @@ export async function queryMoviesByActor(
     }
   }
 
-  const kvKey = `actor:filmography_v14:${normSlug}:150`;
-  const effectiveMax = Math.max(maxMovies, 150);
+  const kvKey = `actor:filmography_v15:${normSlug}:${maxMovies}`;
+  const effectiveMax = maxMovies;
   const res = await cacheService.fetchOrSet(
     kvKey,
     async () => {
