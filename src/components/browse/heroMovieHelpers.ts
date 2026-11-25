@@ -6,7 +6,7 @@ import {
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "@/services/synopsisService";
 
-export const AUTO_SLIDE_NORMAL_MS = 6000;
+export const AUTO_SLIDE_NORMAL_MS = 8500;
 export const AUTO_SLIDE_TRAILER_MS = 26000;
 
 export type HeroMovie = {

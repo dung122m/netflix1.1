@@ -1132,23 +1132,51 @@
 /* ========================================================================= */
 /* HERO BANNER PURE-CSS GPU TRANSITIONS (Replaces framer-motion on LCP)      */
 /* ========================================================================= */
-@keyframes heroSlideFromRight {
+@keyframes heroSlideEnterNext {
   from {
-    transform: translate3d(40px, 0, 0);
+    opacity: 0;
+    transform: translate3d(24px, 0, 0) scale(1.045);
   }
 
   to {
-    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
-@keyframes heroSlideFromLeft {
+@keyframes heroSlideEnterPrev {
   from {
-    transform: translate3d(-40px, 0, 0);
+    opacity: 0;
+    transform: translate3d(-24px, 0, 0) scale(1.045);
   }
 
   to {
-    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes heroSlideExitNext {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(-18px, 0, 0) scale(0.985);
+  }
+}
+
+@keyframes heroSlideExitPrev {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(18px, 0, 0) scale(0.985);
   }
 }
 
@@ -1162,10 +1190,20 @@
   }
 }
 
+@keyframes heroFadeOutOnly {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes heroContentEnter {
   from {
     opacity: 0;
-    transform: translate3d(0, 6px, 0);
+    transform: translate3d(0, 14px, 0);
   }
 
   to {
@@ -1185,19 +1223,23 @@
 }
 
 .hero-slide-enter-next {
-  animation:
-    heroSlideFromRight 0.45s cubic-bezier(0.25, 1, 0.5, 1) both,
-    heroFadeOnly 0.4s ease-in-out both;
+  animation: heroSlideEnterNext 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero-slide-enter-prev {
-  animation:
-    heroSlideFromLeft 0.45s cubic-bezier(0.25, 1, 0.5, 1) both,
-    heroFadeOnly 0.4s ease-in-out both;
+  animation: heroSlideEnterPrev 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-slide-exit-next {
+  animation: heroSlideExitNext 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hero-slide-exit-prev {
+  animation: heroSlideExitPrev 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .hero-content-enter {
-  animation: heroContentEnter 0.35s ease-out both;
+  animation: heroContentEnter 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1207,10 +1249,15 @@
 
   .hero-slide-enter-next,
   .hero-slide-enter-prev {
-    animation: heroFadeOnly 0.4s ease-in-out both;
+    animation: heroFadeOnly 0.45s ease-in-out both;
+  }
+
+  .hero-slide-exit-next,
+  .hero-slide-exit-prev {
+    animation: heroFadeOutOnly 0.45s ease-in-out forwards;
   }
 
   .hero-content-enter {
-    animation: heroFadeOnly 0.25s ease-out both;
+    animation: heroFadeOnly 0.35s ease-out both;
   }
 }

@@ -297,7 +297,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
           <div
             key={`prev-${prevIndex}`}
             aria-hidden="true"
-            className="absolute inset-0 select-none pointer-events-none"
+            className={`absolute inset-0 z-0 select-none pointer-events-none transform-gpu will-change-[transform,opacity] ${
+              direction > 0 ? "hero-slide-exit-next" : "hero-slide-exit-prev"
+            }`}
           >
             <Image
               src={prevMeta.heroImageSrc}
@@ -320,7 +322,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               );
             }
           }}
-          className={`absolute inset-0 select-none transform-gpu will-change-[transform,opacity] ${
+          className={`absolute inset-0 z-[1] select-none transform-gpu will-change-[transform,opacity] ${
             hasSlid
               ? direction > 0
                 ? "hero-slide-enter-next"
