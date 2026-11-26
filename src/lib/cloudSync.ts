@@ -12,6 +12,13 @@ import {
   WatchlistItem,
   mergeWatchlists,
 } from "./watchlist";
+import {
+  getFavoriteActors,
+  registerFavoriteActorsSyncHandler,
+  FavoriteActorItem,
+  mergeFavoriteActors,
+  setFavoriteActorsFromSync,
+} from "@/services/actor/favoriteActors";
 
 const WATCHLIST_STORAGE_KEY = "nanaflix_watchlist_v1";
 
@@ -39,9 +46,12 @@ async function getAuthHeaders(expectedUserId?: string): Promise<HeadersInit> {
 }
 
 const lastHistorySyncMap = new Map<string, number>();
+const lastActorsSyncMap = new Map<string, number>();
 const inFlightHistorySync = new Map<string, Promise<WatchHistoryItem[]>>();
 const inFlightWatchlistSync = new Map<string, Promise<WatchlistItem[]>>();
+const inFlightFavoriteActorsSync = new Map<string, Promise<FavoriteActorItem[]>>();
 const HISTORY_SYNC_THROTTLE_MS = 5 * 60 * 1000; // Tối thiểu 5 phút giữa các lần GET /api/user/history tự động theo từng user
+const ACTORS_SYNC_THROTTLE_MS = 60 * 1000;
 
 export function cancelPendingCloudSync(): void {
   for (const timer of cloudSaveTimers.values()) {
@@ -51,8 +61,10 @@ export function cancelPendingCloudSync(): void {
   pendingCloudSaveItems.clear();
   lastSyncedCloudState.clear();
   lastHistorySyncMap.clear();
+  lastActorsSyncMap.clear();
   inFlightHistorySync.clear();
   inFlightWatchlistSync.clear();
+  inFlightFavoriteActorsSync.clear();
 }
 
 /**
@@ -469,8 +481,142 @@ registerWatchlistSyncHandler({
   removeItem: removeWatchlistItemFromCloud,
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ĐỒNG BỘ DIỄN VIÊN YÊU THÍCH (FAVORITE ACTORS) VỚI SERVER API
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Đồng bộ hai chiều Danh sách Diễn viên yêu thích giữa LocalStorage và Supabase Cloud.
+ */
+export async function syncFavoriteActorsWithCloud(
+  userId: string,
+  force = false,
+): Promise<FavoriteActorItem[]> {
+  if (!userId) return getFavoriteActors();
+
+  const existingFlight = inFlightFavoriteActorsSync.get(userId);
+  if (existingFlight) return existingFlight;
+
+  const now = Date.now();
+  const lastSync = lastActorsSyncMap.get(userId) || 0;
+  if (!force && lastSync > 0 && now - lastSync < ACTORS_SYNC_THROTTLE_MS) {
+    return getFavoriteActors();
+  }
+
+  const syncPromise = (async () => {
+    try {
+      const headers = await getAuthHeaders(userId);
+      if (!headers["Authorization" as keyof typeof headers]) {
+        return getFavoriteActors();
+      }
+
+      const res = await fetch("/api/user/favorite-actors", {
+        method: "GET",
+        headers,
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (res.ok) {
+        lastActorsSyncMap.set(userId, Date.now());
+        const json = await res.json();
+        if (json.success && Array.isArray(json.items)) {
+          if (json.items.length > 0) {
+            const localList = getFavoriteActors();
+            const merged = mergeFavoriteActors(localList, json.items);
+            setFavoriteActorsFromSync(merged);
+            return merged;
+          } else {
+            setFavoriteActorsFromSync([]);
+            return [];
+          }
+        }
+      }
+
+      return getFavoriteActors();
+    } catch (error) {
+      console.warn("Lỗi đồng bộ Diễn viên yêu thích với Server API:", error);
+      return getFavoriteActors();
+    } finally {
+      inFlightFavoriteActorsSync.delete(userId);
+    }
+  })();
+
+  inFlightFavoriteActorsSync.set(userId, syncPromise);
+  return syncPromise;
+}
+
+export async function saveFavoriteActorToCloud(
+  userId: string,
+  item: FavoriteActorItem,
+): Promise<boolean> {
+  if (!userId || (!item.id && !item.slug)) return false;
+  try {
+    const headers = await getAuthHeaders(userId);
+    if (!headers["Authorization" as keyof typeof headers]) return false;
+
+    const res = await fetch("/api/user/favorite-actors", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ items: [item] }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn("Lỗi saveFavoriteActorToCloud:", err);
+    return false;
+  }
+}
+
+export async function removeFavoriteActorFromCloud(
+  userId: string,
+  idOrSlug: string,
+): Promise<boolean> {
+  if (!userId || !idOrSlug) return false;
+  try {
+    const headers = await getAuthHeaders(userId);
+    if (!headers["Authorization" as keyof typeof headers]) return false;
+
+    const res = await fetch(
+      `/api/user/favorite-actors?key=${encodeURIComponent(idOrSlug)}`,
+      {
+        method: "DELETE",
+        headers,
+      },
+    );
+    return res.ok || res.status === 404;
+  } catch (err) {
+    console.warn("Lỗi removeFavoriteActorFromCloud:", err);
+    return false;
+  }
+}
+
+export async function clearAllFavoriteActorsFromCloud(
+  userId: string,
+): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    const headers = await getAuthHeaders(userId);
+    if (!headers["Authorization" as keyof typeof headers]) return false;
+
+    const res = await fetch("/api/user/favorite-actors?all=true", {
+      method: "DELETE",
+      headers,
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn("Lỗi clearAllFavoriteActorsFromCloud:", err);
+    return false;
+  }
+}
+
+registerFavoriteActorsSyncHandler({
+  saveItem: saveFavoriteActorToCloud,
+  removeItem: removeFavoriteActorFromCloud,
+  clearAll: clearAllFavoriteActorsFromCloud,
+});
+
 export function _resetCloudSyncStateForTest(): void {
   lastHistorySyncMap.clear();
+  lastActorsSyncMap.clear();
   lastSyncedCloudState.clear();
   pendingCloudSaveItems.clear();
 }

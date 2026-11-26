@@ -24,8 +24,12 @@ describe("Nanaflix Targeted Patch — User / Admin / Data Isolation Verification
   let getAllProfilesSupabase: any;
   let syncWatchHistoryWithCloud: any;
   let syncWatchlistWithCloud: any;
+  let syncFavoriteActorsWithCloud: any;
   let getWatchHistory: any;
   let getWatchlist: any;
+  let getFavoriteActors: any;
+  let addFavoriteActor: any;
+  let setFavoriteActorsAuthUserProviderForTest: any;
   let fb: any;
   let currentMockUser: any = null;
 
@@ -40,12 +44,18 @@ describe("Nanaflix Targeted Patch — User / Admin / Data Isolation Verification
     const cloudSvc = await import("@/lib/cloudSync");
     syncWatchHistoryWithCloud = cloudSvc.syncWatchHistoryWithCloud;
     syncWatchlistWithCloud = cloudSvc.syncWatchlistWithCloud;
+    syncFavoriteActorsWithCloud = cloudSvc.syncFavoriteActorsWithCloud;
 
     const histSvc = await import("@/lib/watchHistory");
     getWatchHistory = histSvc.getWatchHistory;
 
     const wlSvc = await import("@/lib/watchlist");
     getWatchlist = wlSvc.getWatchlist;
+
+    const actorSvc = await import("@/services/actor/favoriteActors");
+    getFavoriteActors = actorSvc.getFavoriteActors;
+    addFavoriteActor = actorSvc.addFavoriteActor;
+    setFavoriteActorsAuthUserProviderForTest = actorSvc.setFavoriteActorsAuthUserProviderForTest;
 
     fb = await import("@/lib/firebase");
     if (fb.auth) {
@@ -213,6 +223,54 @@ describe("Nanaflix Targeted Patch — User / Admin / Data Isolation Verification
       assert.deepEqual(syncedWatchlist, [], "User B synced watchlist must be empty");
       assert.deepEqual(getWatchlist(), [], "Local watchlist must be reset to empty for User B");
     } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("TEST I: Favorite actors isolation & 2-way cloud sync", async () => {
+    storage["nanaflix_favorite_actors_v1"] = JSON.stringify([
+      { id: "actor_1", name: "Actor One", slug: "actor-one", addedAt: 1000 },
+    ]);
+
+    currentMockUser = {
+      uid: "user_b_huyentrang_uid",
+      email: "huyentrang1102@gmail.com",
+      getIdToken: async () => "mock_id_token_user_b",
+    };
+    setFavoriteActorsAuthUserProviderForTest(() => currentMockUser);
+
+    const originalFetch = globalThis.fetch;
+    let postCallCount = 0;
+    // @ts-expect-error test mock
+    globalThis.fetch = async (url: string | URL | Request, init?: RequestInit) => {
+      const urlStr = typeof url === "string" ? url : url.toString();
+      if (urlStr.includes("/api/user/favorite-actors")) {
+        if (init?.method === "POST") {
+          postCallCount++;
+          return { ok: true, json: async () => ({ success: true }) };
+        }
+        return {
+          ok: true,
+          json: async () => ({ success: true, items: [] }),
+        };
+      }
+      return { ok: true, json: async () => ({ success: true }) };
+    };
+
+    try {
+      const syncedEmpty = await syncFavoriteActorsWithCloud("user_b_huyentrang_uid", true);
+      assert.equal(postCallCount, 0, "Must NOT upload foreign local actors to empty cloud account");
+      assert.deepEqual(syncedEmpty, []);
+      assert.deepEqual(getFavoriteActors(), []);
+
+      // Now add a favorite actor while signed in -> triggers POST /api/user/favorite-actors
+      addFavoriteActor({ id: "99", name: "Phạm Băng Băng", slug: "pham-bang-bang" });
+      await new Promise((r) => setTimeout(r, 20));
+      assert.equal(postCallCount, 1, "Adding favorite actor while logged in must sync to cloud");
+      assert.equal(getFavoriteActors().length, 1);
+      assert.equal(getFavoriteActors()[0].slug, "pham-bang-bang");
+    } finally {
+      setFavoriteActorsAuthUserProviderForTest(null);
       globalThis.fetch = originalFetch;
     }
   });

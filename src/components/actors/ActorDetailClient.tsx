@@ -349,6 +349,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                 <SegmentedTabs<"all" | "single" | "series">
                   variant="pills"
                   size="sm"
+                  scrollable={false}
                   tabs={[
                     { id: "all", label: "Tất cả", count: movies.length },
                     ...(singleMovies.length > 0
@@ -381,7 +382,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                   value={activeSort}
                   onChange={handleSortChange}
                   options={SORT_OPTIONS}
-                  menuAlign="left"
+                  menuAlign="right"
                 />
               )}
             </div>

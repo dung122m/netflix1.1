@@ -12,7 +12,6 @@ import {
   VolumeX,
 } from "lucide-react";
 import { CarouselNavButton } from "@/components/ui/CarouselNavButton";
-import TrailerModal from "@/components/modals/TrailerModal";
 import {
   AUTO_SLIDE_NORMAL_MS,
   AUTO_SLIDE_TRAILER_MS,
@@ -244,13 +243,6 @@ export function HeroContentOverlay({
                     </>
                   )}
                 </button>
-
-                {featuredMovie?.trailer_url && (
-                  <TrailerModal
-                    trailerUrl={featuredMovie.trailer_url}
-                    title={title}
-                  />
-                )}
               </div>
             </div>
           </div>

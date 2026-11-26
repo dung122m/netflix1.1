@@ -50,10 +50,12 @@ function hasAuthSessionHint(): boolean {
 import {
   syncWatchHistoryWithCloud,
   syncWatchlistWithCloud,
+  syncFavoriteActorsWithCloud,
   cancelPendingCloudSync,
 } from "@/lib/cloudSync";
 import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
 import { clearLocalWatchlistOnly } from "@/lib/watchlist";
+import { clearLocalFavoriteActorsOnly } from "@/services/actor/favoriteActors";
 import {
   recordUserProfile,
   clearLocalPlayerSettings,
@@ -65,6 +67,7 @@ function clearSessionLocalCaches(previousUid?: string | null): void {
   cancelPendingUserServiceTimers();
   clearLocalWatchHistoryOnly();
   clearLocalWatchlistOnly();
+  clearLocalFavoriteActorsOnly();
   clearLocalPlayerSettings(previousUid || undefined);
   if (typeof window !== "undefined") {
     try {
@@ -148,6 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         Promise.all([
           syncWatchHistoryWithCloud(user.uid),
           syncWatchlistWithCloud(user.uid),
+          syncFavoriteActorsWithCloud(user.uid, true),
         ]),
         new Promise((resolve) => setTimeout(resolve, 3000)),
       ]);
@@ -229,7 +233,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               if (shouldSyncData) {
                 tasks.push(
                   syncWatchHistoryWithCloud(currentUser.uid),
-                  syncWatchlistWithCloud(currentUser.uid)
+                  syncWatchlistWithCloud(currentUser.uid),
+                  syncFavoriteActorsWithCloud(currentUser.uid),
                 );
                 try {
                   sessionStorage.setItem(`nanaflix_data_synced_${currentUser.uid}`, String(Date.now()));
@@ -352,6 +357,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           Promise.all([
             syncWatchHistoryWithCloud(res.user.uid, true),
             syncWatchlistWithCloud(res.user.uid),
+            syncFavoriteActorsWithCloud(res.user.uid, true),
             recordUserProfile(res.user),
           ]),
           new Promise((resolve) => setTimeout(resolve, 3000)),

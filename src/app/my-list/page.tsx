@@ -23,7 +23,7 @@ import {
   autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { clearAllWatchlistFromCloud } from "@/lib/cloudSync";
+import { clearAllWatchlistFromCloud, syncFavoriteActorsWithCloud } from "@/lib/cloudSync";
 import {
   subscribeUserCollections,
   deleteCollection,
@@ -167,8 +167,12 @@ function MyListContent() {
       setRawCollections(items);
     });
 
+    if (activeTab === "actors") {
+      void syncFavoriteActorsWithCloud(user.uid);
+    }
+
     return () => unsub();
-  }, [user?.uid, loading]);
+  }, [user?.uid, loading, activeTab]);
 
   const handleRemoveWatchlistItem = useCallback(
     (e: React.MouseEvent, slug: string, title: string) => {

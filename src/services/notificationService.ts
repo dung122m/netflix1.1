@@ -160,13 +160,14 @@ function broadcastUpdate(userId: string, incoming: UserNotification[]) {
   }
 }
 
-function fetchSingletonNotifications(userId: string): Promise<UserNotification[]> {
+function fetchSingletonNotifications(userId: string, force = false): Promise<UserNotification[]> {
   if (!activeSingleton || activeSingleton.userId !== userId) {
     return Promise.resolve([]);
   }
 
-  // Nếu đã nạp thông báo trong vòng 2 phút, dùng ngay cache RAM (Supabase Realtime sẽ push nếu có tin mới)
+  // Nếu đã nạp thông báo trong vòng 2 phút, dùng ngay cache RAM (trừ khi Realtime yêu cầu force refresh)
   if (
+    !force &&
     activeSingleton.cachedData &&
     activeSingleton.lastFetchTime &&
     Date.now() - activeSingleton.lastFetchTime < 120000
@@ -231,7 +232,7 @@ async function setupSingletonRealtime(userId: string) {
         },
         () => {
           if (activeSingleton && activeSingleton.userId === userId) {
-            fetchSingletonNotifications(userId);
+            fetchSingletonNotifications(userId, true);
           }
         },
       )

@@ -11,6 +11,14 @@ import {
 import { safeParseJson, detectMaliciousPayload } from "@/lib/securityValidation";
 import { logSecurityEvent } from "@/lib/securityLogger";
 import { NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
+import { syncUserProfileAcrossContent } from "@/lib/userProfileSync";
+
+function sanitizePublicPlayerSettings(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {};
+  const copy = { ...(raw as Record<string, unknown>) };
+  delete copy.__favorite_actors;
+  return copy;
+}
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -161,7 +169,7 @@ export async function GET(req: NextRequest) {
       bio: data.bio,
       favoriteGenres: data.favorite_genres || [],
       badges: data.badges || [],
-      playerSettings: isSelfOrAdmin ? (data.player_settings || {}) : {},
+      playerSettings: isSelfOrAdmin ? sanitizePublicPlayerSettings(data.player_settings) : {},
       watchTimeMinutes: data.watch_time_minutes || 0,
       role: data.role || "member",
       isCommentRestricted: isSelfOrAdmin ? Boolean(data.is_comment_restricted) : false,
@@ -277,12 +285,25 @@ export async function POST(req: NextRequest) {
         ? sanitizeSafeText(body.displayName, 100)
         : existing?.display_name || auth.displayName || "Thành viên Nanaflix";
 
-    const mergedPlayerSettings =
-      body.playerSettings !== undefined
-        ? body.playerSettings
-        : body.player_settings !== undefined
-        ? body.player_settings
-        : existing?.player_settings || {};
+    const existingSettingsObj =
+      existing?.player_settings && typeof existing.player_settings === "object"
+        ? (existing.player_settings as Record<string, unknown>)
+        : {};
+    const incomingSettingsObj =
+      body.playerSettings !== undefined && typeof body.playerSettings === "object" && body.playerSettings !== null
+        ? (body.playerSettings as Record<string, unknown>)
+        : body.player_settings !== undefined && typeof body.player_settings === "object" && body.player_settings !== null
+        ? (body.player_settings as Record<string, unknown>)
+        : null;
+
+    const mergedPlayerSettings: Record<string, unknown> = incomingSettingsObj
+      ? {
+          ...incomingSettingsObj,
+          ...(existingSettingsObj.__favorite_actors !== undefined
+            ? { __favorite_actors: existingSettingsObj.__favorite_actors }
+            : {}),
+        }
+      : existingSettingsObj;
 
     const payload = {
       id: userId,
@@ -311,23 +332,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Chỉ đồng bộ avatar & tên mới vào các bình luận cũ khi tên hoặc avatar thực sự thay đổi
+    // Đồng bộ avatar & tên mới sang bình luận, cache Redis và thông báo khi có thay đổi
     const finalAvatar = payload.custom_avatar || payload.photo_url || "";
     const prevAvatar = existing?.custom_avatar || existing?.photo_url || "";
     const finalName = payload.display_name;
     const prevName = existing?.display_name || "";
     if (existing && (finalAvatar !== prevAvatar || finalName !== prevName)) {
-      const commentUpdates: Record<string, unknown> = {};
-      if (finalAvatar && finalAvatar !== prevAvatar) commentUpdates.user_avatar = finalAvatar;
-      if (finalName && finalName !== prevName) commentUpdates.user_name = finalName;
-      if (Object.keys(commentUpdates).length > 0) {
-        try {
-          await supabase
-            .from("movie_comments")
-            .update(commentUpdates)
-            .eq("user_id", userId);
-        } catch {}
-      }
+      await syncUserProfileAcrossContent({
+        supabase,
+        userId,
+        nextAvatar: finalAvatar,
+        prevAvatar,
+        nextDisplayName: finalName,
+        prevDisplayName: prevName,
+      });
     }
 
     return NextResponse.json({ success: true, profile: payload });
@@ -393,9 +411,40 @@ export async function PATCH(req: NextRequest) {
     if (body.badges !== undefined) updates.badges = body.badges;
     if (body.watchTimeMinutes !== undefined) updates.watch_time_minutes = Math.max(0, Number(body.watchTimeMinutes) || 0);
 
+    const needsProfileSync =
+      body.displayName !== undefined ||
+      body.photoURL !== undefined ||
+      body.customAvatar !== undefined;
+    const { data: prevProfile } = needsProfileSync
+      ? await supabase
+          .from("profiles")
+          .select("display_name, photo_url, custom_avatar")
+          .eq("id", targetUserId)
+          .maybeSingle()
+      : { data: null };
+
     const { error } = await supabase.from("profiles").update(updates).eq("id", targetUserId);
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    if (needsProfileSync) {
+      const prevAvatar = prevProfile?.custom_avatar || prevProfile?.photo_url || "";
+      const nextAvatar = String(
+        body.customAvatar ?? body.photoURL ?? prevProfile?.custom_avatar ?? prevProfile?.photo_url ?? "",
+      );
+      const prevName = prevProfile?.display_name || "";
+      const nextName =
+        typeof updates.display_name === "string" ? updates.display_name : prevName;
+
+      await syncUserProfileAcrossContent({
+        supabase,
+        userId: targetUserId,
+        nextAvatar,
+        prevAvatar,
+        nextDisplayName: nextName,
+        prevDisplayName: prevName,
+      });
     }
 
     return NextResponse.json({ success: true, updates });

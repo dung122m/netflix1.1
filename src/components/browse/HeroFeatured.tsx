@@ -292,7 +292,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       onTouchEnd={handleTouchEnd}
     >
       {/* 1. HÌNH NỀN HERO BANNER */}
-      <div className="absolute inset-0 overflow-hidden bg-zinc-950">
+      <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-950">
         {prevMeta && prevSlide && (
           <div
             key={`prev-${prevIndex}`}

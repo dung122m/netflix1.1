@@ -13,6 +13,7 @@ import {
   parseUgcImageUpload,
   uploadUgcImageToStorage,
 } from "@/lib/ugcImageUpload";
+import { syncUserProfileAcrossContent } from "@/lib/userProfileSync";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const { data: currentProfile } = await supabaseAdmin
       .from("profiles")
-      .select("custom_avatar, photo_url")
+      .select("custom_avatar, photo_url, display_name")
       .eq("id", auth.userId)
       .maybeSingle();
     const oldAvatarUrl = currentProfile?.custom_avatar || currentProfile?.photo_url || null;
@@ -79,6 +80,15 @@ export async function POST(req: NextRequest) {
         updated_at: Date.now(),
       })
       .eq("id", auth.userId);
+
+    await syncUserProfileAcrossContent({
+      supabase: supabaseAdmin,
+      userId: auth.userId,
+      nextAvatar: avatarUrl,
+      prevAvatar: oldAvatarUrl,
+      nextDisplayName: currentProfile?.display_name || undefined,
+      prevDisplayName: currentProfile?.display_name || undefined,
+    });
 
     if (oldAvatarUrl && typeof oldAvatarUrl === "string") {
       const oldR2Key = extractR2KeyFromUrl(oldAvatarUrl);

@@ -1526,3 +1526,82 @@ export async function autoCleanAllToxicAndSpamComments(allComments?: MovieCommen
 export async function purgeAllFlaggedComments(commentsList: MovieComment[]): Promise<number> {
   return purgeEngine(commentsList, deleteMovieComment);
 }
+
+function patchCachedCommentsProfile(
+  items: MovieComment[],
+  userId: string,
+  nextAvatar?: string,
+  nextName?: string,
+): { changed: boolean; updated: MovieComment[] } {
+  let changed = false;
+  const updated = items.map((c) => {
+    if (c.userId !== userId) return c;
+    const avatarChanged = Boolean(nextAvatar && c.userAvatar !== nextAvatar);
+    const nameChanged = Boolean(nextName && c.userName !== nextName);
+    if (!avatarChanged && !nameChanged) return c;
+    changed = true;
+    return {
+      ...c,
+      ...(avatarChanged ? { userAvatar: nextAvatar } : {}),
+      ...(nameChanged ? { userName: nextName } : {}),
+    };
+  });
+  return { changed, updated };
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("user-profile-updated", (e: Event) => {
+    const customEvt = e as CustomEvent<{
+      userId?: string;
+      profile?: { displayName?: string; customAvatar?: string; photoURL?: string };
+    }>;
+    const targetUid = customEvt.detail?.userId;
+    const p = customEvt.detail?.profile;
+    if (!targetUid || !p) return;
+
+    const nextAvatar = (p.customAvatar || p.photoURL || "").trim() || undefined;
+    const nextName = (p.displayName || "").trim() || undefined;
+    if (!nextAvatar && !nextName) return;
+
+    for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
+      const { changed, updated } = patchCachedCommentsProfile(list, targetUid, nextAvatar, nextName);
+      if (changed) {
+        movieCommentsMemoryCache[slug] = updated;
+        saveLocalMovieComments(slug, updated);
+        window.dispatchEvent(
+          new CustomEvent("comments-updated", { detail: { movieSlug: slug, skipRemoteFetch: true } }),
+        );
+      }
+    }
+
+    for (const [parentId, list] of Object.entries(replyCommentsMemoryCache)) {
+      const { changed, updated } = patchCachedCommentsProfile(list, targetUid, nextAvatar, nextName);
+      if (changed) {
+        replyCommentsMemoryCache[parentId] = updated;
+      }
+    }
+
+    const cachedUserList = userCommentsMemoryCache[targetUid];
+    if (cachedUserList) {
+      const { changed, updated } = patchCachedCommentsProfile(cachedUserList, targetUid, nextAvatar, nextName);
+      if (changed) {
+        userCommentsMemoryCache[targetUid] = updated;
+        saveLocalUserComments(targetUid, updated);
+      }
+    }
+
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith("nanaflix_comments_")) continue;
+        const slug = key.slice("nanaflix_comments_".length);
+        if (movieCommentsMemoryCache[slug]) continue;
+        const local = getLocalMovieComments(slug);
+        const { changed, updated } = patchCachedCommentsProfile(local, targetUid, nextAvatar, nextName);
+        if (changed) {
+          saveLocalMovieComments(slug, updated);
+        }
+      }
+    } catch {}
+  });
+}

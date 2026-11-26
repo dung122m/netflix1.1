@@ -1526,6 +1526,9 @@ export function pruneMovieForClient<T extends Record<string, any>>(movie: T, inc
     itemType: movie.itemType,
     episode_current: movie.episode_current,
     episode_total: movie.episode_total,
+    status: movie.status,
+    trailer_url: movie.trailer_url,
+    hasTrailer: movie.hasTrailer,
     tmdbId: movie.tmdbId,
     tmdb: movie.tmdb,
     score: movie.score,
@@ -1540,8 +1543,6 @@ export function pruneMovieForClient<T extends Record<string, any>>(movie: T, inc
     pruned.bannerUrl = movie.bannerUrl;
     pruned.backdrop_path = movie.backdrop_path;
     pruned.backdropPath = movie.backdropPath;
-    pruned.status = movie.status;
-    pruned.trailer_url = movie.trailer_url;
     pruned.isTrending = movie.isTrending;
     if (typeof movie.content === "string" && movie.content) {
       pruned.content = movie.content.slice(0, 420);
