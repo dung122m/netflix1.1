@@ -181,7 +181,7 @@ const SPORTS_STOPWORDS = new Set([
   "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports", "sport",
   "bld", "belediye", "belediyespor", "spor", "kulubu", "dsk", "calcio", "football", "basketball",
   // Giới tính, lứa tuổi, hạng đấu
-  "women", "woman", "men", "man", "nu", "nam", "youth", "reserves", "academy", "u15", "u16", "u17", "u18",
+  "women", "woman", "men", "man", "nu", "youth", "reserves", "academy", "u15", "u16", "u17", "u18",
   "u19", "u20", "u21", "u22", "u23", "b", "ii", "iii", "iv",
   // Tiền tố ĐTQG
   "doi", "tuyen", "quoc", "gia", "dtqg", "dt", "doituyen", "quocgia", "national", "team", "republic",

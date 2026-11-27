@@ -466,13 +466,10 @@ export function extractSportAndGender(
   ) {
     gender = "women";
   } else if (
-    /(?:^|\s|[([_])(?:nam|men|male|m)(?:$|\s|[)\]_])/i.test(norm) ||
-    /(?:^|\s|[([_])(?:nam)(?:$|\s|[)\]_])/i.test(fullText)
+    /(?:^|\s|[([_])(?:men|male)(?:$|\s|[)\]_])/i.test(norm) ||
+    /(?:\b(?:bong\s*da|doi\s*tuyen|tuyen|dt|futsal|u-?\d{1,2})\s+nam\b|[\[(]\s*nam\s*[\])])/i.test(norm)
   ) {
-    // Chỉ đánh dấu men nếu không phải là địa danh ghép (như "hà nam")
-    if (!/(?:ha|hà|viet|việt|quang|quảng)\s*nam/i.test(norm)) {
-      gender = "men";
-    }
+    gender = "men";
   }
 
   return { sport, gender };
@@ -523,8 +520,8 @@ export function extractSportAndCategory(
     category = "youth";
     isCategoryExplicit = true;
   } else if (
-    /(?:^|\s|[([_])(?:nam|men|male)(?:$|\s|[)\]_])/i.test(norm) &&
-    !/(?:ha|hà|viet|việt|quang|quảng)\s*nam/i.test(norm)
+    /(?:^|\s|[([_])(?:men|male)(?:$|\s|[)\]_])/i.test(norm) ||
+    /(?:\b(?:bong\s*da|doi\s*tuyen|tuyen|dt|futsal|u-?\d{1,2})\s+nam\b|[\[(]\s*nam\s*[\])])/i.test(norm)
   ) {
     category = "senior_men";
     isCategoryExplicit = true;

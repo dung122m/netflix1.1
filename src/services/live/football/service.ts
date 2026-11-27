@@ -1459,7 +1459,7 @@ let memoryCache: {
   staleUntil: number;
 } | null = null;
 let inFlightFetch: Promise<LiveFootballData> | null = null;
-const FOOTBALL_REDIS_KEY = "live:football:matches:v3";
+const FOOTBALL_REDIS_KEY = "live:football:matches:v4";
 const FOOTBALL_REDIS_TTL = 600; // 10 phút (giảm 70% tải CPU & Redis)
 
 function updateMemoryCacheFromSnapshot(snapshot: LiveFootballData, now: number): void {
@@ -1560,7 +1560,7 @@ try {
     typeof unstable_cache === "function"
       ? unstable_cache(
           async () => liveFootballService.fetchAndCacheMatchesInternal(),
-          ["nanaflix-live-football-matches-v3"],
+          ["nanaflix-live-football-matches-v4"],
           { revalidate: 600, tags: ["live-football"] }
         )
       : null;

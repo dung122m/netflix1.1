@@ -208,6 +208,35 @@ export function isGenericTvChannel(
   return true;
 }
 
+function stripTeamGenderAndOrgMarkers(input: string): string {
+  let result = input;
+  // Strip explicit gender markers while preserving geographic/proper nouns starting with "Nam"
+  // (e.g. "Nam Định", "Nam Phi", "Nam Sudan", "Nam Mỹ") or ending with "Nam" ("Việt Nam", "Hà Nam", "Quảng Nam").
+  result = result.replace(/^(?:nữ|nu|women|woman|men(?:'s)?)\s+/i, "");
+  result = result.replace(
+    /^(?:bóng đá nam|bong da nam|đội tuyển nam|doi tuyen nam|tuyển nam|tuyen nam|đt nam|dt nam)\s+/i,
+    ""
+  );
+  result = result.replace(
+    /^nam\s+(?=(?:u\s*\d{1,2}|đtqg|dtqg|đt|dt|đội tuyển|doi tuyen|tuyển|tuyen|futsal|clb)\b)/i,
+    ""
+  );
+  result = result.replace(
+    /(?<!\b(?:ha|hà|viet|việt|quang|quảng|hai|hải|binh|bình|dong|đông|tay|tây|bac|bắc|trung|giang|hoai|hoài|thien|thiên))\s+nam$/i,
+    ""
+  );
+  result = result.replace(/(?<!\bof)\s+man$/i, "");
+  result = result.replace(/\s+(?:nữ|nu|women|woman|men)$/i, "");
+  result = result.replace(/\s+\([wWsS]\)$/i, "");
+  result = result.replace(/\s+[wWsS]$/, "");
+  result = result.replace(
+    /^(?:đội tuyển quốc gia|doi tuyen quoc gia|đội tuyển|doi tuyen|national team|đtqg|dtqg|đt|dt|clb)\s+/i,
+    ""
+  );
+  result = result.replace(/\s+(?:clb|national team)$/i, "");
+  return result;
+}
+
 export function cleanCandidateTeamName(name: string): string {
   if (!name) return "";
   let clean = name.toWellFormed().replace(/\uFFFD+/g, " ").trim();
@@ -243,29 +272,14 @@ export function cleanCandidateTeamName(name: string): string {
   // 7B. Normalize sticky Roman numerals / numbers and gender / category words (e.g. "IIWomen" -> "II Women", "2Women" -> "2 Women")
   clean = clean.replace(/\b(ii|iii|iv|v|\d+)(women|woman|nu|nữ|w)\b/gi, "$1 $2");
 
-  // 8. Strip leading and trailing gender markers: "Nữ", "Nam", "Women", "Men"
-  clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
-  // Bảo vệ không cắt nhầm "Nam" trong các địa danh / tên đội bóng hợp lệ: "Hà Nam", "Việt Nam", "Quảng Nam"
-  clean = clean.replace(/(?<!\b(?:ha|hà|viet|việt|quang|quảng))\s+(?:nam|man)$/i, "");
-  clean = clean.replace(/\s+(?:nữ|nu|women|woman)$/i, "");
-  clean = clean.replace(/\s+\([wWsS]\)$/i, "");
-  clean = clean.replace(/\s+[wWsS]$/, "");
-
-  // 8B. Strip team prefix markers: "Đội tuyển quốc gia", "Đội tuyển", "National team", "ĐTQG", "ĐT", "CLB"
-  clean = clean.replace(/^(?:đội tuyển quốc gia|doi tuyen quoc gia|đội tuyển|doi tuyen|national team|đtqg|dtqg|đt|dt|clb)\s+/i, "");
-  clean = clean.replace(/\s+(?:clb|national team)$/i, "");
+  // 8. Strip leading and trailing gender / organization markers
+  clean = stripTeamGenderAndOrgMarkers(clean);
 
   // 9. Strip any remaining surrounding symbols/punctuation
   clean = clean.replace(/^[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+|[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+$/g, "").trim();
 
-  // 10. Repeat gender & prefix strip if symbols were removed around it
-  clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
-  clean = clean.replace(/(?<!\b(?:ha|hà|viet|việt|quang|quảng))\s+(?:nam|man)$/i, "");
-  clean = clean.replace(/\s+(?:nữ|nu|women|woman)$/i, "");
-  clean = clean.replace(/\s+\([wWsS]\)$/i, "");
-  clean = clean.replace(/\s+[wWsS]$/, "");
-  clean = clean.replace(/^(?:đội tuyển quốc gia|doi tuyen quoc gia|đội tuyển|doi tuyen|national team|đtqg|dtqg|đt|dt|clb)\s+/i, "");
-  clean = clean.replace(/\s+(?:clb|national team)$/i, "");
+  // 10. Repeat marker strip if surrounding punctuation was removed
+  clean = stripTeamGenderAndOrgMarkers(clean);
 
   return clean.toWellFormed().replace(/\uFFFD+/g, " ").replace(/\s+/g, " ").trim();
 }

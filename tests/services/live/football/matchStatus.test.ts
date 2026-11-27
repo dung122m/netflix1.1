@@ -2114,13 +2114,39 @@ describe("Generic Match Deduplication & Aggregation System", () => {
   });
 
   // 14. P0 Regression: cleanCandidateTeamName must preserve 'Nam' in 'Phong Phú Hà Nam' and separate sticky Roman numerals like 'IIWomen'
-  it("14. P0 Regression: cleanCandidateTeamName preserves 'Nam' in 'Phong Phú Hà Nam' and normalizes sticky tokens", () => {
+  it("14. P0 Regression: cleanCandidateTeamName preserves 'Nam' in geographic/club names and normalizes sticky tokens", () => {
     assert.equal(cleanCandidateTeamName("Phong Phú Hà Nam"), "Phong Phú Hà Nam");
     assert.equal(cleanCandidateTeamName("Phong Phu Ha Nam (w)"), "Phong Phu Ha Nam");
     assert.equal(cleanCandidateTeamName("Phong Phú Hà Nam Nữ"), "Phong Phú Hà Nam");
+    assert.equal(cleanCandidateTeamName("Nam Định"), "Nam Định");
+    assert.equal(cleanCandidateTeamName("Nam Dinh"), "Nam Dinh");
+    assert.equal(cleanCandidateTeamName("Thép Xanh Nam Định"), "Thép Xanh Nam Định");
+    assert.equal(cleanCandidateTeamName("Nam Phi"), "Nam Phi");
+    assert.equal(cleanCandidateTeamName("Nam Sudan"), "Nam Sudan");
+    assert.equal(cleanCandidateTeamName("Bóng đá nam Việt Nam"), "Việt Nam");
+    assert.equal(cleanCandidateTeamName("Nam U23 Việt Nam"), "U23 Việt Nam");
+    assert.equal(cleanCandidateTeamName("Nữ Việt Nam"), "Việt Nam");
     assert.equal(cleanCandidateTeamName("Ha Noi IIWomen"), "Ha Noi II");
     assert.equal(cleanCandidateTeamName("Ha Noi 2 W"), "Ha Noi 2");
     assert.equal(cleanCandidateTeamName("Ha Noi II Women"), "Ha Noi II");
+  });
+
+  it("14B. Regression: V-League stream 'Nam Dinh vs Cong An Ha Noi' preserves full team1 'Nam Dinh'", () => {
+    const { matches } = normalizeAndMergeStreams(
+      [
+        {
+          rawTitle: "18:00 Nam Dinh vs Cong An Ha Noi",
+          url: "https://cdn.example.com/vleague.m3u8",
+          effectiveUrl: "https://cdn.example.com/vleague.m3u8",
+          group: "V-League",
+          rawLogo: "",
+        },
+      ],
+      baseNow,
+    );
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].team1, "Nam Dinh");
+    assert.equal(matches[0].team2, "Cong An Ha Noi");
   });
 
   // 15. P1 Regression: Women's football variants: (w), W, Women, IIWomen must merge into a single card
