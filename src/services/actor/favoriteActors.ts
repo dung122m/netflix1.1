@@ -43,6 +43,115 @@ function getCurrentAuthUser(): { uid: string } | null {
 }
 
 const STORAGE_KEY = "nanaflix_favorite_actors_v1";
+const OWNER_META_KEY = "nanaflix_favorite_actors_owner_v1";
+const CACHED_AUTH_USER_KEY = "nanaflix_cached_auth_user";
+
+interface FavoriteActorsOwnerMeta {
+  uid: string;
+  pendingKeys: string[];
+}
+
+function getCachedAuthUid(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHED_AUTH_USER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { uid?: unknown };
+    return typeof parsed?.uid === "string" && parsed.uid ? parsed.uid : null;
+  } catch {
+    return null;
+  }
+}
+
+function readOwnerMeta(): FavoriteActorsOwnerMeta | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(OWNER_META_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<FavoriteActorsOwnerMeta>;
+    if (typeof parsed?.uid === "string" && Array.isArray(parsed.pendingKeys)) {
+      return {
+        uid: parsed.uid,
+        pendingKeys: parsed.pendingKeys.filter((k): k is string => typeof k === "string" && k.length > 0),
+      };
+    }
+  } catch {}
+  return null;
+}
+
+function writeOwnerMeta(meta: FavoriteActorsOwnerMeta | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!meta) {
+      localStorage.removeItem(OWNER_META_KEY);
+    } else {
+      localStorage.setItem(OWNER_META_KEY, JSON.stringify(meta));
+    }
+  } catch {}
+}
+
+function markActorPendingForSession(key: string, explicitUid?: string | null): void {
+  const uid = explicitUid || getCurrentAuthUser()?.uid || getCachedAuthUid() || "guest";
+  const current = readOwnerMeta();
+  const baseKeys = current && current.uid === uid ? current.pendingKeys : [];
+  const nextKeys = Array.from(new Set([key, ...baseKeys]));
+  writeOwnerMeta({ uid, pendingKeys: nextKeys });
+}
+
+function unmarkActorPending(idOrSlug: string | number): void {
+  const target = normalizeKey(idOrSlug);
+  const current = readOwnerMeta();
+  if (!current) return;
+  const remaining = current.pendingKeys.filter((k) => k !== target);
+  if (remaining.length === 0) {
+    writeOwnerMeta(null);
+  } else {
+    writeOwnerMeta({ uid: current.uid, pendingKeys: remaining });
+  }
+}
+
+/**
+ * Lấy danh sách diễn viên đang chờ đồng bộ cho chính userId (tránh mất dữ liệu khi offline/auth trễ).
+ */
+export function getPendingFavoriteActorsForUser(userId: string): FavoriteActorItem[] {
+  if (!userId) return [];
+  const meta = readOwnerMeta();
+  if (!meta || meta.uid !== userId || meta.pendingKeys.length === 0) return [];
+  const pendingSet = new Set(meta.pendingKeys);
+  return getFavoriteActors().filter(
+    (item) =>
+      (item.id && pendingSet.has(normalizeKey(item.id))) ||
+      (item.slug && pendingSet.has(normalizeKey(item.slug)))
+  );
+}
+
+/**
+ * Lấy danh sách diễn viên được thêm trong phiên khách sạch để gộp khi khách bấm Đăng nhập.
+ */
+export function getGuestOwnedFavoriteActors(): FavoriteActorItem[] {
+  const meta = readOwnerMeta();
+  if (!meta || meta.uid !== "guest" || meta.pendingKeys.length === 0) return [];
+  const pendingSet = new Set(meta.pendingKeys);
+  return getFavoriteActors().filter(
+    (item) =>
+      (item.id && pendingSet.has(normalizeKey(item.id))) ||
+      (item.slug && pendingSet.has(normalizeKey(item.slug)))
+  );
+}
+
+async function resolveAuthenticatedUser(): Promise<{ uid: string } | null> {
+  const syncUser = getCurrentAuthUser();
+  if (syncUser) return syncUser;
+  if (customAuthUserProvider) return null;
+  if (!getCachedAuthUid()) return null;
+  if (auth && typeof auth.authStateReady === "function") {
+    await Promise.race([
+      auth.authStateReady(),
+      new Promise((resolve) => setTimeout(resolve, 2500)),
+    ]).catch(() => {});
+  }
+  return auth?.currentUser || null;
+}
 
 let memoryFavoriteActors: FavoriteActorItem[] | null = null;
 let memoryActorKeys: Set<string> | null = null;
@@ -167,8 +276,16 @@ export function mergeFavoriteActors(
   return Array.from(merged.values()).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
 }
 
-export function setFavoriteActorsFromSync(list: FavoriteActorItem[]): void {
+export function setFavoriteActorsFromSync(list: FavoriteActorItem[], syncedUserId?: string): void {
   saveFavoriteActors(list, { action: "clear" });
+  if (syncedUserId) {
+    const meta = readOwnerMeta();
+    if (!meta || meta.uid === syncedUserId || meta.uid === "guest") {
+      writeOwnerMeta(null);
+    }
+  } else {
+    writeOwnerMeta(null);
+  }
 }
 
 export function clearLocalFavoriteActorsOnly(): void {
@@ -176,6 +293,7 @@ export function clearLocalFavoriteActorsOnly(): void {
   try {
     updateMemoryCache([]);
     localStorage.removeItem(STORAGE_KEY);
+    writeOwnerMeta(null);
     window.dispatchEvent(
       new CustomEvent("favorite-actors-updated", { detail: { action: "clear" } })
     );
@@ -201,29 +319,41 @@ export function addFavoriteActor(actor: Omit<FavoriteActorItem, "addedAt">): voi
   };
 
   const updated = [newItem, ...current];
+  const syncUser = getCurrentAuthUser();
+  markActorPendingForSession(key, syncUser?.uid);
   saveFavoriteActors(updated, { actor: newItem, action: "add" });
 
-  const currentUser = getCurrentAuthUser();
-  if (currentUser && favoriteActorsSyncHandler) {
-    const seq = ++mutationSeq;
-    inFlightActorMutations.set(key, seq);
-    Promise.resolve(favoriteActorsSyncHandler.saveItem(currentUser.uid, newItem))
-      .then((ok) => {
-        if (inFlightActorMutations.get(key) === seq) {
-          inFlightActorMutations.delete(key);
-          if (ok === false) {
-            const rolledBack = getFavoriteActors().filter(
-              (item) => normalizeKey(item.id) !== key && normalizeKey(item.slug) !== key
-            );
-            saveFavoriteActors(rolledBack, { actor: newItem, action: "remove" });
+  if (favoriteActorsSyncHandler) {
+    const syncToCloud = (uid: string) => {
+      const seq = ++mutationSeq;
+      inFlightActorMutations.set(key, seq);
+      Promise.resolve(favoriteActorsSyncHandler!.saveItem(uid, newItem))
+        .then((ok) => {
+          if (inFlightActorMutations.get(key) === seq) {
+            inFlightActorMutations.delete(key);
+            if (ok === true) {
+              unmarkActorPending(key);
+              if (newItem.slug) unmarkActorPending(newItem.slug);
+            }
           }
-        }
-      })
-      .catch(() => {
-        if (inFlightActorMutations.get(key) === seq) {
-          inFlightActorMutations.delete(key);
+        })
+        .catch(() => {
+          if (inFlightActorMutations.get(key) === seq) {
+            inFlightActorMutations.delete(key);
+          }
+        });
+    };
+
+    if (syncUser) {
+      syncToCloud(syncUser.uid);
+    } else if (getCachedAuthUid()) {
+      void resolveAuthenticatedUser().then((readyUser) => {
+        if (readyUser?.uid) {
+          markActorPendingForSession(key, readyUser.uid);
+          syncToCloud(readyUser.uid);
         }
       });
+    }
   }
 }
 
@@ -238,30 +368,42 @@ export function removeFavoriteActor(idOrSlug: string | number): void {
     (item) => normalizeKey(item.id) !== targetKey && normalizeKey(item.slug) !== targetKey
   );
 
+  unmarkActorPending(removedItem.id || removedItem.slug);
+  if (removedItem.slug) unmarkActorPending(removedItem.slug);
   saveFavoriteActors(updated, { actor: removedItem, action: "remove" });
 
-  const currentUser = getCurrentAuthUser();
-  if (currentUser && favoriteActorsSyncHandler) {
-    const mutationKey = normalizeKey(removedItem.id || removedItem.slug);
-    const seq = ++mutationSeq;
-    inFlightActorMutations.set(mutationKey, seq);
-    Promise.resolve(favoriteActorsSyncHandler.removeItem(currentUser.uid, String(idOrSlug)))
-      .then((ok) => {
-        if (inFlightActorMutations.get(mutationKey) === seq) {
-          inFlightActorMutations.delete(mutationKey);
-          if (ok === false) {
-            const nowList = getFavoriteActors();
-            if (!findMatchingActor(nowList, targetKey)) {
-              saveFavoriteActors([removedItem, ...nowList], { actor: removedItem, action: "add" });
+  if (favoriteActorsSyncHandler) {
+    const syncRemoveToCloud = (uid: string) => {
+      const mutationKey = normalizeKey(removedItem.id || removedItem.slug);
+      const seq = ++mutationSeq;
+      inFlightActorMutations.set(mutationKey, seq);
+      Promise.resolve(favoriteActorsSyncHandler!.removeItem(uid, String(idOrSlug)))
+        .then((ok) => {
+          if (inFlightActorMutations.get(mutationKey) === seq) {
+            inFlightActorMutations.delete(mutationKey);
+            if (ok === false) {
+              const nowList = getFavoriteActors();
+              if (!findMatchingActor(nowList, targetKey)) {
+                saveFavoriteActors([removedItem, ...nowList], { actor: removedItem, action: "add" });
+              }
             }
           }
-        }
-      })
-      .catch(() => {
-        if (inFlightActorMutations.get(mutationKey) === seq) {
-          inFlightActorMutations.delete(mutationKey);
-        }
+        })
+        .catch(() => {
+          if (inFlightActorMutations.get(mutationKey) === seq) {
+            inFlightActorMutations.delete(mutationKey);
+          }
+        });
+    };
+
+    const syncUser = getCurrentAuthUser();
+    if (syncUser) {
+      syncRemoveToCloud(syncUser.uid);
+    } else if (getCachedAuthUid()) {
+      void resolveAuthenticatedUser().then((readyUser) => {
+        if (readyUser?.uid) syncRemoveToCloud(readyUser.uid);
       });
+    }
   }
 }
 
@@ -281,11 +423,16 @@ export function toggleFavoriteActor(actor: Omit<FavoriteActorItem, "addedAt">): 
 }
 
 export function clearFavoriteActors(): void {
+  writeOwnerMeta(null);
   saveFavoriteActors([], { action: "clear" });
-  const currentUser = getCurrentAuthUser();
-  if (currentUser && favoriteActorsSyncHandler) {
-    Promise.resolve(favoriteActorsSyncHandler.clearAll(currentUser.uid)).catch(() => {});
-  }
+  void resolveAuthenticatedUser()
+    .then((currentUser) => {
+      if (currentUser && favoriteActorsSyncHandler) {
+        return favoriteActorsSyncHandler.clearAll(currentUser.uid);
+      }
+      return undefined;
+    })
+    .catch(() => {});
 }
 
 export function subscribeToFavoriteActors(

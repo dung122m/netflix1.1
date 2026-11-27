@@ -190,7 +190,7 @@ export function BottomNav() {
               )}
             </div>
             <span className="text-[11px] mt-0.5 tracking-tight truncate max-w-[66px] leading-tight">
-              {effectiveDisplayName ? effectiveDisplayName.split(" ").pop() : "Tài khoản"}
+              Hồ sơ
             </span>
           </Link>
         ) : (

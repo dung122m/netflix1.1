@@ -14,7 +14,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-dvh bg-black text-white flex flex-col selection:bg-netflix-red selection:text-white">
       <Navbar />
-      <main className="flex-1 w-full pt-20 sm:pt-24 pb-16">
+      <main className="flex-1 w-full pt-20 sm:pt-24 pb-24 sm:pb-16">
         <Suspense
           fallback={
             <div className="min-h-[50dvh] flex flex-col items-center justify-center">

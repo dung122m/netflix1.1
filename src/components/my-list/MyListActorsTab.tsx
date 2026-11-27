@@ -6,7 +6,6 @@ import { Users, Trash2, Film, ArrowRight } from "lucide-react";
 import { FavoriteActorItem } from "@/services/actor/favoriteActors";
 import { ActorAvatar } from "@/components/actors/ActorAvatar";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { cleanCountryName } from "@/lib/stringUtils";
 import { getActorSynonyms } from "@/services/actor/actorAliasResolver";
 
@@ -80,20 +79,19 @@ export function MyListActorsTab({ actors, onRemove }: MyListActorsTabProps) {
 
                 {/* NÚT XÓA KHỎI YÊU THÍCH - NẰM GỌN TRÊN ẢNH GÓC TRÊN PHẢI */}
                 <div className="absolute top-2.5 right-2.5 z-20 pointer-events-auto">
-                  <Tooltip content={`Bỏ ${actor.name} khỏi yêu thích`} side="top" align="end">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onRemove(e, actor.id || actor.slug, actor.name);
-                      }}
-                      aria-label={`Bỏ ${actor.name} khỏi yêu thích`}
-                      className="group/btn w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 hover:bg-netflix-red text-zinc-300 hover:text-white backdrop-blur-md flex items-center justify-center shadow-lg shadow-black/60 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer max-sm:opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 focus:opacity-100"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover/btn:rotate-6" />
-                    </button>
-                  </Tooltip>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onRemove(e, actor.id || actor.slug, actor.name);
+                    }}
+                    title={`Bỏ ${actor.name} khỏi yêu thích`}
+                    aria-label={`Bỏ ${actor.name} khỏi yêu thích`}
+                    className="group/btn w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 hover:bg-netflix-red text-zinc-300 hover:text-white backdrop-blur-md flex items-center justify-center shadow-lg shadow-black/60 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer max-sm:opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 focus:opacity-100"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 group-hover/btn:rotate-6" />
+                  </button>
                 </div>
 
                 {/* DÒNG XEM TUYỂN TẬP - NẰM TRONG POSTER DẠNG GLASS PILL SANG TRỌNG */}

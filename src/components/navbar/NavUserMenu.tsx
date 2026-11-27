@@ -177,7 +177,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
               {effectiveDisplayName}
             </p>
             <p className="text-[11px] text-zinc-400 truncate mt-0.5">{effectiveEmail}</p>
-            <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-[10px] text-emerald-400 font-medium">
+            <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.06] text-[10px] text-zinc-300 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span>Cloud Sync</span>
             </div>
@@ -187,9 +187,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             <Link
               href="/admin"
               onClick={() => setShowUserDropdown(false)}
-              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 hover:text-amber-300 transition my-0.5 shadow-sm"
+              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/10 transition group"
             >
-              <ShieldCheck size={14} className="text-amber-400 shrink-0" />
+              <ShieldCheck size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
               <span>Admin Panel</span>
             </Link>
           )}
@@ -198,9 +198,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/profile"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-200 hover:text-white hover:bg-white/10 transition font-medium"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-200 hover:text-white hover:bg-white/10 transition font-medium group"
           >
-            <User size={14} className="text-netflix-red shrink-0" />
+            <User size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
             <span>Hồ sơ & Cài đặt Cloud</span>
           </Link>
 
@@ -208,9 +208,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-200 hover:text-white hover:bg-white/10 transition font-medium"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-200 hover:text-white hover:bg-white/10 transition font-medium group"
           >
-            <Bookmark size={14} className="text-amber-400 shrink-0" />
+            <Bookmark size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
             <span>Danh sách & Lịch sử</span>
           </Link>
 
@@ -223,9 +223,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 window.dispatchEvent(new CustomEvent("open-pwa-install"));
               }
             }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left group"
           >
-            <Smartphone size={14} className="text-emerald-400 shrink-0" />
+            <Smartphone size={14} className="text-zinc-400 group-hover:text-white shrink-0 transition-colors" />
             <span>Cài đặt ứng dụng PWA</span>
           </button>
 
@@ -237,7 +237,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 setShowUserDropdown(false);
                 await logout();
               }}
-              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition cursor-pointer text-left font-medium"
+              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 hover:text-red-400 hover:bg-white/[0.06] transition cursor-pointer text-left font-medium"
             >
               <LogOut size={14} className="shrink-0" />
               <span>Đăng xuất</span>

@@ -48,8 +48,8 @@ export type { PendingSyncItem, SanitizedMovieItem, SmartCollectionConfig };
 
 import { getFirebaseAuthHeaders } from "@/lib/clientAuth";
 
-async function getAuthHeaders(): Promise<HeadersInit> {
-  return getFirebaseAuthHeaders();
+async function getAuthHeaders(expectedUserId?: string): Promise<HeadersInit> {
+  return getFirebaseAuthHeaders({ expectedUserId });
 }
 
 /**
@@ -97,7 +97,7 @@ export function saveLocalCollections(userId: string, items: MovieCollection[]): 
  */
 export async function syncCollectionToServer(collection: MovieCollection): Promise<boolean> {
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(collection.userId);
     if (!headers["Authorization" as keyof typeof headers]) return false;
 
     const res = await fetch("/api/user/collections", {
@@ -206,9 +206,9 @@ if (typeof window !== "undefined") {
 /**
  * Xóa bộ sưu tập qua Server API
  */
-async function deleteCollectionFromServer(collectionId: string): Promise<boolean> {
+async function deleteCollectionFromServer(collectionId: string, expectedUserId?: string): Promise<boolean> {
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(expectedUserId);
     if (!headers["Authorization" as keyof typeof headers]) return false;
 
     const res = await fetch(`/api/user/collections?id=${encodeURIComponent(collectionId)}`, {
@@ -420,7 +420,7 @@ export async function deleteCollection(
   removePendingSync(userId, collectionId);
 
   try {
-    const serverOk = await deleteCollectionFromServer(collectionId);
+    const serverOk = await deleteCollectionFromServer(collectionId, userId);
     if (!serverOk) {
       throw new Error("Server xóa thất bại hoặc lỗi mạng");
     }

@@ -5,6 +5,16 @@
 export async function getFirebaseIdToken(expectedUserId?: string): Promise<string | null> {
   try {
     const { auth } = await import("@/lib/firebase");
+    if (
+      !auth?.currentUser &&
+      typeof auth?.authStateReady === "function" &&
+      (expectedUserId || (typeof localStorage !== "undefined" && Boolean(localStorage.getItem("nanaflix_cached_auth_user"))))
+    ) {
+      await Promise.race([
+        auth.authStateReady(),
+        new Promise((resolve) => setTimeout(resolve, 2500)),
+      ]).catch(() => {});
+    }
     const currentUser = auth?.currentUser;
     if (!currentUser) return null;
     if (expectedUserId && currentUser.uid !== expectedUserId) {

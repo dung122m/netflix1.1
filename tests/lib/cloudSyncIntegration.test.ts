@@ -68,6 +68,9 @@ describe("Nanaflix Wave 2 — Cloud Sync, Watch History & Watchlist Integration 
   const {
     addToWatchlist,
     removeFromWatchlist,
+    getWatchlist,
+    getGuestOwnedWatchlistItems,
+    clearLocalWatchlistOnly,
     registerWatchlistSyncHandler,
   } = await import("@/lib/watchlist");
 
@@ -115,7 +118,7 @@ describe("Nanaflix Wave 2 — Cloud Sync, Watch History & Watchlist Integration 
     assert.ok(calledItem, "syncHandler.saveItem must be called");
     assert.equal(calledItem.uid, "test_user_123");
     assert.equal(calledItem.item.slug, "lat-mat-7");
-    assert.equal(calledItem.opts.force, true);
+    assert.equal(calledItem.delayMs, 30000);
   });
 
   it("2. Cập nhật và xóa lịch sử xem: gọi chính xác các phương thức removeItem và clearAll", () => {
@@ -212,5 +215,84 @@ describe("Nanaflix Wave 2 — Cloud Sync, Watch History & Watchlist Integration 
     const watchlistResult = await syncWatchlistWithCloud("");
     assert.equal(watchlistResult.length, 1);
     assert.equal(watchlistResult[0].slug, "offline-wl");
+  });
+
+  it("6. Khách lưu phim vào Watchlist rồi đăng nhập: bảo toàn và đẩy lên Cloud kể cả khi Cloud rỗng", async () => {
+    clearLocalWatchlistOnly();
+    mockUser = null;
+
+    addToWatchlist({
+      slug: "guest-dune-2",
+      title: "Dune: Part Two",
+      imageUrl: "dune.jpg",
+    });
+
+    const guestSnapshot = getGuestOwnedWatchlistItems();
+    assert.equal(guestSnapshot.length, 1);
+    assert.equal(guestSnapshot[0].slug, "guest-dune-2");
+
+    mockUser = { uid: "user_new_wl", getIdToken: async () => "token_new_wl" };
+    let uploadedItems: any[] = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (url: string | URL | Request, init?: RequestInit) => {
+      const urlStr = typeof url === "string" ? url : url.toString();
+      if (urlStr.includes("/api/user/watchlist")) {
+        if (init?.method === "POST") {
+          const parsed = JSON.parse(String(init.body || "{}"));
+          uploadedItems = parsed.items || [];
+          return { ok: true, json: async () => ({ success: true }) } as any;
+        }
+        return { ok: true, json: async () => ({ success: true, items: [] }) } as any;
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any;
+    };
+
+    try {
+      const synced = await syncWatchlistWithCloud("user_new_wl", guestSnapshot);
+      assert.equal(synced.length, 1);
+      assert.equal(synced[0].slug, "guest-dune-2");
+      assert.equal(uploadedItems.length, 1);
+      assert.equal(uploadedItems[0].slug, "guest-dune-2");
+      assert.equal(getWatchlist().length, 1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("7. Reload khi auth.currentUser chưa hydrate nhưng có cached session: đợi authStateReady trước khi sync Watchlist", async () => {
+    clearLocalWatchlistOnly();
+    mockUser = null;
+    storage["nanaflix_cached_auth_user"] = JSON.stringify({
+      uid: "user_cold_reload",
+      email: "user@example.com",
+    });
+
+    if (auth) {
+      Object.defineProperty(auth, "authStateReady", {
+        value: async () => {
+          await new Promise((r) => setTimeout(r, 10));
+          mockUser = { uid: "user_cold_reload", getIdToken: async () => "tok" };
+        },
+        configurable: true,
+      });
+    }
+
+    let syncedUid: string | null = null;
+    registerWatchlistSyncHandler({
+      saveItem: (uid) => {
+        syncedUid = uid;
+        return true;
+      },
+      removeItem: () => true,
+    });
+
+    addToWatchlist({
+      slug: "cold-reload-movie",
+      title: "Cold Reload Movie",
+      imageUrl: "cold.jpg",
+    });
+
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(syncedUid, "user_cold_reload");
   });
 });

@@ -8,19 +8,20 @@ import { getWatchedEpisodes } from "./episodeTracker";
 import { getFirebaseAuthHeaders } from "./clientAuth";
 import {
   getWatchlist,
+  getPendingWatchlistForUser,
+  setWatchlistFromSync,
   registerWatchlistSyncHandler,
   WatchlistItem,
   mergeWatchlists,
 } from "./watchlist";
 import {
   getFavoriteActors,
+  getPendingFavoriteActorsForUser,
   registerFavoriteActorsSyncHandler,
   FavoriteActorItem,
   mergeFavoriteActors,
   setFavoriteActorsFromSync,
 } from "@/services/actor/favoriteActors";
-
-const WATCHLIST_STORAGE_KEY = "nanaflix_watchlist_v1";
 
 // Debounce map để hạn chế số lần ghi khi người dùng đang xem phim liên tục
 const cloudSaveTimers = new Map<string, NodeJS.Timeout>();
@@ -417,11 +418,19 @@ export async function clearAllWatchHistoryFromCloud(
  */
 export async function syncWatchlistWithCloud(
   userId: string,
+  guestWatchlistToMerge?: WatchlistItem[],
 ): Promise<WatchlistItem[]> {
   if (!userId) return getWatchlist();
 
+  const pendingOwned = getPendingWatchlistForUser(userId);
+  const extraOwned = [
+    ...(Array.isArray(guestWatchlistToMerge) ? guestWatchlistToMerge : []),
+    ...pendingOwned,
+  ].filter((item) => Boolean(item && item.slug));
+  const hasExtraMerge = extraOwned.length > 0;
+
   const existingFlight = inFlightWatchlistSync.get(userId);
-  if (existingFlight) return existingFlight;
+  if (existingFlight && !hasExtraMerge) return existingFlight;
 
   const syncPromise = (async () => {
     try {
@@ -439,21 +448,29 @@ export async function syncWatchlistWithCloud(
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.items)) {
-          if (json.items.length > 0) {
+          const cloudItems = json.items as WatchlistItem[];
+          if (cloudItems.length > 0 || hasExtraMerge) {
             const localList = getWatchlist();
-            const merged = mergeWatchlists(localList, json.items);
-            localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(merged));
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new Event("watchlist-updated"));
+            const withRecentLocal =
+              cloudItems.length > 0 ? mergeWatchlists(localList, cloudItems) : [];
+            const merged = hasExtraMerge
+              ? mergeWatchlists(extraOwned, withRecentLocal, Number.MAX_SAFE_INTEGER)
+              : withRecentLocal;
+
+            const cloudSlugs = new Set(cloudItems.map((c) => c.slug).filter(Boolean));
+            const missingFromCloud = merged.filter(
+              (item) => item.slug && !cloudSlugs.has(item.slug),
+            );
+            if (missingFromCloud.length > 0) {
+              await saveWatchlistBatchToCloud(userId, missingFromCloud);
             }
+
+            setWatchlistFromSync(merged, userId);
             return merged;
           } else {
             // Khi cloud watchlist của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
             // Đặt local watchlist về rỗng để phân lập hoàn toàn với tài khoản trước.
-            localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify([]));
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new Event("watchlist-updated"));
-            }
+            setWatchlistFromSync([], userId);
             return [];
           }
         }
@@ -473,6 +490,32 @@ export async function syncWatchlistWithCloud(
 }
 
 /**
+ * Lưu nhiều phim yêu thích lên Cloud qua Server API
+ */
+export async function saveWatchlistBatchToCloud(
+  userId: string,
+  items: WatchlistItem[],
+): Promise<boolean> {
+  if (!userId || !Array.isArray(items) || items.length === 0) return false;
+  const validItems = items.filter((item) => item && item.slug);
+  if (validItems.length === 0) return false;
+  try {
+    const headers = await getAuthHeaders(userId);
+    if (!headers["Authorization" as keyof typeof headers]) return false;
+
+    const res = await fetch("/api/user/watchlist", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ items: validItems }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn("Lỗi saveWatchlistBatchToCloud:", err);
+    return false;
+  }
+}
+
+/**
  * Lưu 1 phim yêu thích lên Cloud qua Server API ngay lập tức
  */
 export async function saveWatchlistItemToCloud(
@@ -480,20 +523,7 @@ export async function saveWatchlistItemToCloud(
   item: WatchlistItem,
 ): Promise<boolean> {
   if (!userId || !item.slug) return false;
-  try {
-    const headers = await getAuthHeaders();
-    if (!headers["Authorization" as keyof typeof headers]) return false;
-
-    const res = await fetch("/api/user/watchlist", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ items: [item] }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn("Lỗi saveWatchlistItemToCloud:", err);
-    return false;
-  }
+  return saveWatchlistBatchToCloud(userId, [item]);
 }
 
 /**
@@ -505,7 +535,7 @@ export async function removeWatchlistItemFromCloud(
 ): Promise<boolean> {
   if (!userId || !slug) return false;
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(userId);
     if (!headers["Authorization" as keyof typeof headers]) return false;
 
     const res = await fetch(`/api/user/watchlist?slug=${encodeURIComponent(slug)}`, {
@@ -562,15 +592,23 @@ registerWatchlistSyncHandler({
 export async function syncFavoriteActorsWithCloud(
   userId: string,
   force = false,
+  guestActorsToMerge?: FavoriteActorItem[],
 ): Promise<FavoriteActorItem[]> {
   if (!userId) return getFavoriteActors();
 
+  const pendingOwned = getPendingFavoriteActorsForUser(userId);
+  const extraOwned = [
+    ...(Array.isArray(guestActorsToMerge) ? guestActorsToMerge : []),
+    ...pendingOwned,
+  ].filter((item) => Boolean(item && (item.id || item.slug) && item.name));
+  const hasExtraMerge = extraOwned.length > 0;
+
   const existingFlight = inFlightFavoriteActorsSync.get(userId);
-  if (existingFlight) return existingFlight;
+  if (existingFlight && !hasExtraMerge) return existingFlight;
 
   const now = Date.now();
   const lastSync = lastActorsSyncMap.get(userId) || 0;
-  if (!force && lastSync > 0 && now - lastSync < ACTORS_SYNC_THROTTLE_MS) {
+  if (!force && !hasExtraMerge && lastSync > 0 && now - lastSync < ACTORS_SYNC_THROTTLE_MS) {
     return getFavoriteActors();
   }
 
@@ -591,13 +629,34 @@ export async function syncFavoriteActorsWithCloud(
         lastActorsSyncMap.set(userId, Date.now());
         const json = await res.json();
         if (json.success && Array.isArray(json.items)) {
-          if (json.items.length > 0) {
+          const cloudItems = json.items as FavoriteActorItem[];
+          if (cloudItems.length > 0 || hasExtraMerge) {
             const localList = getFavoriteActors();
-            const merged = mergeFavoriteActors(localList, json.items);
-            setFavoriteActorsFromSync(merged);
+            const withRecentLocal =
+              cloudItems.length > 0 ? mergeFavoriteActors(localList, cloudItems) : [];
+            const merged = hasExtraMerge
+              ? mergeFavoriteActors(extraOwned, withRecentLocal, Number.MAX_SAFE_INTEGER)
+              : withRecentLocal;
+
+            const cloudKeys = new Set<string>();
+            for (const c of cloudItems) {
+              if (c.id) cloudKeys.add(String(c.id).trim().toLowerCase());
+              if (c.slug) cloudKeys.add(String(c.slug).trim().toLowerCase());
+            }
+            const missingFromCloud = merged.filter((item) => {
+              const idKey = item.id ? String(item.id).trim().toLowerCase() : "";
+              const slugKey = item.slug ? String(item.slug).trim().toLowerCase() : "";
+              return !((idKey && cloudKeys.has(idKey)) || (slugKey && cloudKeys.has(slugKey)));
+            });
+
+            if (missingFromCloud.length > 0) {
+              await saveFavoriteActorsBatchToCloud(userId, missingFromCloud);
+            }
+
+            setFavoriteActorsFromSync(merged, userId);
             return merged;
           } else {
-            setFavoriteActorsFromSync([]);
+            setFavoriteActorsFromSync([], userId);
             return [];
           }
         }
@@ -616,11 +675,13 @@ export async function syncFavoriteActorsWithCloud(
   return syncPromise;
 }
 
-export async function saveFavoriteActorToCloud(
+export async function saveFavoriteActorsBatchToCloud(
   userId: string,
-  item: FavoriteActorItem,
+  items: FavoriteActorItem[],
 ): Promise<boolean> {
-  if (!userId || (!item.id && !item.slug)) return false;
+  if (!userId || !Array.isArray(items) || items.length === 0) return false;
+  const validItems = items.filter((item) => item && (item.id || item.slug));
+  if (validItems.length === 0) return false;
   try {
     const headers = await getAuthHeaders(userId);
     if (!headers["Authorization" as keyof typeof headers]) return false;
@@ -628,13 +689,21 @@ export async function saveFavoriteActorToCloud(
     const res = await fetch("/api/user/favorite-actors", {
       method: "POST",
       headers,
-      body: JSON.stringify({ items: [item] }),
+      body: JSON.stringify({ items: validItems }),
     });
     return res.ok;
   } catch (err) {
-    console.warn("Lỗi saveFavoriteActorToCloud:", err);
+    console.warn("Lỗi saveFavoriteActorsBatchToCloud:", err);
     return false;
   }
+}
+
+export async function saveFavoriteActorToCloud(
+  userId: string,
+  item: FavoriteActorItem,
+): Promise<boolean> {
+  if (!userId || (!item.id && !item.slug)) return false;
+  return saveFavoriteActorsBatchToCloud(userId, [item]);
 }
 
 export async function removeFavoriteActorFromCloud(

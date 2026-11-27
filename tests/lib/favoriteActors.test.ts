@@ -51,6 +51,10 @@ import {
   toggleFavoriteActor,
   clearFavoriteActors,
   subscribeToFavoriteActors,
+  getPendingFavoriteActorsForUser,
+  getGuestOwnedFavoriteActors,
+  setFavoriteActorsAuthUserProviderForTest,
+  registerFavoriteActorsSyncHandler,
 } from "@/services/actor/favoriteActors";
 
 describe("Nanaflix Favorite Actors Store Tests", () => {
@@ -174,5 +178,47 @@ describe("Nanaflix Favorite Actors Store Tests", () => {
     addFavoriteActor({ id: 100, name: "Dương Mịch", slug: "duong-mich" });
     // Subscriber was unsubscribed, count remains 1
     assert.equal(callCount, 1);
+  });
+
+  it("should preserve pending actor locally and mark it for retry if cloud save fails", async () => {
+    setFavoriteActorsAuthUserProviderForTest(() => ({ uid: "user_dung" }));
+    registerFavoriteActorsSyncHandler({
+      saveItem: async () => false,
+      removeItem: async () => true,
+      clearAll: async () => true,
+    });
+
+    try {
+      addFavoriteActor({
+        id: "pham-bang-bang",
+        name: "Phạm Băng Băng",
+        slug: "pham-bang-bang",
+      });
+      await new Promise((r) => setTimeout(r, 20));
+
+      const localList = getFavoriteActors();
+      assert.equal(localList.length, 1, "Failed cloud POST must NOT silently wipe local actor");
+      assert.equal(localList[0].slug, "pham-bang-bang");
+
+      const pending = getPendingFavoriteActorsForUser("user_dung");
+      assert.equal(pending.length, 1);
+      assert.equal(pending[0].slug, "pham-bang-bang");
+    } finally {
+      setFavoriteActorsAuthUserProviderForTest(null);
+      registerFavoriteActorsSyncHandler(null);
+    }
+  });
+
+  it("should track guest-owned favorite actors separately for login merge", () => {
+    setFavoriteActorsAuthUserProviderForTest(null);
+    addFavoriteActor({
+      id: "pham-bang-bang",
+      name: "Phạm Băng Băng",
+      slug: "pham-bang-bang",
+    });
+
+    const guestOwned = getGuestOwnedFavoriteActors();
+    assert.equal(guestOwned.length, 1);
+    assert.equal(guestOwned[0].slug, "pham-bang-bang");
   });
 });

@@ -72,9 +72,9 @@ export function ProfileEditFormTab({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isUploadingAvatar ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-netflix-red" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-300" />
             ) : (
-              <Upload className="w-3.5 h-3.5 text-netflix-red" />
+              <Upload className="w-3.5 h-3.5 text-zinc-300" />
             )}
             <span>{isUploadingAvatar ? "Đang tải..." : "Tải ảnh từ máy"}</span>
           </button>
@@ -119,8 +119,8 @@ export function ProfileEditFormTab({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-white">Ảnh tùy chỉnh đang được chọn</p>
-              <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium mt-0.5">
-                <Check className="w-3 h-3 stroke-[3]" />
+              <p className="text-[11px] text-zinc-400 flex items-center gap-1 font-medium mt-0.5">
+                <Check className="w-3 h-3 stroke-[2.5] text-zinc-300" />
                 Đang sử dụng ảnh cá nhân của bạn
               </p>
             </div>

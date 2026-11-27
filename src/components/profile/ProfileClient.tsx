@@ -482,61 +482,62 @@ export function ProfileClient() {
       />
 
       {/* 4. MODERN TAB SWITCHER */}
-      <div className="grid grid-cols-3 gap-1 sm:gap-2 p-1 rounded-2xl bg-zinc-900/80 backdrop-blur-md">
+      <div className="grid grid-cols-3 gap-1 sm:gap-1.5 p-1 rounded-2xl bg-zinc-900/90">
         <button
           type="button"
           onClick={() => handleTabChange("profile")}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
+          className={`flex items-center justify-center gap-1.5 py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
             activeTab === "profile"
               ? "bg-netflix-red text-white shadow-sm shadow-black/40"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          <User className="w-4 h-4 shrink-0" />
-          <span className="truncate">
-            <span className="sm:hidden">Hồ Sơ</span>
-            <span className="hidden sm:inline">Hồ Sơ & Danh Hiệu</span>
+          <User className="hidden sm:block w-4 h-4 shrink-0" />
+          <span>
+            <span className="sm:hidden">Hồ sơ</span>
+            <span className="hidden sm:inline">Hồ sơ & Danh hiệu</span>
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange("player_settings")}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
+          className={`flex items-center justify-center gap-1.5 py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
             activeTab === "player_settings"
               ? "bg-netflix-red text-white shadow-sm shadow-black/40"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          <Sliders className="w-4 h-4 shrink-0" />
-          <span className="truncate">
-            <span className="sm:hidden">Trình Phát</span>
-            <span className="hidden sm:inline">Cài Đặt Trình Phát</span>
+          <Sliders className="hidden sm:block w-4 h-4 shrink-0" />
+          <span>
+            <span className="sm:hidden">Trình phát</span>
+            <span className="hidden sm:inline">Cài đặt trình phát</span>
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => handleTabChange("comments")}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
+          className={`flex items-center justify-center gap-1.5 py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap min-w-0 ${
             activeTab === "comments"
               ? "bg-netflix-red text-white shadow-sm shadow-black/40"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          <MessageSquare className="w-4 h-4 shrink-0" />
-          <span className="truncate">
-            <span className="sm:hidden">Đánh Giá</span>
-            <span className="hidden sm:inline">Đánh Giá ({userComments.length})</span>
-          </span>
-          <span className="sm:hidden text-xs px-1.5 py-0.5 rounded-full bg-white/20 font-black shrink-0 tabular-nums">
-            {userComments.length}
+          <MessageSquare className="hidden sm:block w-4 h-4 shrink-0" />
+          <span>Đánh giá</span>
+          <span
+            className={`text-[11px] tabular-nums shrink-0 ${
+              activeTab === "comments" ? "text-white/90" : "text-zinc-500"
+            }`}
+          >
+            ({userComments.length})
           </span>
         </button>
       </div>
 
       {/* 5. TAB CONTENTS */}
-      <div className="rounded-3xl bg-zinc-950/80 p-4 sm:p-7 shadow-xl backdrop-blur-xl">
+      <div className="rounded-2xl bg-zinc-900/70 p-4 sm:p-6 shadow-xl">
         {activeTab === "profile" && (
           <ProfileEditFormTab
             onSubmit={handleSaveProfile}

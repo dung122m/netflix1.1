@@ -59,8 +59,16 @@ import {
   getGuestOwnedWatchHistoryItems,
   type WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { clearLocalWatchlistOnly } from "@/lib/watchlist";
-import { clearLocalFavoriteActorsOnly } from "@/services/actor/favoriteActors";
+import {
+  clearLocalWatchlistOnly,
+  getGuestOwnedWatchlistItems,
+  type WatchlistItem,
+} from "@/lib/watchlist";
+import {
+  clearLocalFavoriteActorsOnly,
+  getGuestOwnedFavoriteActors,
+  type FavoriteActorItem,
+} from "@/services/actor/favoriteActors";
 import {
   recordUserProfile,
   clearLocalPlayerSettings,
@@ -140,12 +148,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [cachedUser, setCachedUser] = useState<CachedAuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const pendingGuestHistoryRef = useRef<WatchHistoryItem[]>([]);
+  const pendingGuestWatchlistRef = useRef<WatchlistItem[]>([]);
+  const pendingGuestActorsRef = useRef<FavoriteActorItem[]>([]);
   const isConfigured = isFirebaseConfigured();
 
   const consumePendingGuestHistory = useCallback((): WatchHistoryItem[] | undefined => {
     if (pendingGuestHistoryRef.current.length === 0) return undefined;
     const items = pendingGuestHistoryRef.current;
     pendingGuestHistoryRef.current = [];
+    return items;
+  }, []);
+
+  const consumePendingGuestWatchlist = useCallback((): WatchlistItem[] | undefined => {
+    if (pendingGuestWatchlistRef.current.length === 0) return undefined;
+    const items = pendingGuestWatchlistRef.current;
+    pendingGuestWatchlistRef.current = [];
+    return items;
+  }, []);
+
+  const consumePendingGuestActors = useCallback((): FavoriteActorItem[] | undefined => {
+    if (pendingGuestActorsRef.current.length === 0) return undefined;
+    const items = pendingGuestActorsRef.current;
+    pendingGuestActorsRef.current = [];
     return items;
   }, []);
 
@@ -245,10 +269,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               const tasks: Promise<unknown>[] = [];
               if (shouldSyncData) {
                 const guestItems = consumePendingGuestHistory();
+                const guestWatchlist = consumePendingGuestWatchlist();
+                const guestActors = consumePendingGuestActors();
                 tasks.push(
                   syncWatchHistoryWithCloud(currentUser.uid, Boolean(guestItems), guestItems),
-                  syncWatchlistWithCloud(currentUser.uid),
-                  syncFavoriteActorsWithCloud(currentUser.uid),
+                  syncWatchlistWithCloud(currentUser.uid, guestWatchlist),
+                  syncFavoriteActorsWithCloud(currentUser.uid, Boolean(guestActors), guestActors),
                 );
                 try {
                   sessionStorage.setItem(`nanaflix_data_synced_${currentUser.uid}`, String(Date.now()));
@@ -303,7 +329,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       clearTimeout(timerHandle);
       unsubscribe?.();
     };
-  }, [isConfigured, consumePendingGuestHistory]);
+  }, [isConfigured, consumePendingGuestHistory, consumePendingGuestWatchlist, consumePendingGuestActors]);
 
   // Tự động đồng bộ lịch sử xem khi quay lại tab (Visibility Change Sync)
   useEffect(() => {
@@ -353,9 +379,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         };
       }
       pendingGuestHistoryRef.current = getGuestOwnedWatchHistoryItems();
+      pendingGuestWatchlistRef.current = getGuestOwnedWatchlistItems();
+      pendingGuestActorsRef.current = getGuestOwnedFavoriteActors();
       const res = await signInWithPopup(auth, googleProvider);
       if (res.user) {
         const guestItems = consumePendingGuestHistory();
+        const guestWatchlist = consumePendingGuestWatchlist();
+        const guestActors = consumePendingGuestActors();
         const cached: CachedAuthUser = {
           uid: res.user.uid,
           email: res.user.email,
@@ -372,8 +402,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await Promise.race([
           Promise.all([
             syncWatchHistoryWithCloud(res.user.uid, true, guestItems),
-            syncWatchlistWithCloud(res.user.uid),
-            syncFavoriteActorsWithCloud(res.user.uid, true),
+            syncWatchlistWithCloud(res.user.uid, guestWatchlist),
+            syncFavoriteActorsWithCloud(res.user.uid, true, guestActors),
             recordUserProfile(res.user),
           ]),
           new Promise((resolve) => setTimeout(resolve, 3000)),
@@ -386,9 +416,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { success: true };
       }
       pendingGuestHistoryRef.current = [];
+      pendingGuestWatchlistRef.current = [];
+      pendingGuestActorsRef.current = [];
       return { success: false, error: "Đăng nhập không thành công" };
     } catch (err: unknown) {
       pendingGuestHistoryRef.current = [];
+      pendingGuestWatchlistRef.current = [];
+      pendingGuestActorsRef.current = [];
       console.error("Lỗi Google Sign-In:", err);
       let message = "Đã xảy ra lỗi khi đăng nhập.";
       if (typeof err === "object" && err !== null && "code" in err) {
@@ -404,7 +438,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       return { success: false, error: message };
     }
-  }, [isConfigured, consumePendingGuestHistory]);
+  }, [isConfigured, consumePendingGuestHistory, consumePendingGuestWatchlist, consumePendingGuestActors]);
 
   const logout = useCallback(async (): Promise<void> => {
     try {

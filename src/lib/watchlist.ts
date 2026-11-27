@@ -37,6 +37,100 @@ export interface WatchlistItem {
 }
 
 const STORAGE_KEY = "nanaflix_watchlist_v1";
+const OWNER_META_KEY = "nanaflix_watchlist_owner_v1";
+const CACHED_AUTH_USER_KEY = "nanaflix_cached_auth_user";
+
+interface WatchlistOwnerMeta {
+  uid: string | null;
+  guest?: boolean;
+  pendingSlugs?: string[];
+}
+
+function getCachedAuthUid(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHED_AUTH_USER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { uid?: unknown };
+    return typeof parsed?.uid === "string" && parsed.uid ? parsed.uid : null;
+  } catch {
+    return null;
+  }
+}
+
+function readOwnerMeta(): WatchlistOwnerMeta | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(OWNER_META_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WatchlistOwnerMeta;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeOwnerMeta(meta: WatchlistOwnerMeta | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!meta) {
+      localStorage.removeItem(OWNER_META_KEY);
+      return;
+    }
+    localStorage.setItem(OWNER_META_KEY, JSON.stringify(meta));
+  } catch {}
+}
+
+function markOwnerMutation(slug: string, action: "add" | "remove" | "confirmed"): void {
+  const ownerUid = getCurrentAuthUser()?.uid || getCachedAuthUid();
+  if (!ownerUid) {
+    if (action === "add") {
+      writeOwnerMeta({ uid: null, guest: true });
+    }
+    return;
+  }
+  const prev = readOwnerMeta();
+  const basePending = prev?.uid === ownerUid && Array.isArray(prev.pendingSlugs)
+    ? prev.pendingSlugs
+    : [];
+  const nextPending = action === "add"
+    ? Array.from(new Set([...basePending, slug]))
+    : basePending.filter((s) => s !== slug);
+
+  writeOwnerMeta({
+    uid: ownerUid,
+    guest: false,
+    pendingSlugs: nextPending.length > 0 ? nextPending : undefined,
+  });
+}
+
+export function getGuestOwnedWatchlistItems(): WatchlistItem[] {
+  const meta = readOwnerMeta();
+  if (!meta?.guest) return [];
+  return getWatchlist();
+}
+
+export function getPendingWatchlistForUser(userId: string): WatchlistItem[] {
+  if (!userId) return [];
+  const meta = readOwnerMeta();
+  if (meta?.uid !== userId || !Array.isArray(meta.pendingSlugs) || meta.pendingSlugs.length === 0) {
+    return [];
+  }
+  const pendingSet = new Set(meta.pendingSlugs);
+  return getWatchlist().filter((item) => item && item.slug && pendingSet.has(item.slug));
+}
+
+export function setWatchlistFromSync(items: WatchlistItem[], userId?: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    updateMemoryCache(items);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    writeOwnerMeta(userId ? { uid: userId, guest: false } : null);
+    window.dispatchEvent(new CustomEvent("watchlist-updated"));
+  } catch (e) {
+    console.error("Lỗi cập nhật danh sách từ cloud:", e);
+  }
+}
 
 // Bộ nhớ đệm in-memory tránh parse JSON lặp lại 60 lần khi mỗi MediaCard lắng nghe sự kiện watchlist-updated
 let memoryWatchlist: WatchlistItem[] | null = null;
@@ -166,6 +260,20 @@ function getCurrentAuthUser(): { uid: string } | null {
   return auth?.currentUser || null;
 }
 
+async function resolveAuthenticatedUser(): Promise<{ uid: string } | null> {
+  const syncUser = getCurrentAuthUser();
+  if (syncUser) return syncUser;
+  if (customAuthUserProvider) return null;
+  if (!getCachedAuthUid()) return null;
+  if (auth && typeof auth.authStateReady === "function") {
+    await Promise.race([
+      auth.authStateReady(),
+      new Promise((resolve) => setTimeout(resolve, 2500)),
+    ]).catch(() => {});
+  }
+  return auth?.currentUser || null;
+}
+
 let mutationSeq = 0;
 const inFlightMutations = new Map<string, number>();
 
@@ -178,19 +286,20 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
     const updated = [itemWithAddedAt, ...list];
     updateMemoryCache(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    markOwnerMutation(item.slug, "add");
     window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug: item.slug } }));
 
     const currentSeq = ++mutationSeq;
     inFlightMutations.set(item.slug, currentSeq);
 
-    // Tự động lưu lên Supabase Cloud nếu đang đăng nhập (kèm snapshot rollback nếu lỗi)
-    const currentUser = getCurrentAuthUser();
-    if (currentUser && watchlistSyncHandler) {
+    const runCloudSave = (currentUser: { uid: string }) => {
+      if (!watchlistSyncHandler) return;
       Promise.resolve(watchlistSyncHandler.saveItem(currentUser.uid, itemWithAddedAt))
         .then((ok) => {
           if (ok === false) {
             if (inFlightMutations.get(item.slug) === currentSeq) {
               inFlightMutations.delete(item.slug);
+              markOwnerMutation(item.slug, "remove");
               const currentNow = getWatchlist();
               const rolledBack = currentNow.filter((i) => i.slug !== item.slug);
               updateMemoryCache(rolledBack);
@@ -201,6 +310,7 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
           } else {
             if (inFlightMutations.get(item.slug) === currentSeq) {
               inFlightMutations.delete(item.slug);
+              markOwnerMutation(item.slug, "confirmed");
             }
           }
         })
@@ -208,6 +318,7 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
           console.warn(`[Watchlist] Error saving to cloud for ${item.slug}:`, err);
           if (inFlightMutations.get(item.slug) === currentSeq) {
             inFlightMutations.delete(item.slug);
+            markOwnerMutation(item.slug, "remove");
             const currentNow = getWatchlist();
             const rolledBack = currentNow.filter((i) => i.slug !== item.slug);
             updateMemoryCache(rolledBack);
@@ -215,6 +326,18 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
             window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug: item.slug } }));
           }
         });
+    };
+
+    // Tự động lưu lên Supabase Cloud nếu đang đăng nhập (kèm snapshot rollback nếu lỗi)
+    const syncUser = getCurrentAuthUser();
+    if (syncUser && watchlistSyncHandler) {
+      runCloudSave(syncUser);
+    } else if (!customAuthUserProvider && watchlistSyncHandler && getCachedAuthUid()) {
+      void resolveAuthenticatedUser().then((resolvedUser) => {
+        if (resolvedUser && inFlightMutations.get(item.slug) === currentSeq && isInWatchlist(item.slug)) {
+          runCloudSave(resolvedUser);
+        }
+      });
     }
   } catch (e) {
     console.error("Lỗi lưu danh sách:", e);
@@ -230,14 +353,14 @@ export function removeFromWatchlist(slug: string): void {
     const updated = list.filter((i) => i.slug !== slug);
     updateMemoryCache(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    markOwnerMutation(slug, "remove");
     window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug } }));
 
     const currentSeq = ++mutationSeq;
     inFlightMutations.set(slug, currentSeq);
 
-    // Tự động xóa khỏi Supabase Cloud nếu đang đăng nhập (kèm snapshot rollback nếu lỗi)
-    const currentUser = getCurrentAuthUser();
-    if (currentUser && watchlistSyncHandler) {
+    const runCloudRemove = (currentUser: { uid: string }) => {
+      if (!watchlistSyncHandler) return;
       Promise.resolve(watchlistSyncHandler.removeItem(currentUser.uid, slug))
         .then((ok) => {
           if (ok === false) {
@@ -271,6 +394,18 @@ export function removeFromWatchlist(slug: string): void {
             }
           }
         });
+    };
+
+    // Tự động xóa khỏi Supabase Cloud nếu đang đăng nhập (kèm snapshot rollback nếu lỗi)
+    const syncUser = getCurrentAuthUser();
+    if (syncUser && watchlistSyncHandler) {
+      runCloudRemove(syncUser);
+    } else if (!customAuthUserProvider && watchlistSyncHandler && getCachedAuthUid()) {
+      void resolveAuthenticatedUser().then((resolvedUser) => {
+        if (resolvedUser && inFlightMutations.get(slug) === currentSeq && !isInWatchlist(slug)) {
+          runCloudRemove(resolvedUser);
+        }
+      });
     }
   } catch (e) {
     console.error("Lỗi xóa khỏi danh sách:", e);
@@ -294,6 +429,7 @@ export function clearLocalWatchlistOnly(): void {
   if (typeof window === "undefined") return;
   try {
     updateMemoryCache([]);
+    writeOwnerMeta(null);
     localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new CustomEvent("watchlist-updated"));
   } catch (e) {
@@ -336,6 +472,7 @@ export async function autoHydrateWatchlist(): Promise<void> {
     if (!data.success || !data.movies) return;
 
     let hasChanges = false;
+    const currentUser = await resolveAuthenticatedUser();
     const currentList = getWatchlist();
     const updatedList = currentList.map((item) => {
       const lookupKey = item.seriesSlug || (item.slug.includes("__ep__") ? item.slug.split("__ep__")[0] : item.slug);
@@ -379,8 +516,8 @@ export async function autoHydrateWatchlist(): Promise<void> {
       if (changed) {
         hasChanges = true;
         // Đẩy metadata cập nhật lên Cloud nếu có auth
-        if (auth?.currentUser) {
-          watchlistSyncHandler?.saveItem(auth.currentUser.uid, updatedItem);
+        if (currentUser) {
+          watchlistSyncHandler?.saveItem(currentUser.uid, updatedItem);
         }
       }
 
