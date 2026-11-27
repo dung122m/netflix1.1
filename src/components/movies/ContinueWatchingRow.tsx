@@ -12,6 +12,7 @@ import Link from "next/link";
 import { X, Film, Play } from "lucide-react";
 import {
   getWatchHistory,
+  getMovieEpisodesProgress,
   removeWatchHistoryItem,
   autoHydrateWatchHistory,
   updateWatchHistoryPoster,
@@ -116,11 +117,20 @@ export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
     return hasNextEpisode;
   }
 
-  // Không hiện phim mới click mở 0 giây (< 10s), trừ khi là phim bộ đã xem ít nhất 1 tập trước đó
+  // Không hiện phim mới click mở 0 giây (< 10s), trừ khi là phim bộ đã xem trước đó
   const hasWatchedPrevEpisodes =
     Array.isArray(item.watchedEpisodes) && item.watchedEpisodes.length > 0;
   if (progress < MIN_CONTINUE_WATCHING_PROGRESS_SECONDS) {
-    return Boolean(hasWatchedPrevEpisodes && (hasNextEpisode || item.episodeSlug));
+    let hasSeriesProgress = hasWatchedPrevEpisodes;
+    if (!hasSeriesProgress && typeof window !== "undefined" && item.slug) {
+      const epProgressMap = getMovieEpisodesProgress(item.slug);
+      hasSeriesProgress = Object.values(epProgressMap).some(
+        (ep) =>
+          (ep?.progressSeconds || 0) >= MIN_CONTINUE_WATCHING_PROGRESS_SECONDS ||
+          Boolean(ep?.isCompleted),
+      );
+    }
+    return Boolean(hasSeriesProgress && (hasNextEpisode || item.episodeSlug));
   }
 
   return true;

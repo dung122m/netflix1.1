@@ -1,5 +1,7 @@
 import {
   getWatchHistory,
+  getPendingHistoryItemsForUser,
+  clearHistoryPendingSlugs,
   setWatchHistoryFromSync,
   registerWatchHistorySyncHandler,
   WatchHistoryItem,
@@ -33,7 +35,7 @@ interface SyncedCloudState {
   syncedAt: number;
 }
 const lastSyncedCloudState = new Map<string, SyncedCloudState>();
-const pendingCloudSaveItems = new Map<string, WatchHistoryItem>();
+const pendingCloudSaveItems = new Map<string, { userId: string; item: WatchHistoryItem }>();
 
 export function mergeWatchedEpisodesForCloud(item: WatchHistoryItem): string[] {
   const fromItem = Array.isArray(item.watchedEpisodes) ? item.watchedEpisodes : [];
@@ -68,6 +70,103 @@ export function cancelPendingCloudSync(): void {
   inFlightFavoriteActorsSync.clear();
 }
 
+function mergeHistoryEntry(
+  existingCloud: WatchHistoryItem,
+  localCandidate: WatchHistoryItem,
+  preferOnTie: boolean,
+): { merged: WatchHistoryItem; needsUpload: boolean } {
+  const localTs = Number(localCandidate.updatedAt) || 0;
+  const cloudTs = Number(existingCloud.updatedAt) || 0;
+  const mergedWatched = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(existingCloud.watchedEpisodes) ? existingCloud.watchedEpisodes : []),
+        ...(Array.isArray(localCandidate.watchedEpisodes) ? localCandidate.watchedEpisodes : []),
+      ].filter(Boolean),
+    ),
+  );
+
+  const isLocalNewer =
+    localTs > cloudTs || (preferOnTie && localTs >= cloudTs);
+
+  if (isLocalNewer) {
+    const winner: WatchHistoryItem = {
+      ...existingCloud,
+      ...localCandidate,
+      watchedEpisodes: mergedWatched,
+    };
+    return { merged: winner, needsUpload: true };
+  }
+
+  const sameEpisode =
+    Boolean(localCandidate.episodeSlug) &&
+    localCandidate.episodeSlug === existingCloud.episodeSlug;
+  const updatedCloud: WatchHistoryItem = {
+    ...existingCloud,
+    nextEpisodeSlug: sameEpisode
+      ? existingCloud.nextEpisodeSlug || localCandidate.nextEpisodeSlug
+      : existingCloud.nextEpisodeSlug,
+    nextEpisodeName: sameEpisode
+      ? existingCloud.nextEpisodeName || localCandidate.nextEpisodeName
+      : existingCloud.nextEpisodeName,
+    watchedEpisodes: mergedWatched,
+  };
+  const watchedGrew =
+    mergedWatched.length > (existingCloud.watchedEpisodes?.length || 0);
+  return { merged: updatedCloud, needsUpload: watchedGrew };
+}
+
+/**
+ * Hợp nhất hai chiều lịch sử xem giữa LocalStorage (hoặc Guest vừa đăng nhập) với Cloud.
+ * - Các mục đang chờ đồng bộ (`pendingSlugs`) hoặc có `updatedAt` mới hơn luôn được bảo toàn & đẩy lên Cloud.
+ * - Không hồi sinh các mục local cũ không nằm trong `pendingSlugs` nếu Cloud không còn (tôn trọng xóa đa thiết bị).
+ */
+export function mergeWatchHistoryWithCloud(
+  cloudItems: WatchHistoryItem[],
+  localItems: WatchHistoryItem[],
+  pendingSlugs: string[] = [],
+  includeAllLocalMissing = false,
+): { merged: WatchHistoryItem[]; itemsToUpload: WatchHistoryItem[] } {
+  const bySlug = new Map<string, WatchHistoryItem>();
+  for (const item of cloudItems) {
+    if (item?.slug) bySlug.set(item.slug, item);
+  }
+
+  const pendingSet = new Set(pendingSlugs.filter(Boolean));
+  const itemsToUpload: WatchHistoryItem[] = [];
+
+  for (const localItem of localItems) {
+    if (!localItem?.slug) continue;
+    const isPending = includeAllLocalMissing || pendingSet.has(localItem.slug);
+    const existingCloud = bySlug.get(localItem.slug);
+
+    if (!existingCloud) {
+      if (isPending) {
+        bySlug.set(localItem.slug, localItem);
+        itemsToUpload.push(localItem);
+      }
+      continue;
+    }
+
+    const { merged, needsUpload } = mergeHistoryEntry(
+      existingCloud,
+      localItem,
+      isPending,
+    );
+    bySlug.set(localItem.slug, merged);
+    if (needsUpload) {
+      itemsToUpload.push(merged);
+    }
+  }
+
+  return {
+    merged: Array.from(bySlug.values()).sort(
+      (a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0),
+    ),
+    itemsToUpload,
+  };
+}
+
 /**
  * Hợp nhất lịch sử xem từ phiên khách hiện tại với dữ liệu Cloud khi khách vừa bấm Đăng nhập.
  * Giữ bản ghi mới hơn theo updatedAt và gộp danh sách watchedEpisodes.
@@ -76,54 +175,7 @@ export function mergeGuestWatchHistoryWithCloud(
   cloudItems: WatchHistoryItem[],
   guestItems: WatchHistoryItem[],
 ): { merged: WatchHistoryItem[]; itemsToUpload: WatchHistoryItem[] } {
-  const bySlug = new Map<string, WatchHistoryItem>();
-  for (const item of cloudItems) {
-    if (item?.slug) bySlug.set(item.slug, item);
-  }
-
-  const itemsToUpload: WatchHistoryItem[] = [];
-  for (const guest of guestItems) {
-    if (!guest?.slug) continue;
-    const existingCloud = bySlug.get(guest.slug);
-    if (!existingCloud) {
-      bySlug.set(guest.slug, guest);
-      itemsToUpload.push(guest);
-      continue;
-    }
-
-    const guestTs = Number(guest.updatedAt) || 0;
-    const cloudTs = Number(existingCloud.updatedAt) || 0;
-    const mergedWatched = Array.from(
-      new Set([
-        ...(Array.isArray(existingCloud.watchedEpisodes) ? existingCloud.watchedEpisodes : []),
-        ...(Array.isArray(guest.watchedEpisodes) ? guest.watchedEpisodes : []),
-      ].filter(Boolean))
-    );
-
-    if (guestTs > cloudTs) {
-      const winner: WatchHistoryItem = {
-        ...existingCloud,
-        ...guest,
-        watchedEpisodes: mergedWatched,
-      };
-      bySlug.set(guest.slug, winner);
-      itemsToUpload.push(winner);
-    } else if (mergedWatched.length > (existingCloud.watchedEpisodes?.length || 0)) {
-      const updatedCloud: WatchHistoryItem = {
-        ...existingCloud,
-        watchedEpisodes: mergedWatched,
-      };
-      bySlug.set(guest.slug, updatedCloud);
-      itemsToUpload.push(updatedCloud);
-    }
-  }
-
-  return {
-    merged: Array.from(bySlug.values()).sort(
-      (a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0)
-    ),
-    itemsToUpload,
-  };
+  return mergeWatchHistoryWithCloud(cloudItems, guestItems, [], true);
 }
 
 /**
@@ -137,13 +189,15 @@ export async function syncWatchHistoryWithCloud(
 ): Promise<WatchHistoryItem[]> {
   if (!userId) return getWatchHistory();
 
-  const hasGuestMerge = Array.isArray(guestItemsToMerge) && guestItemsToMerge.length > 0;
+  const pendingOwned = getPendingHistoryItemsForUser(userId);
+  const guestItems = Array.isArray(guestItemsToMerge) ? guestItemsToMerge : [];
+  const hasExtraMerge = guestItems.length > 0 || pendingOwned.length > 0;
   const existingFlight = inFlightHistorySync.get(userId);
-  if (existingFlight && !hasGuestMerge) return existingFlight;
+  if (existingFlight && guestItems.length === 0) return existingFlight;
 
   const now = Date.now();
   const lastSync = lastHistorySyncMap.get(userId) || 0;
-  if (!force && !hasGuestMerge && lastSync > 0 && now - lastSync < HISTORY_SYNC_THROTTLE_MS) {
+  if (!force && !hasExtraMerge && lastSync > 0 && now - lastSync < HISTORY_SYNC_THROTTLE_MS) {
     return getWatchHistory();
   }
 
@@ -164,26 +218,31 @@ export async function syncWatchHistoryWithCloud(
         lastHistorySyncMap.set(userId, Date.now());
         const json = await res.json();
         if (json.success && Array.isArray(json.items)) {
-          if (hasGuestMerge) {
-            const { merged, itemsToUpload } = mergeGuestWatchHistoryWithCloud(
-              json.items,
-              guestItemsToMerge,
-            );
-            setWatchHistoryFromSync(merged);
-            if (itemsToUpload.length > 0) {
-              await saveWatchItemsBatchToCloud(userId, itemsToUpload);
+          const localList = getWatchHistory();
+          const combinedBySlug = new Map<string, WatchHistoryItem>();
+          for (const item of [...localList, ...pendingOwned, ...guestItems]) {
+            if (!item?.slug) continue;
+            const prev = combinedBySlug.get(item.slug);
+            if (!prev || (Number(item.updatedAt) || 0) > (Number(prev.updatedAt) || 0)) {
+              combinedBySlug.set(item.slug, item);
             }
-            return getWatchHistory();
           }
-          if (json.items.length > 0) {
-            setWatchHistoryFromSync(json.items);
-            return getWatchHistory();
-          } else {
-            // Khi cloud history của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
-            // Đặt local history về rỗng để phân lập hoàn toàn với tài khoản trước.
-            setWatchHistoryFromSync([]);
-            return [];
+          const allowedPendingSlugs = [
+            ...pendingOwned.map((i) => i.slug),
+            ...guestItems.map((i) => i.slug),
+          ];
+
+          const { merged, itemsToUpload } = mergeWatchHistoryWithCloud(
+            json.items,
+            Array.from(combinedBySlug.values()),
+            allowedPendingSlugs,
+          );
+
+          if (itemsToUpload.length > 0) {
+            await saveWatchItemsBatchToCloud(userId, itemsToUpload);
           }
+          setWatchHistoryFromSync(merged);
+          return getWatchHistory();
         }
       }
 
@@ -200,10 +259,89 @@ export async function syncWatchHistoryWithCloud(
   return syncPromise;
 }
 
+async function postWatchItemsToCloud(
+  userId: string,
+  items: WatchHistoryItem[],
+  useKeepalive = false,
+): Promise<boolean> {
+  const validItems = items.filter((i) => i && i.slug);
+  if (!userId || validItems.length === 0) return false;
+  try {
+    const headers = await getAuthHeaders(userId);
+    if (!headers["Authorization" as keyof typeof headers]) return false;
+
+    const now = Date.now();
+    const res = await fetch("/api/user/history", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        items: validItems.map((item) => ({
+          ...item,
+          watchedEpisodes: mergeWatchedEpisodesForCloud(item),
+          updatedAt: item.updatedAt || now,
+        })),
+      }),
+      keepalive: useKeepalive,
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (res.ok) {
+      clearHistoryPendingSlugs(
+        userId,
+        validItems.map((i) => i.slug),
+      );
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn("Lỗi đồng bộ lịch sử lên Server API:", err);
+    return false;
+  }
+}
+
 /**
- * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced 60s-120s + Dirty check)
- * - Tối ưu debounce đối với tiến trình liên tục, tiết kiệm 85%+ request Vercel
- * - Chỉ gửi Cloud update ngay nếu kết thúc phim, đổi tập, hoặc force cách lần trước >= 45s
+ * Đẩy ngay toàn bộ hàng đợi lịch sử đang chờ debounce lên Cloud (dùng khi rời trang / ẩn tab).
+ */
+export function flushPendingCloudHistorySaves(): void {
+  if (pendingCloudSaveItems.size === 0) return;
+
+  for (const timer of cloudSaveTimers.values()) {
+    clearTimeout(timer);
+  }
+  cloudSaveTimers.clear();
+
+  const byUser = new Map<string, WatchHistoryItem[]>();
+  for (const [key, entry] of pendingCloudSaveItems.entries()) {
+    pendingCloudSaveItems.delete(key);
+    if (!entry?.userId || !entry.item?.slug) continue;
+    lastSyncedCloudState.set(key, {
+      progressSeconds: entry.item.progressSeconds ?? 0,
+      episodeSlug: entry.item.episodeSlug,
+      syncedAt: Date.now(),
+    });
+    const arr = byUser.get(entry.userId) || [];
+    arr.push(entry.item);
+    byUser.set(entry.userId, arr);
+  }
+
+  for (const [uid, items] of byUser.entries()) {
+    void postWatchItemsToCloud(uid, items, true);
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushPendingCloudHistorySaves);
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        flushPendingCloudHistorySaves();
+      }
+    });
+  }
+}
+
+/**
+ * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced + Dirty check + Flush khi rời tab)
  */
 export function saveWatchItemToCloudDebounced(
   userId: string,
@@ -222,22 +360,16 @@ export function saveWatchItemToCloudDebounced(
   const now = Date.now();
   const timeSinceLastSync = lastSynced ? now - lastSynced.syncedAt : Infinity;
 
-  // Cơ chế chống trùng lặp (dedupe): bỏ qua request đồng bộ nếu vị trí thời gian xem (currentTime)
-  // chênh lệch dưới 5 giây so với lần sync thành công gần nhất (trừ sự kiện Ended hết tập hoặc đổi tập)
   if (lastSynced && !isEpisodeChanged && !options?.isEnded) {
     if (Math.abs(currentProgress - lastSynced.progressSeconds) < 5) {
       return;
     }
   }
 
-  // Luôn cập nhật thông tin mới nhất vào hàng đợi pending
-  pendingCloudSaveItems.set(key, item);
+  pendingCloudSaveItems.set(key, { userId, item });
 
-  // Chỉ gửi Cloud ngay lập tức nếu:
-  // 1. Phim/tập đã kết thúc (isEnded = true)
-  // 2. Chuyển sang tập mới (isEpisodeChanged = true)
-  // 3. Được yêu cầu force VÀ đã qua tối thiểu 45 giây kể từ lần sync Cloud gần nhất
-  const shouldImmediateSync = options?.isEnded || isEpisodeChanged || (options?.force && timeSinceLastSync >= 45000);
+  const shouldImmediateSync =
+    options?.isEnded || isEpisodeChanged || (options?.force && timeSinceLastSync >= 45000);
 
   if (shouldImmediateSync) {
     if (cloudSaveTimers.has(key)) {
@@ -245,7 +377,8 @@ export function saveWatchItemToCloudDebounced(
       cloudSaveTimers.delete(key);
     }
 
-    const targetItem = pendingCloudSaveItems.get(key) || item;
+    const pending = pendingCloudSaveItems.get(key);
+    const targetItem = pending?.item || item;
     pendingCloudSaveItems.delete(key);
 
     lastSyncedCloudState.set(key, {
@@ -254,45 +387,23 @@ export function saveWatchItemToCloudDebounced(
       syncedAt: Date.now(),
     });
 
-    (async () => {
-      try {
-        const headers = await getAuthHeaders(userId);
-        if (!headers["Authorization" as keyof typeof headers]) return;
-
-        const itemToSync = {
-          ...targetItem,
-          watchedEpisodes: mergeWatchedEpisodesForCloud(targetItem),
-          updatedAt: targetItem.updatedAt || Date.now(),
-        };
-
-        await fetch("/api/user/history", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ items: [itemToSync] }),
-          keepalive: true,
-          signal: AbortSignal.timeout(8000),
-        });
-      } catch (err) {
-        console.warn("Lỗi saveWatchItemToCloudDebounced (force):", err);
-      }
-    })();
+    void postWatchItemsToCloud(userId, [targetItem], true);
     return;
   }
 
-  // Nếu không phải immediate sync, và tiến trình chưa thay đổi đáng kể và không đổi tập -> bỏ qua
   if (!isProgressSignificant && !isEpisodeChanged && !options?.force) {
     return;
   }
 
-  // Nếu đã có timer đang chạy, giữ nguyên timer để không bị reset vô hạn khi xem phim liên tục
   if (cloudSaveTimers.has(key)) {
     return;
   }
 
-  const effectiveDelay = Math.max(delayMs, 60000); // Tối thiểu 60 giây debounce khi xem
-  const timer = setTimeout(async () => {
+  const effectiveDelay = Math.max(delayMs, 15000);
+  const timer = setTimeout(() => {
     cloudSaveTimers.delete(key);
-    const targetItem = pendingCloudSaveItems.get(key) || item;
+    const pending = pendingCloudSaveItems.get(key);
+    const targetItem = pending?.item || item;
     pendingCloudSaveItems.delete(key);
 
     lastSyncedCloudState.set(key, {
@@ -301,26 +412,7 @@ export function saveWatchItemToCloudDebounced(
       syncedAt: Date.now(),
     });
 
-    try {
-      const headers = await getAuthHeaders(userId);
-      if (!headers["Authorization" as keyof typeof headers]) return;
-
-      const itemToSync = {
-        ...targetItem,
-        watchedEpisodes: mergeWatchedEpisodesForCloud(targetItem),
-        updatedAt: targetItem.updatedAt || Date.now(),
-      };
-
-      await fetch("/api/user/history", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ items: [itemToSync] }),
-        keepalive: true,
-        signal: AbortSignal.timeout(8000),
-      });
-    } catch (err) {
-      console.warn("Lỗi saveWatchItemToCloudDebounced:", err);
-    }
+    void postWatchItemsToCloud(userId, [targetItem], true);
   }, effectiveDelay);
 
   cloudSaveTimers.set(key, timer);
@@ -348,24 +440,7 @@ export async function saveWatchItemsBatchToCloud(
     });
   }
 
-  try {
-    const headers = await getAuthHeaders(userId);
-    if (!headers["Authorization" as keyof typeof headers]) return;
-
-    await fetch("/api/user/history", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        items: validItems.map((item) => ({
-          ...item,
-          watchedEpisodes: mergeWatchedEpisodesForCloud(item),
-          updatedAt: item.updatedAt || now,
-        })),
-      }),
-    });
-  } catch (err) {
-    console.warn("Lỗi saveWatchItemsBatchToCloud:", err);
-  }
+  await postWatchItemsToCloud(userId, validItems, false);
 }
 
 /**

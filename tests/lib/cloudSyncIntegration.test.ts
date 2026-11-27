@@ -77,6 +77,8 @@ describe("Nanaflix Wave 2 — Cloud Sync, Watch History & Watchlist Integration 
   const {
     syncWatchHistoryWithCloud,
     syncWatchlistWithCloud,
+    mergeWatchHistoryWithCloud,
+    _resetCloudSyncStateForTest,
   } = await import("@/lib/cloudSync");
 
   let mockUser: { uid: string; getIdToken: () => Promise<string> } | null = null;
@@ -294,5 +296,80 @@ describe("Nanaflix Wave 2 — Cloud Sync, Watch History & Watchlist Integration 
 
     await new Promise((r) => setTimeout(r, 30));
     assert.equal(syncedUid, "user_cold_reload");
+  });
+
+  it("8. Đồng bộ Cloud KHÔNG được ghi đè mất phim mới xem ở local chưa kịp đẩy lên Cloud", async () => {
+    _resetCloudSyncStateForTest();
+    mockUser = { uid: "user_history_preserve", getIdToken: async () => "token_hist" };
+
+    const nowTs = Date.now();
+    // Người dùng vừa xem một tập phim mới ở local (lưu qua saveWatchHistory, chưa kịp flush lên Cloud)
+    saveWatchHistory({
+      slug: "series-newly-watched",
+      title: "Phim Bộ Mới Xem",
+      poster: "poster.jpg",
+      episodeSlug: "tap-77",
+      episodeName: "Tập 77",
+      progressSeconds: 420,
+      durationSeconds: 1400,
+      updatedAt: nowTs,
+    });
+
+    let uploadedSlugs: string[] = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (url: string | URL | Request, init?: RequestInit) => {
+      const urlStr = typeof url === "string" ? url : url.toString();
+      if (urlStr.includes("/api/user/history")) {
+        if (init?.method === "POST") {
+          const parsed = JSON.parse(String(init.body || "{}"));
+          uploadedSlugs = (parsed.items || []).map((i: any) => i.slug);
+          return { ok: true, json: async () => ({ success: true }) } as any;
+        }
+        // Cloud trả về danh sách cũ KHÔNG có phim vừa xem và có 1 phim cũ khác
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            items: [
+              {
+                slug: "old-cloud-movie",
+                title: "Phim Cũ Trên Cloud",
+                poster: "old.jpg",
+                progressSeconds: 100,
+                durationSeconds: 3000,
+                updatedAt: nowTs - 100000,
+              },
+            ],
+          }),
+        } as any;
+      }
+      return { ok: true, json: async () => ({ success: true }) } as any;
+    };
+
+    try {
+      const synced = await syncWatchHistoryWithCloud("user_history_preserve", true);
+      assert.equal(synced.length, 2, "Phải giữ lại cả phim mới xem ở local lẫn phim trên Cloud");
+      assert.equal(synced[0].slug, "series-newly-watched", "Phim mới xem phải đứng đầu theo updatedAt");
+      assert.ok(
+        uploadedSlugs.includes("series-newly-watched"),
+        "Phim mới xem ở local phải được đẩy bù lên Cloud khi sync",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("9. mergeWatchHistoryWithCloud không hồi sinh mục local cũ đã xóa trên Cloud nếu không nằm trong pendingSlugs", () => {
+    const cloud = [
+      { slug: "kept-movie", title: "Kept", poster: "k.jpg", updatedAt: 5000 },
+    ];
+    const local = [
+      { slug: "kept-movie", title: "Kept", poster: "k.jpg", updatedAt: 4000 },
+      { slug: "deleted-elsewhere", title: "Deleted", poster: "d.jpg", updatedAt: 3000 },
+    ];
+
+    const { merged, itemsToUpload } = mergeWatchHistoryWithCloud(cloud, local, []);
+    assert.deepEqual(merged.map((i) => i.slug), ["kept-movie"]);
+    assert.equal(itemsToUpload.length, 0);
   });
 });

@@ -41,9 +41,85 @@ export interface WatchHistoryItem {
 const HISTORY_KEY = "nanaflix_watch_history";
 const EPISODES_PROGRESS_KEY = "nanaflix_episodes_progress";
 const GUEST_HISTORY_SLUGS_KEY = "nanaflix_guest_history_slugs";
+const HISTORY_OWNER_META_KEY = "nanaflix_history_owner_v1";
 const CACHED_AUTH_USER_KEY = "nanaflix_cached_auth_user";
 export const MAX_HISTORY_STORAGE_ITEMS = 150;
 export const MAX_HISTORY_ITEMS = MAX_HISTORY_STORAGE_ITEMS;
+
+interface HistoryOwnerMeta {
+  uid: string | null;
+  pendingSlugs?: string[];
+}
+
+function getCachedAuthUidForHistory(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHED_AUTH_USER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { uid?: unknown };
+    return typeof parsed?.uid === "string" && parsed.uid ? parsed.uid : null;
+  } catch {
+    return null;
+  }
+}
+
+function readHistoryOwnerMeta(): HistoryOwnerMeta | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(HISTORY_OWNER_META_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as HistoryOwnerMeta;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeHistoryOwnerMeta(meta: HistoryOwnerMeta | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!meta) {
+      localStorage.removeItem(HISTORY_OWNER_META_KEY);
+      return;
+    }
+    localStorage.setItem(HISTORY_OWNER_META_KEY, JSON.stringify(meta));
+  } catch {}
+}
+
+function markHistorySlugPendingForUser(uid: string | null, slug: string): void {
+  if (!uid || !slug || typeof window === "undefined") return;
+  const current = readHistoryOwnerMeta();
+  const baseSlugs =
+    current && current.uid === uid && Array.isArray(current.pendingSlugs)
+      ? current.pendingSlugs
+      : [];
+  const nextSlugs = [slug, ...baseSlugs.filter((s) => s !== slug)].slice(
+    0,
+    MAX_HISTORY_STORAGE_ITEMS,
+  );
+  writeHistoryOwnerMeta({ uid, pendingSlugs: nextSlugs });
+}
+
+export function clearHistoryPendingSlugs(uid: string, slugs: string[]): void {
+  if (!uid || !Array.isArray(slugs) || slugs.length === 0 || typeof window === "undefined") {
+    return;
+  }
+  const current = readHistoryOwnerMeta();
+  if (!current || current.uid !== uid || !Array.isArray(current.pendingSlugs)) return;
+  const clearedSet = new Set(slugs.filter(Boolean));
+  const remaining = current.pendingSlugs.filter((s) => !clearedSet.has(s));
+  writeHistoryOwnerMeta({ uid, pendingSlugs: remaining });
+}
+
+export function getPendingHistoryItemsForUser(uid: string): WatchHistoryItem[] {
+  if (!uid || typeof window === "undefined") return [];
+  const current = readHistoryOwnerMeta();
+  if (!current || current.uid !== uid || !Array.isArray(current.pendingSlugs) || current.pendingSlugs.length === 0) {
+    return [];
+  }
+  const pendingSet = new Set(current.pendingSlugs);
+  return getWatchHistory().filter((item) => item.slug && pendingSet.has(item.slug));
+}
 
 function isPureGuestSession(): boolean {
   if (typeof window === "undefined") return false;
@@ -462,6 +538,10 @@ export const saveWatchHistory = (
     updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     markSlugAsGuestOwned(newItem.slug);
+    markHistorySlugPendingForUser(
+      auth?.currentUser?.uid || getCachedAuthUidForHistory(),
+      newItem.slug,
+    );
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     // Tự động đẩy lên Cloud nếu người dùng đã đăng nhập Google (đã lưu trực tiếp vào watch_history)
@@ -659,6 +739,10 @@ export const saveWatchProgress = (
     updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     markSlugAsGuestOwned(slug);
+    markHistorySlugPendingForUser(
+      auth?.currentUser?.uid || getCachedAuthUidForHistory(),
+      slug,
+    );
 
     // Phát sự kiện realtime cho toàn bộ trang
     window.dispatchEvent(
@@ -843,6 +927,10 @@ export const removeWatchHistoryItem = (slug: string): void => {
     } catch {}
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
+    const activeUid = auth?.currentUser?.uid || getCachedAuthUidForHistory();
+    if (activeUid) {
+      clearHistoryPendingSlugs(activeUid, [slug]);
+    }
     if (auth?.currentUser) {
       syncHandler?.removeItem(auth.currentUser.uid, slug);
     }
@@ -859,6 +947,7 @@ export const clearLocalWatchHistoryOnly = (): void => {
     localStorage.removeItem(HISTORY_KEY);
     localStorage.removeItem(EPISODES_PROGRESS_KEY);
     clearGuestHistorySlugs();
+    writeHistoryOwnerMeta(null);
     // Dọn sạch danh sách tập đã xem để phân lập tuyệt đối giữa các tài khoản
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
@@ -880,6 +969,7 @@ export const clearWatchHistory = (): void => {
     localStorage.removeItem(HISTORY_KEY);
     localStorage.removeItem(EPISODES_PROGRESS_KEY);
     clearGuestHistorySlugs();
+    writeHistoryOwnerMeta(null);
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
       if (key && key.startsWith("nanaflix_watched_eps_")) {
