@@ -50,12 +50,19 @@ import {
   setWatchHistoryFromSync,
   getEpisodeProgress,
   getAllEpisodeProgress,
+  getGuestOwnedWatchHistoryItems,
   invalidateMemoryWatchHistory,
   MAX_HISTORY_STORAGE_ITEMS,
 } from "@/lib/watchHistory";
 import { markEpisodeAsWatched } from "@/lib/episodeTracker";
-import { mergeWatchedEpisodesForCloud } from "@/lib/cloudSync";
-import { isContinueWatchingItem } from "@/components/movies/ContinueWatchingRow";
+import {
+  mergeWatchedEpisodesForCloud,
+  mergeGuestWatchHistoryWithCloud,
+} from "@/lib/cloudSync";
+import {
+  isContinueWatchingItem,
+  MIN_CONTINUE_WATCHING_PROGRESS_SECONDS,
+} from "@/components/movies/ContinueWatchingRow";
 
 describe("Nanaflix Watch History — Regression & Invariant Tests", () => {
   beforeEach(() => {
@@ -383,5 +390,97 @@ describe("Nanaflix Watch History — Regression & Invariant Tests", () => {
     assert.equal(isFullEpisodeLabel("Tập 01"), false);
     assert.equal(formatEpisodeName("01"), "Tập 01");
     assert.equal(formatEpisodeName("Tập 72"), "Tập 72");
+  });
+
+  it("15. ContinueWatching filtering: chặn phim mới mở < 10s và giữ phim bộ còn tập tiếp theo dù tập hiện tại >= 95%", () => {
+    assert.equal(MIN_CONTINUE_WATCHING_PROGRESS_SECONDS, 10);
+
+    // 1. Mới mở trang xem 0s hoặc 5s -> chưa hiện ở Tiếp tục xem
+    assert.equal(
+      isContinueWatchingItem({
+        slug: "zero-sec-movie",
+        title: "Mới Mở",
+        poster: "/p.jpg",
+        updatedAt: Date.now(),
+      }),
+      false,
+    );
+    assert.equal(
+      isContinueWatchingItem({
+        slug: "five-sec-movie",
+        title: "Xem 5s",
+        poster: "/p.jpg",
+        progressSeconds: 5,
+        durationSeconds: 3600,
+        updatedAt: Date.now(),
+      }),
+      false,
+    );
+
+    // 2. Phim bộ xem hết Tập 1 (100%) nhưng còn Tập 2 -> vẫn giữ lại trong Tiếp tục xem
+    assert.equal(
+      isContinueWatchingItem({
+        slug: "series-next-ep",
+        title: "Phim Bộ",
+        poster: "/s.jpg",
+        episodeSlug: "tap-1",
+        episodeName: "Tập 1",
+        nextEpisodeSlug: "tap-2",
+        nextEpisodeName: "Tập 2",
+        progressSeconds: 2400,
+        durationSeconds: 2400,
+        updatedAt: Date.now(),
+      }),
+      true,
+    );
+
+    // 3. Phim bộ xem hết tập cuối (không có nextEpisodeSlug) -> ẩn khỏi Tiếp tục xem
+    assert.equal(
+      isContinueWatchingItem({
+        slug: "series-last-ep",
+        title: "Phim Bộ Tập Cuối",
+        poster: "/s2.jpg",
+        episodeSlug: "tap-20",
+        episodeName: "Tập 20",
+        progressSeconds: 2400,
+        durationSeconds: 2400,
+        updatedAt: Date.now(),
+      }),
+      false,
+    );
+  });
+
+  it("16. Guest watch history merge: giữ và hợp nhất các phim khách vừa xem khi khách chủ động đăng nhập", () => {
+    saveWatchHistory({
+      slug: "guest-watched-1",
+      title: "Phim Khách Xem",
+      poster: "/g1.jpg",
+      progressSeconds: 320,
+      durationSeconds: 1800,
+      updatedAt: 5000,
+    });
+
+    const guestOwned = getGuestOwnedWatchHistoryItems();
+    assert.equal(guestOwned.length, 1);
+    assert.equal(guestOwned[0].slug, "guest-watched-1");
+
+    const { merged, itemsToUpload } = mergeGuestWatchHistoryWithCloud(
+      [
+        {
+          slug: "cloud-old-1",
+          title: "Phim Cloud",
+          poster: "/c1.jpg",
+          progressSeconds: 500,
+          durationSeconds: 2000,
+          updatedAt: 3000,
+        },
+      ],
+      guestOwned,
+    );
+
+    assert.equal(merged.length, 2);
+    assert.equal(merged[0].slug, "guest-watched-1");
+    assert.equal(itemsToUpload.length, 1);
+    assert.equal(itemsToUpload[0].slug, "guest-watched-1");
   });
 });

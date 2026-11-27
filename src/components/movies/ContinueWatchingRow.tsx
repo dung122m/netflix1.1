@@ -96,11 +96,33 @@ function persistLoadedPoster(url: string) {
 
 const loadedPostersCache = buildLoadedPostersCache();
 
+export const MIN_CONTINUE_WATCHING_PROGRESS_SECONDS = 10;
+
+export function isContinueWatchingEpisodeFinished(item: WatchHistoryItem): boolean {
+  return Boolean(
+    item.durationSeconds &&
+      item.durationSeconds > 0 &&
+      typeof item.progressSeconds === "number" &&
+      (item.progressSeconds / item.durationSeconds) * 100 >= 95
+  );
+}
+
 export function isContinueWatchingItem(item: WatchHistoryItem): boolean {
-  if (item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number") {
-    const percent = (item.progressSeconds / item.durationSeconds) * 100;
-    return percent < 95;
+  const progress = typeof item.progressSeconds === "number" ? item.progressSeconds : 0;
+  const hasNextEpisode = Boolean(item.nextEpisodeSlug);
+
+  if (isContinueWatchingEpisodeFinished(item)) {
+    // Phim bộ còn tập kế tiếp -> giữ lại trên "Tiếp tục xem" để gợi ý chuyển tập tiếp theo
+    return hasNextEpisode;
   }
+
+  // Không hiện phim mới click mở 0 giây (< 10s), trừ khi là phim bộ đã xem ít nhất 1 tập trước đó
+  const hasWatchedPrevEpisodes =
+    Array.isArray(item.watchedEpisodes) && item.watchedEpisodes.length > 0;
+  if (progress < MIN_CONTINUE_WATCHING_PROGRESS_SECONDS) {
+    return Boolean(hasWatchedPrevEpisodes && (hasNextEpisode || item.episodeSlug));
+  }
+
   return true;
 }
 
@@ -245,17 +267,27 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
     setIsLoaded(true);
   }, [imgSrc, item.thumb, displaySrc, triggerFallback]);
 
-  const href = item.episodeSlug
-    ? `/movies/${item.slug}?ep=${item.episodeSlug}`
+  const advanceToNextEpisode = isContinueWatchingEpisodeFinished(item) && Boolean(item.nextEpisodeSlug);
+  const targetEpisodeSlug = advanceToNextEpisode ? item.nextEpisodeSlug : item.episodeSlug;
+  const targetEpisodeName = advanceToNextEpisode
+    ? (item.nextEpisodeName || item.nextEpisodeSlug)
+    : item.episodeName;
+
+  const href = targetEpisodeSlug
+    ? `/movies/${item.slug}?ep=${targetEpisodeSlug}`
     : `/movies/${item.slug}`;
 
-  const progressPercent =
-    item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number"
+  const progressPercent = advanceToNextEpisode
+    ? 0
+    : item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number"
       ? Math.min(100, Math.max(0, Math.round((item.progressSeconds / item.durationSeconds) * 100)))
       : 0;
 
   const remainingMinutes =
-    item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number"
+    !advanceToNextEpisode &&
+    item.durationSeconds &&
+    item.durationSeconds > 0 &&
+    typeof item.progressSeconds === "number"
       ? Math.max(1, Math.round((item.durationSeconds - item.progressSeconds) / 60))
       : null;
 
@@ -353,8 +385,10 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-netflix-red flex-shrink-0" />
               <span className="text-zinc-300 font-medium truncate">
-                {item.episodeName && !isFullEpisodeLabel(item.episodeName)
-                  ? formatEpisodeName(item.episodeName)
+                {advanceToNextEpisode && targetEpisodeName
+                  ? `Tiếp: ${formatEpisodeName(targetEpisodeName)}`
+                  : targetEpisodeName && !isFullEpisodeLabel(targetEpisodeName)
+                  ? formatEpisodeName(targetEpisodeName)
                   : "Xem tiếp"}
               </span>
             </div>
@@ -375,6 +409,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 // =========================================================================
 const emptyArray: WatchHistoryItem[] = [];
 let cachedSnapshot: WatchHistoryItem[] = [];
+let cachedRawHistory: WatchHistoryItem[] | null = null;
 let cachedVersion = -1;
 let currentVersion = 0;
 
@@ -407,8 +442,10 @@ function subscribeWatchHistory(callback: () => void) {
 
 function getWatchHistorySnapshot(): WatchHistoryItem[] {
   if (typeof window === "undefined") return emptyArray;
-  if (currentVersion !== cachedVersion) {
-    cachedSnapshot = getWatchHistory().filter(isContinueWatchingItem);
+  const latestHistory = getWatchHistory();
+  if (currentVersion !== cachedVersion || latestHistory !== cachedRawHistory) {
+    cachedRawHistory = latestHistory;
+    cachedSnapshot = latestHistory.filter(isContinueWatchingItem);
     cachedVersion = currentVersion;
   }
   return cachedSnapshot;

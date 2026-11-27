@@ -24,6 +24,8 @@ export interface WatchHistoryItem {
   thumb?: string;
   episodeName?: string;
   episodeSlug?: string;
+  nextEpisodeSlug?: string;
+  nextEpisodeName?: string;
   year?: number | string;
   quality?: string;
   category?: string;
@@ -38,8 +40,58 @@ export interface WatchHistoryItem {
 
 const HISTORY_KEY = "nanaflix_watch_history";
 const EPISODES_PROGRESS_KEY = "nanaflix_episodes_progress";
+const GUEST_HISTORY_SLUGS_KEY = "nanaflix_guest_history_slugs";
+const CACHED_AUTH_USER_KEY = "nanaflix_cached_auth_user";
 export const MAX_HISTORY_STORAGE_ITEMS = 150;
 export const MAX_HISTORY_ITEMS = MAX_HISTORY_STORAGE_ITEMS;
+
+function isPureGuestSession(): boolean {
+  if (typeof window === "undefined") return false;
+  if (auth?.currentUser) return false;
+  try {
+    return !localStorage.getItem(CACHED_AUTH_USER_KEY);
+  } catch {
+    return false;
+  }
+}
+
+function readGuestHistorySlugs(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(GUEST_HISTORY_SLUGS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string" && s.length > 0) : [];
+  } catch {
+    return [];
+  }
+}
+
+function markSlugAsGuestOwned(slug: string): void {
+  if (!slug || !isPureGuestSession()) return;
+  try {
+    const current = readGuestHistorySlugs().filter((s) => s !== slug);
+    const updated = [slug, ...current].slice(0, MAX_HISTORY_STORAGE_ITEMS);
+    localStorage.setItem(GUEST_HISTORY_SLUGS_KEY, JSON.stringify(updated));
+  } catch {}
+}
+
+export function clearGuestHistorySlugs(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(GUEST_HISTORY_SLUGS_KEY);
+  } catch {}
+}
+
+/**
+ * Trả về các mục lịch sử được xem trực tiếp trong phiên khách hiện tại
+ * (tách biệt hoàn toàn với dữ liệu sót lại từ tài khoản khác).
+ */
+export function getGuestOwnedWatchHistoryItems(): WatchHistoryItem[] {
+  const guestSlugs = new Set(readGuestHistorySlugs());
+  if (guestSlugs.size === 0) return [];
+  return getWatchHistory().filter((item) => item.slug && guestSlugs.has(item.slug));
+}
 
 // Client-side debounce map to prevent rapid duplicate record-view calls on component re-renders
 const clientViewThrottleMap = new Map<string, number>();
@@ -62,8 +114,26 @@ export function invalidateMemoryWatchHistory(): void {
 
 export function setWatchHistoryFromSync(items: WatchHistoryItem[]): void {
   if (typeof window === "undefined") return;
-  const sorted = sortWatchHistory(items).slice(0, MAX_HISTORY_STORAGE_ITEMS);
+  const previousLocalMap = new Map(getWatchHistory().map((i) => [i.slug, i]));
+  const enriched = items.map((item) => {
+    const prev = previousLocalMap.get(item.slug);
+    if (
+      prev &&
+      prev.episodeSlug === item.episodeSlug &&
+      !item.nextEpisodeSlug &&
+      prev.nextEpisodeSlug
+    ) {
+      return {
+        ...item,
+        nextEpisodeSlug: prev.nextEpisodeSlug,
+        nextEpisodeName: prev.nextEpisodeName,
+      };
+    }
+    return item;
+  });
+  const sorted = sortWatchHistory(enriched).slice(0, MAX_HISTORY_STORAGE_ITEMS);
   updateMemoryWatchHistory(sorted);
+  clearGuestHistorySlugs();
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(sorted));
 
@@ -356,6 +426,20 @@ export const saveWatchHistory = (
       ].filter(Boolean))
     );
 
+    const resolvedNextEpisodeSlug =
+      "nextEpisodeSlug" in item
+        ? (item.nextEpisodeSlug || undefined)
+        : isDifferentEpisode
+        ? undefined
+        : existing?.nextEpisodeSlug;
+
+    const resolvedNextEpisodeName =
+      "nextEpisodeName" in item
+        ? (item.nextEpisodeName || undefined)
+        : isDifferentEpisode
+        ? undefined
+        : existing?.nextEpisodeName;
+
     const newItem: WatchHistoryItem = {
       ...existing,
       ...item,
@@ -366,6 +450,8 @@ export const saveWatchHistory = (
       country: item.country || existing?.country,
       category: item.category || existing?.category,
       type: item.type || existing?.type,
+      nextEpisodeSlug: resolvedNextEpisodeSlug,
+      nextEpisodeName: resolvedNextEpisodeName,
       progressSeconds: resolvedProgressSeconds,
       durationSeconds: resolvedDurationSeconds,
       watchedEpisodes: resolvedWatchedEpisodes,
@@ -375,6 +461,7 @@ export const saveWatchHistory = (
     const updated = [newItem, ...filtered].slice(0, MAX_HISTORY_STORAGE_ITEMS);
     updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    markSlugAsGuestOwned(newItem.slug);
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     // Tự động đẩy lên Cloud nếu người dùng đã đăng nhập Google (đã lưu trực tiếp vào watch_history)
@@ -464,6 +551,8 @@ export const saveWatchProgress = (
     poster?: string;
     thumb?: string;
     episodeName?: string;
+    nextEpisodeSlug?: string;
+    nextEpisodeName?: string;
     year?: number | string;
     quality?: string;
     category?: string;
@@ -494,6 +583,10 @@ export const saveWatchProgress = (
         if (extraMeta?.episodeName) {
           existing.episodeName = extraMeta.episodeName;
         }
+      }
+      if (extraMeta && "nextEpisodeSlug" in extraMeta) {
+        existing.nextEpisodeSlug = extraMeta.nextEpisodeSlug || undefined;
+        existing.nextEpisodeName = extraMeta.nextEpisodeName || undefined;
       }
       if (extraMeta?.title && (existing.title === slug || !existing.title)) {
         existing.title = extraMeta.title;
@@ -532,6 +625,8 @@ export const saveWatchProgress = (
         thumb: extraMeta?.thumb,
         episodeSlug,
         episodeName: extraMeta?.episodeName,
+        nextEpisodeSlug: extraMeta?.nextEpisodeSlug || undefined,
+        nextEpisodeName: extraMeta?.nextEpisodeName || undefined,
         year: extraMeta?.year,
         quality: extraMeta?.quality || "HD",
         category: extraMeta?.category,
@@ -563,6 +658,7 @@ export const saveWatchProgress = (
     const updated = [targetItem, ...filtered].slice(0, MAX_HISTORY_STORAGE_ITEMS);
     updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    markSlugAsGuestOwned(slug);
 
     // Phát sự kiện realtime cho toàn bộ trang
     window.dispatchEvent(
@@ -737,6 +833,14 @@ export const removeWatchHistoryItem = (slug: string): void => {
     const updated = list.filter((i) => i.slug !== slug);
     updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    try {
+      const remainingGuest = readGuestHistorySlugs().filter((s) => s !== slug);
+      if (remainingGuest.length > 0) {
+        localStorage.setItem(GUEST_HISTORY_SLUGS_KEY, JSON.stringify(remainingGuest));
+      } else {
+        localStorage.removeItem(GUEST_HISTORY_SLUGS_KEY);
+      }
+    } catch {}
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     if (auth?.currentUser) {
@@ -754,6 +858,7 @@ export const clearLocalWatchHistoryOnly = (): void => {
     updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
     localStorage.removeItem(EPISODES_PROGRESS_KEY);
+    clearGuestHistorySlugs();
     // Dọn sạch danh sách tập đã xem để phân lập tuyệt đối giữa các tài khoản
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
@@ -774,6 +879,7 @@ export const clearWatchHistory = (): void => {
     updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
     localStorage.removeItem(EPISODES_PROGRESS_KEY);
+    clearGuestHistorySlugs();
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
       if (key && key.startsWith("nanaflix_watched_eps_")) {

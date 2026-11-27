@@ -68,21 +68,81 @@ export function cancelPendingCloudSync(): void {
 }
 
 /**
+ * Hợp nhất lịch sử xem từ phiên khách hiện tại với dữ liệu Cloud khi khách vừa bấm Đăng nhập.
+ * Giữ bản ghi mới hơn theo updatedAt và gộp danh sách watchedEpisodes.
+ */
+export function mergeGuestWatchHistoryWithCloud(
+  cloudItems: WatchHistoryItem[],
+  guestItems: WatchHistoryItem[],
+): { merged: WatchHistoryItem[]; itemsToUpload: WatchHistoryItem[] } {
+  const bySlug = new Map<string, WatchHistoryItem>();
+  for (const item of cloudItems) {
+    if (item?.slug) bySlug.set(item.slug, item);
+  }
+
+  const itemsToUpload: WatchHistoryItem[] = [];
+  for (const guest of guestItems) {
+    if (!guest?.slug) continue;
+    const existingCloud = bySlug.get(guest.slug);
+    if (!existingCloud) {
+      bySlug.set(guest.slug, guest);
+      itemsToUpload.push(guest);
+      continue;
+    }
+
+    const guestTs = Number(guest.updatedAt) || 0;
+    const cloudTs = Number(existingCloud.updatedAt) || 0;
+    const mergedWatched = Array.from(
+      new Set([
+        ...(Array.isArray(existingCloud.watchedEpisodes) ? existingCloud.watchedEpisodes : []),
+        ...(Array.isArray(guest.watchedEpisodes) ? guest.watchedEpisodes : []),
+      ].filter(Boolean))
+    );
+
+    if (guestTs > cloudTs) {
+      const winner: WatchHistoryItem = {
+        ...existingCloud,
+        ...guest,
+        watchedEpisodes: mergedWatched,
+      };
+      bySlug.set(guest.slug, winner);
+      itemsToUpload.push(winner);
+    } else if (mergedWatched.length > (existingCloud.watchedEpisodes?.length || 0)) {
+      const updatedCloud: WatchHistoryItem = {
+        ...existingCloud,
+        watchedEpisodes: mergedWatched,
+      };
+      bySlug.set(guest.slug, updatedCloud);
+      itemsToUpload.push(updatedCloud);
+    }
+  }
+
+  return {
+    merged: Array.from(bySlug.values()).sort(
+      (a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0)
+    ),
+    itemsToUpload,
+  };
+}
+
+/**
  * Đồng bộ hai chiều giữa LocalStorage và Supabase Cloud qua Server API
  * Trả về danh sách đã hợp nhất mới nhất
  */
 export async function syncWatchHistoryWithCloud(
   userId: string,
   force = false,
+  guestItemsToMerge?: WatchHistoryItem[],
 ): Promise<WatchHistoryItem[]> {
   if (!userId) return getWatchHistory();
 
+  const hasGuestMerge = Array.isArray(guestItemsToMerge) && guestItemsToMerge.length > 0;
   const existingFlight = inFlightHistorySync.get(userId);
-  if (existingFlight) return existingFlight;
+  if (existingFlight && !hasGuestMerge) return existingFlight;
 
   const now = Date.now();
   const lastSync = lastHistorySyncMap.get(userId) || 0;
-  if (!force && lastSync > 0 && now - lastSync < HISTORY_SYNC_THROTTLE_MS) {
+  if (!force && !hasGuestMerge && lastSync > 0 && now - lastSync < HISTORY_SYNC_THROTTLE_MS) {
     return getWatchHistory();
   }
 
@@ -103,6 +163,17 @@ export async function syncWatchHistoryWithCloud(
         lastHistorySyncMap.set(userId, Date.now());
         const json = await res.json();
         if (json.success && Array.isArray(json.items)) {
+          if (hasGuestMerge) {
+            const { merged, itemsToUpload } = mergeGuestWatchHistoryWithCloud(
+              json.items,
+              guestItemsToMerge,
+            );
+            setWatchHistoryFromSync(merged);
+            if (itemsToUpload.length > 0) {
+              await saveWatchItemsBatchToCloud(userId, itemsToUpload);
+            }
+            return getWatchHistory();
+          }
           if (json.items.length > 0) {
             setWatchHistoryFromSync(json.items);
             return getWatchHistory();
@@ -277,7 +348,7 @@ export async function saveWatchItemsBatchToCloud(
   }
 
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(userId);
     if (!headers["Authorization" as keyof typeof headers]) return;
 
     await fetch("/api/user/history", {
@@ -305,7 +376,7 @@ export async function removeWatchItemFromCloud(
 ): Promise<void> {
   if (!userId || !slug) return;
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(userId);
     if (!headers["Authorization" as keyof typeof headers]) return;
 
     await fetch(`/api/user/history?slug=${encodeURIComponent(slug)}`, {
@@ -325,7 +396,7 @@ export async function clearAllWatchHistoryFromCloud(
 ): Promise<void> {
   if (!userId) return;
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(userId);
     if (!headers["Authorization" as keyof typeof headers]) return;
 
     await fetch("/api/user/history?all=true", {
@@ -456,7 +527,7 @@ export async function clearAllWatchlistFromCloud(
 ): Promise<void> {
   if (!userId) return;
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeaders(userId);
     if (!headers["Authorization" as keyof typeof headers]) return;
 
     await fetch("/api/user/watchlist?all=true", {

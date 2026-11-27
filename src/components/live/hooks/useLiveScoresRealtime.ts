@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import type { FootballMatch } from "@/services/live/football/service";
 import type { LiveMatchScore } from "@/services/live/football/types";
-import { shouldRefreshOnTabFocus } from "@/services/live/football/matchCenterRealtime";
+import {
+  shouldRefreshOnTabFocus,
+  shouldRefreshLiveMatchesOnMount,
+} from "@/services/live/football/matchCenterRealtime";
 import { isVerifiedScoreboardMatch } from "@/services/live/football/canonicalLeagues";
 import {
   fetchDirectScoreboardEvents,
@@ -13,6 +16,7 @@ import { buildScoresMap } from "@/services/live/football/matcher";
 
 export interface UseLiveScoresRealtimeOptions {
   initialMatches: FootballMatch[];
+  initialUpdatedAt?: string;
   initialScores?: Record<string, LiveMatchScore> | null;
   isActive: boolean;
   isTheaterMode?: boolean;
@@ -25,26 +29,36 @@ export interface UseLiveScoresRealtimeOptions {
  */
 export function useLiveScoresRealtime({
   initialMatches,
+  initialUpdatedAt,
   initialScores,
   isActive,
   isTheaterMode = false,
 }: UseLiveScoresRealtimeOptions) {
   const [liveMatches, setLiveMatches] =
     useState<FootballMatch[]>(initialMatches);
+  // Chỉ khởi tạo true ngay từ frame đầu nếu SSR có 0 trận (trùng khớp 100% giữa server và client)
+  const [isMatchesRefreshing, setIsMatchesRefreshing] = useState<boolean>(
+    () => initialMatches.length === 0,
+  );
 
   useEffect(() => {
     setLiveMatches(initialMatches);
   }, [initialMatches]);
 
+  const parsedInitialUpdatedAt = initialUpdatedAt ? Date.parse(initialUpdatedAt) : NaN;
   const isMatchesFetchingRef = useRef(false);
   const wasActiveMatchesRef = useRef(isActive);
-  const lastFetchedMatchesTimeRef = useRef<number>(Date.now());
-  const initialMatchesCountRef = useRef(initialMatches.length);
-  initialMatchesCountRef.current = initialMatches.length;
+  const lastFetchedMatchesTimeRef = useRef<number>(
+    !Number.isNaN(parsedInitialUpdatedAt) ? parsedInitialUpdatedAt : 0,
+  );
+  const initialMatchesRef = useRef(initialMatches);
+  initialMatchesRef.current = initialMatches;
+  const initialUpdatedAtRef = useRef(initialUpdatedAt);
+  initialUpdatedAtRef.current = initialUpdatedAt;
   const liveMatchesRef = useRef(liveMatches);
   liveMatchesRef.current = liveMatches;
 
-  // Tự động làm mới danh sách trận đấu mỗi 3 phút
+  // Tự động làm mới ngay nếu snapshot SSR bị rỗng/stale, và định kỳ mỗi 5 phút
   useEffect(() => {
     if (!isActive) {
       wasActiveMatchesRef.current = false;
@@ -55,9 +69,13 @@ export function useLiveScoresRealtime({
     const abortController = new AbortController();
 
     const refreshMatches = async () => {
-      if (typeof document !== "undefined" && document.hidden) return;
+      if (typeof document !== "undefined" && document.hidden) {
+        if (isEffectActive) setIsMatchesRefreshing(false);
+        return;
+      }
       if (isMatchesFetchingRef.current) return;
       isMatchesFetchingRef.current = true;
+      if (isEffectActive) setIsMatchesRefreshing(true);
       try {
         const timeoutSignal = AbortSignal.timeout(8000);
         const signal =
@@ -66,6 +84,7 @@ export function useLiveScoresRealtime({
             : abortController.signal;
 
         const res = await fetch("/api/live-football/matches", {
+          cache: "no-store",
           signal,
         });
         lastFetchedMatchesTimeRef.current = Date.now();
@@ -83,16 +102,27 @@ export function useLiveScoresRealtime({
         // Giữ nguyên dữ liệu cũ nếu fetch thất bại hoặc bị hủy
       } finally {
         isMatchesFetchingRef.current = false;
+        if (isEffectActive) {
+          setIsMatchesRefreshing(false);
+        }
       }
     };
 
     wasActiveMatchesRef.current = true;
 
-    // Nếu đã có danh sách trận từ SSR, không cần fetch lại sau 5s; chỉ fetch nếu danh sách rỗng hoặc sau 5 phút
-    const initialDelay = setTimeout(
-      refreshMatches,
-      initialMatchesCountRef.current === 0 ? 3000 : 5 * 60 * 1000,
-    );
+    const needsImmediateRefresh = shouldRefreshLiveMatchesOnMount({
+      matches: liveMatchesRef.current,
+      updatedAt: initialUpdatedAtRef.current,
+    });
+
+    let initialDelay: ReturnType<typeof setTimeout> | null = null;
+    if (needsImmediateRefresh) {
+      refreshMatches();
+    } else {
+      setIsMatchesRefreshing(false);
+      initialDelay = setTimeout(refreshMatches, 5 * 60 * 1000);
+    }
+
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       refreshMatches();
@@ -118,7 +148,7 @@ export function useLiveScoresRealtime({
     return () => {
       isEffectActive = false;
       abortController.abort();
-      clearTimeout(initialDelay);
+      if (initialDelay) clearTimeout(initialDelay);
       clearInterval(interval);
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -316,6 +346,7 @@ export function useLiveScoresRealtime({
     liveMatches,
     scoresMap,
     now,
+    isMatchesRefreshing,
   };
 }
 

@@ -37,9 +37,8 @@ export const metadata: Metadata = {
   },
 };
 
-// Cache Edge CDN 10 phút trên SSR (client useLiveScoresRealtime đã tự động cập nhật tỉ số theo thời gian thực)
-export const dynamic = "force-static";
-export const revalidate = 600;
+// Cache Edge CDN & ISR 2 phút trên SSR (client useLiveScoresRealtime tự động làm mới ngay nếu snapshot bị stale)
+export const revalidate = 120;
 export const runtime = "nodejs";
 
 // Server streaming component: Shell (Navbar, Skeleton, Footer) được flush ngay lập tức về browser

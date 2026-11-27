@@ -74,12 +74,14 @@ export function LiveFootballClient({
   const hasUserSelectedRef = useRef(false);
   const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(initialMatch);
 
-  const { liveMatches, scoresMap, now } = useLiveScoresRealtime({
-    initialMatches: initialData.matches,
-    initialScores,
-    isActive,
-    isTheaterMode: Boolean(selectedMatch),
-  });
+  const { liveMatches, scoresMap, now, isMatchesRefreshing } =
+    useLiveScoresRealtime({
+      initialMatches: initialData.matches,
+      initialUpdatedAt: initialData.updatedAt,
+      initialScores,
+      isActive,
+      isTheaterMode: Boolean(selectedMatch),
+    });
 
   const [activeSection, setActiveSection] = useState<
     "matches" | "match-center" | "standings"
@@ -552,6 +554,7 @@ export function LiveFootballClient({
                 scoresMap={scoresMap}
                 searchQuery={searchQuery}
                 hasActiveFilters={hasActiveFilters}
+                isLoading={isMatchesRefreshing}
                 onCloseStandings={() => setActiveSection("matches")}
                 onSelectMatch={handleSelectMatch}
                 onResetFilters={handleResetFilters}

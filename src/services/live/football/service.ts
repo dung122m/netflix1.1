@@ -1462,6 +1462,15 @@ let inFlightFetch: Promise<LiveFootballData> | null = null;
 const FOOTBALL_REDIS_KEY = "live:football:matches:v3";
 const FOOTBALL_REDIS_TTL = 600; // 10 phút (giảm 70% tải CPU & Redis)
 
+function updateMemoryCacheFromSnapshot(snapshot: LiveFootballData, now: number): void {
+  const hasMatches = Array.isArray(snapshot.matches) && snapshot.matches.length > 0;
+  memoryCache = {
+    data: snapshot,
+    expireAt: now + (hasMatches ? 10 * 60 * 1000 : 60 * 1000),
+    staleUntil: now + (hasMatches ? 15 * 60 * 1000 : 2 * 60 * 1000),
+  };
+}
+
 /**
  * Lọc snapshot danh sách trận đấu tức thời theo thời gian thực (0ms overhead)
  * - Loại bỏ các trận đã có kết quả kết thúc (FT) từ livescore
@@ -1577,11 +1586,7 @@ export const liveFootballService = {
       const redisCached = await cacheService.get<LiveFootballData>(FOOTBALL_REDIS_KEY);
       if (redisCached && Array.isArray(redisCached.matches) && redisCached.matches.length > 0) {
         const filteredSnapshot = filterLiveMatchesSnapshot(redisCached, now);
-        memoryCache = {
-          data: filteredSnapshot,
-          expireAt: now + 10 * 60 * 1000,
-          staleUntil: now + 15 * 60 * 1000,
-        };
+        updateMemoryCacheFromSnapshot(filteredSnapshot, now);
         return filteredSnapshot;
       }
     } catch {}
@@ -1592,11 +1597,7 @@ export const liveFootballService = {
         const nextData = await getCachedFootballDataWithNext();
         if (nextData && Array.isArray(nextData.matches) && nextData.matches.length > 0) {
           const filteredSnapshot = filterLiveMatchesSnapshot(nextData, now);
-          memoryCache = {
-            data: filteredSnapshot,
-            expireAt: now + 10 * 60 * 1000,
-            staleUntil: now + 15 * 60 * 1000,
-          };
+          updateMemoryCacheFromSnapshot(filteredSnapshot, now);
           return filteredSnapshot;
         }
       } catch (_err: unknown) {
@@ -1651,7 +1652,7 @@ export const liveFootballService = {
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
               Accept: "*/*",
             },
-            signal: AbortSignal.timeout(4500),
+            signal: AbortSignal.timeout(6000),
           });
           if (!res.ok) return "";
           return await res.text();
@@ -1931,11 +1932,7 @@ export const liveFootballService = {
         matches: sortedMatches,
       };
 
-      memoryCache = {
-        data: result,
-        expireAt: now + 10 * 60 * 1000,
-        staleUntil: now + 15 * 60 * 1000,
-      };
+      updateMemoryCacheFromSnapshot(result, now);
 
       // Đồng bộ L2 Upstash Redis để các serverless instance khác tái sử dụng (0ms re-parse)
       if (result.matches && result.matches.length > 0) {

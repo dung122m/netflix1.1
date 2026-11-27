@@ -2,9 +2,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   MATCH_CENTER_INTERVALS,
+  LIVE_MATCHES_MAX_SSR_AGE_MS,
   calculateMatchCenterPollInterval,
   shouldRefreshOnTabFocus,
   shouldSkipDuplicateRequest,
+  shouldRefreshLiveMatchesOnMount,
   mergeNormalizedSummaries,
 } from "@/services/live/football/matchCenterRealtime";
 import { parseRawSummary } from "@/services/live/football";
@@ -262,5 +264,61 @@ describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () =>
     assert.ok(merged.shootout, "Phải bảo toàn shootout khi incoming thiếu");
     assert.ok(merged.recentForm, "Phải bảo toàn recentForm khi incoming thiếu");
     assert.equal(merged.gameInfo?.venue?.name, "Etihad Stadium");
+  });
+
+  it("8. shouldRefreshLiveMatchesOnMount: Làm mới ngay khi SSR rỗng, stale hoặc toàn bộ trận đã hết giờ", () => {
+    const now = new Date("2026-11-27T14:00:00Z").getTime();
+    const freshUpdatedAt = new Date(now - 30_000).toISOString();
+    const staleUpdatedAt = new Date(now - LIVE_MATCHES_MAX_SSR_AGE_MS - 1_000).toISOString();
+
+    const activeMatch = {
+      timestamp: now - 30 * 60 * 1000,
+      sourceStatus: "live",
+      sport: "football",
+      servers: [{ url: "https://stream.example.com/live/index.m3u8" }],
+    };
+
+    const finishedOldMatch = {
+      timestamp: now - 4 * 60 * 60 * 1000,
+      sourceStatus: "live",
+      sport: "football",
+      servers: [{ url: "https://stream.example.com/old/index.m3u8" }],
+    };
+
+    // 1. SSR trả 0 trận -> làm mới ngay
+    assert.equal(
+      shouldRefreshLiveMatchesOnMount({ matches: [], updatedAt: freshUpdatedAt, now }),
+      true,
+    );
+
+    // 2. Snapshot còn trận hợp lệ và updatedAt mới (< 3 phút) -> giữ nguyên, không fetch lại
+    assert.equal(
+      shouldRefreshLiveMatchesOnMount({
+        matches: [activeMatch],
+        updatedAt: freshUpdatedAt,
+        now,
+      }),
+      false,
+    );
+
+    // 3. Snapshot từ ISR/CDN bị cũ (> 3 phút) -> làm mới ngay
+    assert.equal(
+      shouldRefreshLiveMatchesOnMount({
+        matches: [activeMatch],
+        updatedAt: staleUpdatedAt,
+        now,
+      }),
+      true,
+    );
+
+    // 4. Snapshot toàn trận đã quá giờ / kết thúc -> làm mới ngay dù updatedAt mới
+    assert.equal(
+      shouldRefreshLiveMatchesOnMount({
+        matches: [finishedOldMatch],
+        updatedAt: freshUpdatedAt,
+        now,
+      }),
+      true,
+    );
   });
 });

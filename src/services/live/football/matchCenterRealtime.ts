@@ -7,7 +7,9 @@ import {
   NormalizedMatchSummary,
   MatchKeyEvent,
   MatchCommentaryItem,
+  LiveMatchScore,
 } from "./types";
+import { evaluateEventLifecycle } from "./lifecycleEngine";
 
 export const MATCH_CENTER_INTERVALS = {
   LIVE_MS: 10_000,        // 10s khi trận đang diễn ra (gọi trực tiếp ESPN CDN 0ms Vercel CPU, cập nhật diễn biến nhanh nhạy)
@@ -206,4 +208,65 @@ export function mergeNormalizedSummaries(
     statusText,
     updatedAt: incoming.updatedAt || new Date().toISOString(),
   };
+}
+
+export const LIVE_MATCHES_MAX_SSR_AGE_MS = 180_000; // 3 phút: đồng bộ với Edge CDN / ISR TTL
+
+export interface LiveMatchesMountFreshnessParams {
+  matches: Array<{
+    timestamp?: number | null;
+    sourceStatus?: string | boolean;
+    sport?: string;
+    isEvent?: boolean;
+    score?: LiveMatchScore | null;
+    servers?: Array<{ url?: string | null }>;
+  }>;
+  updatedAt?: string | null;
+  now?: number;
+  maxAgeMs?: number;
+}
+
+/**
+ * Xác định xem danh sách trận đấu nhận từ SSR/ISR có cần làm mới ngay khi client mount hay không:
+ * - True nếu danh sách rỗng (`matches.length === 0`).
+ * - True nếu `updatedAt` bị thiếu, không hợp lệ hoặc quá ngưỡng `maxAgeMs` (tránh kẹt snapshot ISR/CDN cũ).
+ * - True nếu không còn trận nào ở trạng thái LIVE hoặc sắp đá trong cửa sổ hiển thị tại thời điểm `now`.
+ */
+export function shouldRefreshLiveMatchesOnMount({
+  matches,
+  updatedAt,
+  now = Date.now(),
+  maxAgeMs = LIVE_MATCHES_MAX_SSR_AGE_MS,
+}: LiveMatchesMountFreshnessParams): boolean {
+  if (!Array.isArray(matches) || matches.length === 0) {
+    return true;
+  }
+
+  const parsedUpdatedAt = updatedAt ? Date.parse(updatedAt) : NaN;
+  if (Number.isNaN(parsedUpdatedAt) || now - parsedUpdatedAt > maxAgeMs) {
+    return true;
+  }
+
+  const hasActiveMatch = matches.some((m) => {
+    const hasStream =
+      Array.isArray(m.servers) &&
+      m.servers.some((s) => Boolean(s.url && s.url.trim().length > 0));
+    if (m.servers && !hasStream) return false;
+
+    const evalResult = evaluateEventLifecycle({
+      timestamp: m.score?.kickoffTimestamp || m.timestamp,
+      score: m.score,
+      sourceStatus: m.sourceStatus,
+      streamHealth: "unknown",
+      now,
+      sport: m.sport,
+      isEvent: m.isEvent,
+    });
+    return (
+      evalResult.displayTimeline === "live" ||
+      (evalResult.displayTimeline === "upcoming" && evalResult.isLiveInWindow)
+    );
+  });
+
+  return !hasActiveMatch;
 }

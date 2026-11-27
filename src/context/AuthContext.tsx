@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from "react";
 import type { User } from "firebase/auth";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -53,7 +54,11 @@ import {
   syncFavoriteActorsWithCloud,
   cancelPendingCloudSync,
 } from "@/lib/cloudSync";
-import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
+import {
+  clearLocalWatchHistoryOnly,
+  getGuestOwnedWatchHistoryItems,
+  type WatchHistoryItem,
+} from "@/lib/watchHistory";
 import { clearLocalWatchlistOnly } from "@/lib/watchlist";
 import { clearLocalFavoriteActorsOnly } from "@/services/actor/favoriteActors";
 import {
@@ -134,7 +139,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [cachedUser, setCachedUser] = useState<CachedAuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const pendingGuestHistoryRef = useRef<WatchHistoryItem[]>([]);
   const isConfigured = isFirebaseConfigured();
+
+  const consumePendingGuestHistory = useCallback((): WatchHistoryItem[] | undefined => {
+    if (pendingGuestHistoryRef.current.length === 0) return undefined;
+    const items = pendingGuestHistoryRef.current;
+    pendingGuestHistoryRef.current = [];
+    return items;
+  }, []);
 
   // Đọc cachedUser sau khi client đã mount để đảm bảo SSR và client hydration hoàn toàn khớp 100%
   useEffect(() => {
@@ -231,8 +244,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
               const tasks: Promise<unknown>[] = [];
               if (shouldSyncData) {
+                const guestItems = consumePendingGuestHistory();
                 tasks.push(
-                  syncWatchHistoryWithCloud(currentUser.uid),
+                  syncWatchHistoryWithCloud(currentUser.uid, Boolean(guestItems), guestItems),
                   syncWatchlistWithCloud(currentUser.uid),
                   syncFavoriteActorsWithCloud(currentUser.uid),
                 );
@@ -289,7 +303,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       clearTimeout(timerHandle);
       unsubscribe?.();
     };
-  }, [isConfigured]);
+  }, [isConfigured, consumePendingGuestHistory]);
 
   // Tự động đồng bộ lịch sử xem khi quay lại tab (Visibility Change Sync)
   useEffect(() => {
@@ -338,8 +352,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             "Chưa cấu hình Firebase API Keys trong .env.local. Vui lòng thêm khóa cấu hình để bắt đầu.",
         };
       }
+      pendingGuestHistoryRef.current = getGuestOwnedWatchHistoryItems();
       const res = await signInWithPopup(auth, googleProvider);
       if (res.user) {
+        const guestItems = consumePendingGuestHistory();
         const cached: CachedAuthUser = {
           uid: res.user.uid,
           email: res.user.email,
@@ -355,7 +371,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch {}
         await Promise.race([
           Promise.all([
-            syncWatchHistoryWithCloud(res.user.uid, true),
+            syncWatchHistoryWithCloud(res.user.uid, true, guestItems),
             syncWatchlistWithCloud(res.user.uid),
             syncFavoriteActorsWithCloud(res.user.uid, true),
             recordUserProfile(res.user),
@@ -369,8 +385,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         return { success: true };
       }
+      pendingGuestHistoryRef.current = [];
       return { success: false, error: "Đăng nhập không thành công" };
     } catch (err: unknown) {
+      pendingGuestHistoryRef.current = [];
       console.error("Lỗi Google Sign-In:", err);
       let message = "Đã xảy ra lỗi khi đăng nhập.";
       if (typeof err === "object" && err !== null && "code" in err) {
@@ -386,7 +404,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       return { success: false, error: message };
     }
-  }, [isConfigured]);
+  }, [isConfigured, consumePendingGuestHistory]);
 
   const logout = useCallback(async (): Promise<void> => {
     try {

@@ -8,7 +8,6 @@ import {
   Check,
   Film,
   Bookmark,
-  FolderPlus,
   X,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
@@ -23,15 +22,7 @@ const TrailerModal = dynamic(
   { ssr: false }
 );
 import { extractYoutubeId } from "@/lib/trailerHelper";
-import { useAuth } from "@/context/AuthContext";
-const AddToCollectionModal = dynamic(
-  () => import("@/components/Collections/AddToCollectionModal").then((m) => m.AddToCollectionModal),
-  { ssr: false }
-);
-const AuthModal = dynamic(
-  () => import("@/components/modals/AuthModal").then((m) => m.AuthModal),
-  { ssr: false }
-);
+import { Tooltip } from "@/components/ui/Tooltip";
 import { GLOBAL_POSTER_CACHE, persistPosterCacheEntry, enqueuePosterBatchFallback } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
@@ -128,20 +119,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 }) => {
   const isCardActive = Boolean(isActive || selected);
   const router = useRouter();
-  const { user } = useAuth();
   const [inList, setInList] = useState(false);
-  const [showCollectionModal, setShowCollectionModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-
-  const handleOpenCollectionModal = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    setShowCollectionModal(true);
-  }, [user]);
 
   // Danh sách ảnh ứng viên cho Poster đứng 2:3 theo thứ tự ưu tiên: TMDb CDN -> Poster dọc WebP -> Thumb gốc
   const imageCandidates = React.useMemo(() => {
@@ -624,32 +602,25 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP (GÓC DƯỚI PHẢI) */}
-        <div className="absolute bottom-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5">
-          {/* Nút Bộ sưu tập */}
-          <button
-            type="button"
-            onClick={handleOpenCollectionModal}
-            title="Thêm vào bộ sưu tập"
-            aria-label={`Thêm phim ${title} vào bộ sưu tập`}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 bg-black/85 hover:bg-amber-400 text-amber-400 hover:text-black"
+        {/* NÚT LƯU YÊU THÍCH KHI HOVER TRÊN DESKTOP (GÓC DƯỚI PHẢI) */}
+        <div className="absolute bottom-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center">
+          <Tooltip
+            content={inList ? "Bỏ khỏi Yêu thích" : "Lưu vào Yêu thích"}
+            side="top"
+            align="end"
           >
-            <FolderPlus className="w-3.5 h-3.5 transition-colors" />
-          </button>
-
-          {/* Nút Watchlist */}
-          <button
-            type="button"
-            onClick={handleToggleList}
-            title={inList ? "Xóa khỏi danh sách" : "Lưu vào danh sách"}
-            aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
-              ? "bg-netflix-red text-white hover:brightness-110"
-              : "bg-black/85 hover:bg-netflix-red hover:text-white text-white"
-              }`}
-          >
-            {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
-          </button>
+            <button
+              type="button"
+              onClick={handleToggleList}
+              aria-label={inList ? `Bỏ lưu phim ${title} khỏi Yêu thích` : `Lưu phim ${title} vào Yêu thích`}
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
+                ? "bg-netflix-red text-white hover:brightness-110"
+                : "bg-black/85 hover:bg-netflix-red hover:text-white text-white"
+                }`}
+            >
+              {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
+            </button>
+          </Tooltip>
         </div>
 
         {/* NÚT TRAILER KÍNH MỜ GÓC DƯỚI TRÁI KHI HOVER (CHỈ HIỆN KHI CÓ TRAILER) */}
@@ -731,36 +702,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           onClose={() => setShowTrailerModal(false)}
           title={title}
           modalTrailerUrl={modalTrailerUrl}
-        />
-      )}
-
-      {/* 4. MODAL THÊM VÀO BỘ SƯU TẬP & MODAL ĐĂNG NHẬP */}
-      {showCollectionModal && (
-        <AddToCollectionModal
-          isOpen={true}
-          onClose={() => setShowCollectionModal(false)}
-          movie={{
-            slug,
-            title,
-            poster: currentSrc || imageUrl || posterUrl || thumbUrl || "/default-poster.jpg",
-            year,
-            quality,
-            category: genre,
-            itemType,
-            seriesSlug,
-            seriesTitle,
-            episodeSlug,
-            episodeName,
-            seasonName,
-          }}
-        />
-      )}
-
-      {showAuthModal && (
-        <AuthModal
-          isOpen={true}
-          onClose={() => setShowAuthModal(false)}
-          customTitle="Đăng nhập để thêm phim vào bộ sưu tập"
         />
       )}
     </div>

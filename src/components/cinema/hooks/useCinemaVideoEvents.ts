@@ -363,6 +363,8 @@ export function useCinemaVideoEvents({
             poster: posterUrl,
             thumb: resolvedThumb,
             episodeName: activeEpisodeName,
+            nextEpisodeSlug: effectiveNextEpisode?.slug || "",
+            nextEpisodeName: effectiveNextEpisode?.name || "",
           },
           shouldForce,
           isEnded,

@@ -215,6 +215,30 @@ export function WatchController({
     serversRef.current = servers;
   }, [servers]);
 
+  const activeEpisode = useMemo(() => {
+    if (activeEpisodeSlug) {
+      return (
+        episodes.find((ep) => ep.slug === activeEpisodeSlug) ||
+        findEpisodeMatch(episodes, activeEpisodeSlug)
+      );
+    }
+    return episodes[0];
+  }, [episodes, activeEpisodeSlug]);
+
+  const currentIndex = useMemo(() => {
+    return episodes.findIndex((ep) => ep.slug === activeEpisode?.slug);
+  }, [episodes, activeEpisode]);
+
+  const prevEpisode = useMemo(() => {
+    return currentIndex > 0 ? episodes[currentIndex - 1] : null;
+  }, [currentIndex, episodes]);
+
+  const nextEpisode = useMemo(() => {
+    return currentIndex >= 0 && currentIndex < episodes.length - 1
+      ? episodes[currentIndex + 1]
+      : null;
+  }, [currentIndex, episodes]);
+
   // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang, giữ đúng provider đã chọn
   const updateUrlQuietly = useCallback(
     (
@@ -289,6 +313,11 @@ export function WatchController({
     hasInitializedHistoryRef.current = historyKey;
 
     const targetEp = episodes.find((ep) => ep.slug === currentSlug) || episodes[0];
+    const targetEpIdx = episodes.findIndex((ep) => ep.slug === (targetEp?.slug || currentSlug));
+    const resolvedNextEp =
+      targetEpIdx >= 0 && targetEpIdx < episodes.length - 1
+        ? episodes[targetEpIdx + 1]
+        : null;
     saveWatchHistory({
       slug: movieSlug,
       title: movieTitle,
@@ -296,6 +325,8 @@ export function WatchController({
       thumb: thumbUrl,
       episodeName: targetEp?.name,
       episodeSlug: currentSlug,
+      nextEpisodeSlug: resolvedNextEp?.slug || "",
+      nextEpisodeName: resolvedNextEp?.name || "",
       year,
       quality,
       category,
@@ -420,30 +451,6 @@ export function WatchController({
     return () => window.removeEventListener("popstate", handlePopState);
   }, [initialServerIndex]);
 
-  const activeEpisode = useMemo(() => {
-    if (activeEpisodeSlug) {
-      return (
-        episodes.find((ep) => ep.slug === activeEpisodeSlug) ||
-        findEpisodeMatch(episodes, activeEpisodeSlug)
-      );
-    }
-    return episodes[0];
-  }, [episodes, activeEpisodeSlug]);
-
-  const currentIndex = useMemo(() => {
-    return episodes.findIndex((ep) => ep.slug === activeEpisode?.slug);
-  }, [episodes, activeEpisode]);
-
-  const prevEpisode = useMemo(() => {
-    return currentIndex > 0 ? episodes[currentIndex - 1] : null;
-  }, [currentIndex, episodes]);
-
-  const nextEpisode = useMemo(() => {
-    return currentIndex >= 0 && currentIndex < episodes.length - 1
-      ? episodes[currentIndex + 1]
-      : null;
-  }, [currentIndex, episodes]);
-
   const switchProvider = useCallback(() => {}, []);
 
   // Chuyển tập tức thì trong 0ms, tự động nạp stream on-demand nếu chưa có
@@ -493,6 +500,11 @@ export function WatchController({
 
       const targetEpForHistory = targetEp;
       if (targetEpForHistory) {
+        const targetEpIdx = episodes.findIndex((ep) => ep.slug === targetEpForHistory.slug);
+        const targetNextEp =
+          targetEpIdx >= 0 && targetEpIdx < episodes.length - 1
+            ? episodes[targetEpIdx + 1]
+            : null;
         saveWatchHistory({
           slug: movieSlug,
           title: movieTitle,
@@ -500,6 +512,8 @@ export function WatchController({
           thumb: thumbUrl,
           episodeName: targetEpForHistory.name,
           episodeSlug: targetEpForHistory.slug,
+          nextEpisodeSlug: targetNextEp?.slug || "",
+          nextEpisodeName: targetNextEp?.name || "",
           year,
           quality,
           category,

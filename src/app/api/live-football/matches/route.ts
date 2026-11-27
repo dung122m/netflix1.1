@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { liveFootballService } from "@/services/live/football/service";
+import {
+  filterLiveMatchesSnapshot,
+  liveFootballService,
+  type LiveFootballData,
+} from "@/services/live/football/service";
 import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
@@ -9,9 +13,8 @@ import {
 
 export const runtime = "nodejs";
 
-// In-memory cache 60s để tránh chạy scraping lặp đi lặp lại
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let lastMatchesCache: { data: any; expireAt: number } | null = null;
+// In-memory cache 60s để tránh chạy scraping lặp đi lặp lại (không cache mảng rỗng)
+let lastMatchesCache: { data: LiveFootballData; expireAt: number } | null = null;
 
 export async function GET(req: NextRequest) {
   const rateLimit = await enforceRateLimit(req, RATE_LIMIT_PRESETS.PUBLIC_IN_MEMORY_READ);
@@ -19,34 +22,43 @@ export async function GET(req: NextRequest) {
     return buildRateLimitResponse(rateLimit);
   }
 
-  const edgeHeaders = buildEdgeCacheHeaders(300, 600);
-
   const now = Date.now();
   if (lastMatchesCache && now < lastMatchesCache.expireAt) {
-    return NextResponse.json(
-      {
-        status: true,
-        data: lastMatchesCache.data,
-      },
-      {
-        headers: edgeHeaders,
-      }
-    );
+    const filteredCached = filterLiveMatchesSnapshot(lastMatchesCache.data, now);
+    if (filteredCached.matches.length > 0) {
+      return NextResponse.json(
+        {
+          status: true,
+          data: filteredCached,
+        },
+        {
+          headers: buildEdgeCacheHeaders(60, 120),
+        }
+      );
+    }
   }
 
   try {
     const data = await liveFootballService.getFootballMatches();
-    lastMatchesCache = {
-      data,
-      expireAt: now + 300_000,
-    };
+    const hasMatches = Array.isArray(data.matches) && data.matches.length > 0;
+    if (hasMatches) {
+      lastMatchesCache = {
+        data,
+        expireAt: now + 60_000,
+      };
+    } else {
+      lastMatchesCache = null;
+    }
+
     return NextResponse.json(
       {
         status: true,
         data,
       },
       {
-        headers: edgeHeaders,
+        headers: hasMatches
+          ? buildEdgeCacheHeaders(60, 120)
+          : buildEdgeCacheHeaders(15, 30),
       },
     );
   } catch (error) {
