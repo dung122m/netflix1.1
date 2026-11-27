@@ -443,9 +443,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
       {/* ========================================================================= */}
       <div
-        className={`relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-shadow duration-200 ease-out ${isCardActive
+        className={`relative isolate aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 transition-shadow duration-200 ease-out ${isCardActive
           ? "shadow-[inset_0_0_0_2px_#22c55e]"
-          : "group-hover/card:shadow-xl group-hover/card:shadow-black/70"
+          : "group-hover/card:ring-1 group-hover/card:ring-white/20"
           }`}
         data-card-active={isCardActive ? "true" : undefined}
       >
@@ -508,14 +508,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 </>
               )}
             </div>
-
-            {/* Shimmer sheen khi đang chờ tải ảnh */}
-            {!isImageLoaded && !hasError && (
-              <div
-                className="absolute inset-0 -translate-x-full poster-placeholder-shimmer bg-gradient-to-r from-transparent via-white/[0.06] to-transparent pointer-events-none"
-                aria-hidden="true"
-              />
-            )}
           </div>
 
           {/* THẺ ẢNH CHÍNH PHỦ LÊN TRÊN CANVAS NỀN */}
@@ -530,7 +522,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               decoding="async"
               fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
-              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.96] group-hover/card:scale-105 transition-all duration-300 ease-out motion-reduce:transform-none ${
+              className={`relative z-[1] w-full h-full object-cover object-center brightness-[0.96] group-hover/card:scale-[1.03] transition-[transform,opacity] duration-300 ease-out motion-reduce:transform-none ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={(e) => {
@@ -638,7 +630,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ========================================================================= */}
       {/* 2. KHỐI THÔNG TIN DƯỚI POSTER: CHUẨN 1 DÒNG DUY NHẤT NETFLIX / DISNEY+   */}
       {/* ========================================================================= */}
-      <div className="pt-2 px-0.5 flex flex-col w-full min-w-0">
+      <div className="relative z-10 pt-2.5 px-0.5 flex flex-col w-full min-w-0">
         {/* ĐOẠN KHỚP TÌM KIẾM (NẾU ĐƯỢC GỌI TỪ TRANG TÌM KIẾM) */}
         {matchSnippet && (
           <div className="flex items-center gap-1 text-[11px] text-amber-300 font-medium line-clamp-1 mb-1">
@@ -655,10 +647,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           aria-label={title}
           className="outline-none block w-full min-w-0"
         >
-          <div className="h-5 sm:h-5.5 flex items-center w-full min-w-0">
+          <div className="min-h-[22px] flex items-center w-full min-w-0">
             <h3
               title={title}
-              className="text-zinc-100 group-hover/card:text-netflix-red font-semibold text-[13px] sm:text-[14px] leading-tight truncate w-full transition-colors"
+              className="text-zinc-100 group-hover/card:text-netflix-red font-semibold text-[13px] sm:text-[14px] leading-snug truncate w-full transition-colors"
             >
               {title}
             </h3>

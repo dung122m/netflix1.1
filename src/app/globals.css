@@ -386,8 +386,7 @@
 }
 
 .cv-auto-section {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 340px;
+  contain: layout style;
 }
 
 /* ============================================================ */

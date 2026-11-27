@@ -89,7 +89,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Mobile Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-zinc-950/95 backdrop-blur-lg shadow-[0_-8px_30px_rgba(0,0,0,0.85)] pb-[env(safe-area-inset-bottom,0px)]"
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-zinc-950 border-t border-white/[0.06] shadow-[0_-8px_30px_rgba(0,0,0,0.85)] pb-[env(safe-area-inset-bottom,0px)]"
     >
       <div className="grid grid-cols-5 h-14 items-center px-1">
         {/* 1. TRANG CHỦ */}

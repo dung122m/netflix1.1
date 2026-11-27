@@ -11,7 +11,7 @@ interface MovieGridProps {
 }
 
 const INITIAL_BATCH = 24;
-const BATCH_SIZE = 24;
+const BATCH_SIZE = 12;
 
 const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
@@ -44,7 +44,7 @@ const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
           setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, normalizedMovies.length));
         }
       },
-      { rootMargin: "400px 0px" } // Đón đầu trước 400px để cuộn mượt mà không bị khựng
+      { rootMargin: "600px 0px" } // Đón đầu trước 600px để cuộn mượt mà không bị khựng
     );
 
     observer.observe(currentSentinel);
