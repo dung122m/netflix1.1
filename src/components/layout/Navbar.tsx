@@ -84,17 +84,18 @@ const NavbarInner: React.FC = () => {
 
   // Handle background transition on scroll
   useEffect(() => {
-    let prevScrolled = false;
+    let prevScrolled: boolean | null = null;
     const handleScroll = () => {
-      const isScrolled = window.scrollY > 40;
+      const isScrolled = window.scrollY > 16;
       if (isScrolled !== prevScrolled) {
         prevScrolled = isScrolled;
         setShowBackground(isScrolled);
       }
     };
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
   // Close mobile menu on navigation
   useEffect(() => {
@@ -141,13 +142,15 @@ const NavbarInner: React.FC = () => {
     [pathname, currentType, urlKeyword]
   );
 
+  const isSolidBackground = isMobileMenuOpen || showBackground || pathname !== "/";
+
   return (
     <nav
       className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 pt-[env(safe-area-inset-top,0px)] transition-[background-color,box-shadow] duration-200 ${
         isMobileMenuOpen
           ? "bg-zinc-950 shadow-2xl border-b border-white/[0.06]"
-          : showBackground
-            ? "bg-zinc-950/95 backdrop-blur-xl shadow-lg shadow-black/70 border-b border-white/[0.06]"
+          : isSolidBackground
+            ? "bg-zinc-950 shadow-lg shadow-black/70 border-b border-white/[0.06]"
             : "bg-gradient-to-b from-black/95 via-black/65 to-transparent"
       }`}
     >

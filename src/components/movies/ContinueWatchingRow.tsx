@@ -293,7 +293,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
 
   return (
     <div
-      className="group relative flex-none w-[134px] min-[380px]:w-[144px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden transition-transform duration-300 hover:scale-[1.03] motion-reduce:transform-none shadow-lg hover:shadow-black/60 transform-gpu will-change-transform flex flex-col snap-start select-none"
+      className="group relative flex-none w-[134px] min-[380px]:w-[144px] sm:w-[155px] md:w-[172px] bg-zinc-950/90 rounded-xl overflow-hidden shadow-lg hover:shadow-black/60 flex flex-col snap-start select-none"
     >
       <Link href={href} prefetch={false} className="block flex-1 flex flex-col">
         {/* ẢNH POSTER DỌC (TỈ LỆ 2:3 CHUẨN ĐIỆN ẢNH) */}
@@ -364,7 +364,7 @@ function ContinueWatchingCard({ item, index = 0, onRemove }: ContinueWatchingCar
           </button>
 
           {/* THANH TIẾN ĐỘ PHÁT */}
-          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 backdrop-blur-sm z-20 overflow-hidden">
+          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20 z-20 overflow-hidden">
             <div
               className="h-full bg-netflix-red rounded-r-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}

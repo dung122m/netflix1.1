@@ -22,7 +22,6 @@ import { setCommentReaction, togglePinComment } from "@/services/commentService"
 import { isUserAdmin } from "@/lib/adminConfig";
 import { toast } from "@/components/ui/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { cleanBadgeText } from "@/services/userService";
 import { formatRelativeTime, renderCommentContent } from "./commentFormatters";
 import { useCommentReplies } from "./hooks/useCommentReplies";
@@ -266,52 +265,44 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       {/* HEADER: AVATAR & USER INFO & ACTIONS */}
       <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <Tooltip
-            content={
+          <button
+            type="button"
+            onClick={handleOpenProfile}
+            title={
               isAuthor
                 ? "Xem & chỉnh sửa hồ sơ của bạn"
                 : `Xem trang cá nhân của ${comment.userName}`
             }
-            side="top"
+            aria-label={
+              isAuthor
+                ? "Xem & chỉnh sửa hồ sơ của bạn"
+                : `Xem trang cá nhân của ${comment.userName}`
+            }
+            className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
           >
-            <button
-              type="button"
-              onClick={handleOpenProfile}
-              aria-label={
-                isAuthor
-                  ? "Xem & chỉnh sửa hồ sơ của bạn"
-                  : `Xem trang cá nhân của ${comment.userName}`
-              }
-              className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
-            >
-              <UserAvatar
-                src={effectiveUserAvatar || undefined}
-                name={comment.userName}
-                seed={comment.userId || comment.userName}
-                sizeClassName="w-8 h-8 sm:w-10 sm:h-10 text-sm"
-                className="shadow-sm"
-              />
-            </button>
-          </Tooltip>
+            <UserAvatar
+              src={effectiveUserAvatar || undefined}
+              name={comment.userName}
+              seed={comment.userId || comment.userName}
+              sizeClassName="w-8 h-8 sm:w-10 sm:h-10 text-sm"
+              className="shadow-sm"
+            />
+          </button>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <Tooltip
-                content={
+              <button
+                type="button"
+                onClick={handleOpenProfile}
+                title={
                   isAuthor
                     ? "Xem & chỉnh sửa hồ sơ của bạn"
                     : `Xem trang cá nhân của ${comment.userName}`
                 }
-                side="top"
+                className="inline-flex items-center font-semibold text-zinc-100 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate leading-tight text-xs sm:text-sm md:text-base"
               >
-                <button
-                  type="button"
-                  onClick={handleOpenProfile}
-                  className="inline-flex items-center font-semibold text-zinc-100 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate leading-tight text-xs sm:text-sm md:text-base"
-                >
-                  {comment.userName}
-                </button>
-              </Tooltip>
+                {comment.userName}
+              </button>
 
               {isCommentAuthorAdmin && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-netflix-red/30 to-netflix-red/15 text-netflix-red shadow-sm shadow-black/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
@@ -369,27 +360,25 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         {isAuthor && (
           <div className="flex items-center gap-0.5 sm:gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
             {onEdit && (
-              <Tooltip content="Chỉnh sửa đánh giá" side="top">
-                <button
-                  type="button"
-                  onClick={() => onEdit(comment)}
-                  aria-label="Chỉnh sửa đánh giá của bạn"
-                  className="text-zinc-400 hover:text-amber-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
-                >
-                  <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-              </Tooltip>
-            )}
-            <Tooltip content="Xóa" side="top">
               <button
                 type="button"
-                onClick={() => onDelete(comment.id)}
-                aria-label="Xóa"
-                className="text-zinc-400 hover:text-red-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
+                onClick={() => onEdit(comment)}
+                title="Chỉnh sửa đánh giá"
+                aria-label="Chỉnh sửa đánh giá của bạn"
+                className="text-zinc-400 hover:text-amber-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
-            </Tooltip>
+            )}
+            <button
+              type="button"
+              onClick={() => onDelete(comment.id)}
+              title="Xóa"
+              aria-label="Xóa"
+              className="text-zinc-400 hover:text-red-400 transition-all p-1 sm:p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
           </div>
         )}
       </div>
@@ -450,37 +439,33 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           </button>
 
           {isAdmin && (
-            <Tooltip
-              content={
+            <button
+              type="button"
+              disabled={isPinning}
+              onClick={handleTogglePin}
+              title={
                 comment.isPinned
                   ? "Bỏ ghim bình luận này"
                   : "Ghim bình luận quan trọng lên đầu"
               }
-              side="top"
+              aria-label={
+                comment.isPinned
+                  ? "Bỏ ghim bình luận này"
+                  : "Ghim bình luận quan trọng lên đầu"
+              }
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-all cursor-pointer active:scale-95 ${
+                comment.isPinned
+                  ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                  : "bg-white/5 text-zinc-400 hover:text-amber-300 hover:bg-amber-500/10"
+              }`}
             >
-              <button
-                type="button"
-                disabled={isPinning}
-                onClick={handleTogglePin}
-                aria-label={
-                  comment.isPinned
-                    ? "Bỏ ghim bình luận này"
-                    : "Ghim bình luận quan trọng lên đầu"
-                }
-                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-all cursor-pointer active:scale-95 ${
-                  comment.isPinned
-                    ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
-                    : "bg-white/5 text-zinc-400 hover:text-amber-300 hover:bg-amber-500/10"
+              <Pin
+                className={`w-3.5 h-3.5 ${
+                  comment.isPinned ? "fill-amber-300 text-amber-300" : ""
                 }`}
-              >
-                <Pin
-                  className={`w-3.5 h-3.5 ${
-                    comment.isPinned ? "fill-amber-300 text-amber-300" : ""
-                  }`}
-                />
-                <span>{comment.isPinned ? "Bỏ ghim" : "Ghim"}</span>
-              </button>
-            </Tooltip>
+              />
+              <span>{comment.isPinned ? "Bỏ ghim" : "Ghim"}</span>
+            </button>
           )}
 
           {(comment.replyCount || 0) > 0 || replies.length > 0 ? (

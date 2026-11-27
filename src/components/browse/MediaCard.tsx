@@ -22,7 +22,6 @@ const TrailerModal = dynamic(
   { ssr: false }
 );
 import { extractYoutubeId } from "@/lib/trailerHelper";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { GLOBAL_POSTER_CACHE, persistPosterCacheEntry, enqueuePosterBatchFallback } from "@/hooks/useMoviePosterFallback";
 
 // Bộ nhớ đệm client (giữ nguyên cho các component khác như HeroFeatured)
@@ -438,7 +437,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       ref={cardContainerRef}
-      className="group/card relative flex flex-col w-full select-none cursor-pointer hover:-translate-y-1 hover:z-20 transition-transform duration-200 ease-out motion-reduce:transform-none"
+      className="group/card relative flex flex-col w-full select-none cursor-pointer"
     >
       {/* ========================================================================= */}
       {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
@@ -604,23 +603,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
         {/* NÚT LƯU YÊU THÍCH KHI HOVER TRÊN DESKTOP (GÓC DƯỚI PHẢI) */}
         <div className="absolute bottom-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center">
-          <Tooltip
-            content={inList ? "Bỏ khỏi Yêu thích" : "Lưu vào Yêu thích"}
-            side="top"
-            align="end"
+          <button
+            type="button"
+            onClick={handleToggleList}
+            title={inList ? "Bỏ khỏi Yêu thích" : "Lưu vào Yêu thích"}
+            aria-label={inList ? `Bỏ lưu phim ${title} khỏi Yêu thích` : `Lưu phim ${title} vào Yêu thích`}
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
+              ? "bg-netflix-red text-white hover:brightness-110"
+              : "bg-black/85 hover:bg-netflix-red hover:text-white text-white"
+              }`}
           >
-            <button
-              type="button"
-              onClick={handleToggleList}
-              aria-label={inList ? `Bỏ lưu phim ${title} khỏi Yêu thích` : `Lưu phim ${title} vào Yêu thích`}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform transition-colors duration-150 hover:scale-110 active:scale-95 cursor-pointer shadow-md shadow-black/50 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${inList
-                ? "bg-netflix-red text-white hover:brightness-110"
-                : "bg-black/85 hover:bg-netflix-red hover:text-white text-white"
-                }`}
-            >
-              {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
-            </button>
-          </Tooltip>
+            {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 transition-colors" />}
+          </button>
         </div>
 
         {/* NÚT TRAILER KÍNH MỜ GÓC DƯỚI TRÁI KHI HOVER (CHỈ HIỆN KHI CÓ TRAILER) */}

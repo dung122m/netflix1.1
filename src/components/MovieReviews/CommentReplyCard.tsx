@@ -5,7 +5,6 @@ import { Eye, Reply, ShieldCheck, Trash2 } from "lucide-react";
 import type { MovieComment, CommentReactionType } from "@/types/comment";
 import { ReactionPicker } from "./ReactionPicker";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { cleanBadgeText } from "@/services/userService";
 import { formatRelativeTime, renderCommentContent } from "./commentFormatters";
 
@@ -54,55 +53,47 @@ export function CommentReplyCard({
       }`}
     >
       {/* User Avatar */}
-      <Tooltip
-        content={
+      <button
+        type="button"
+        onClick={onOpenProfile}
+        title={
           isAuthor
             ? "Xem & chỉnh sửa hồ sơ của bạn"
             : `Xem trang cá nhân của ${comment.userName}`
         }
-        side="top"
+        aria-label={
+          isAuthor
+            ? "Xem & chỉnh sửa hồ sơ của bạn"
+            : `Xem trang cá nhân của ${comment.userName}`
+        }
+        className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0 mt-0.5"
       >
-        <button
-          type="button"
-          onClick={onOpenProfile}
-          aria-label={
-            isAuthor
-              ? "Xem & chỉnh sửa hồ sơ của bạn"
-              : `Xem trang cá nhân của ${comment.userName}`
-          }
-          className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0 mt-0.5"
-        >
-          <UserAvatar
-            src={effectiveUserAvatar || undefined}
-            name={comment.userName}
-            seed={comment.userId || comment.userName}
-            sizeClassName="w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-xs"
-            className="shadow-sm"
-          />
-        </button>
-      </Tooltip>
+        <UserAvatar
+          src={effectiveUserAvatar || undefined}
+          name={comment.userName}
+          seed={comment.userId || comment.userName}
+          sizeClassName="w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-xs"
+          className="shadow-sm"
+        />
+      </button>
 
       {/* Reply Body */}
       <div className="flex-1 min-w-0">
         {/* Header Row: Tên + Huy hiệu + Thời gian + Nút xóa */}
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Tooltip
-              content={
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              title={
                 isAuthor
                   ? "Xem & chỉnh sửa hồ sơ của bạn"
                   : `Xem trang cá nhân của ${comment.userName}`
               }
-              side="top"
+              className="font-semibold text-xs sm:text-[13px] text-zinc-200 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate leading-tight"
             >
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                className="font-semibold text-xs sm:text-[13px] text-zinc-200 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate leading-tight"
-              >
-                {comment.userName}
-              </button>
-            </Tooltip>
+              {comment.userName}
+            </button>
 
             {isCommentAuthorAdmin && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-netflix-red/20 text-netflix-red whitespace-nowrap shrink-0 leading-none">
@@ -138,16 +129,15 @@ export function CommentReplyCard({
 
           {isAuthor && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <Tooltip content="Xóa phản hồi" side="top">
-                <button
-                  type="button"
-                  onClick={() => onDelete(comment.id)}
-                  aria-label="Xóa phản hồi"
-                  className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-white/5 transition cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </Tooltip>
+              <button
+                type="button"
+                onClick={() => onDelete(comment.id)}
+                title="Xóa phản hồi"
+                aria-label="Xóa phản hồi"
+                className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-white/5 transition cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
         </div>
