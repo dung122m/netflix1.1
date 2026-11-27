@@ -127,6 +127,7 @@ export function useNavSearch({
         if (err instanceof Error && err.name === "AbortError") {
           return;
         }
+        setSuggestions([]);
         console.warn("[search-suggest] Lỗi gợi ý tìm kiếm:", err);
       } finally {
         if (abortControllerRef.current === controller) {

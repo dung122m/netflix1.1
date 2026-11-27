@@ -121,51 +121,56 @@ export function evaluateSearchRelevance(
 
       const allWordsPresent = kwWords.every((qw) => allTokens.has(qw));
       if (allWordsPresent) return { score: 75, matchType: "title" };
-      return { score: 0, matchType: "title" };
+    } else {
+      const singleWordRegex = new RegExp(`(?:^|\\s)${escapedRawKw}(?:$|\\s)`, "i");
+      if (singleWordRegex.test(rawTitle) || singleWordRegex.test(rawOrig)) {
+        return { score: 75, matchType: "title" };
+      }
     }
-    const singleWordRegex = new RegExp(`(?:^|\\s)${escapedRawKw}(?:$|\\s)`, "i");
-    if (singleWordRegex.test(rawTitle) || singleWordRegex.test(rawOrig)) {
-      return { score: 75, matchType: "title" };
+  } else {
+    // 5. UNACCENTED TOKEN MATCH (giữ lại chữ số phần phim như "2", "3", "7" và token đơn khi cụm ngắn <= 2 từ)
+    const allNormWords = normKw.split(/\s+/).filter(Boolean);
+    const normKwTokens = allNormWords.filter(
+      (w) => w.length > 1 || /^\d+$/.test(w) || allNormWords.length <= 2
+    );
+    if (normKwTokens.length > 1) {
+      const titleTokens = new Set(normTitle.split(/\s+/).filter(Boolean));
+      const origTokens = new Set(normOrig.split(/\s+/).filter(Boolean));
+      const slugTokens = new Set(normSlug.split(/\s+/).filter(Boolean));
+
+      const matchedTokensCount = normKwTokens.filter(
+        (tok) => titleTokens.has(tok) || origTokens.has(tok) || slugTokens.has(tok)
+      ).length;
+
+      if (matchedTokensCount === normKwTokens.length) {
+        return { score: 65, matchType: "title" };
+      }
+      if (matchedTokensCount / normKwTokens.length >= 0.75) {
+        return { score: 45, matchType: "title" };
+      }
+    } else if (normKwTokens.length === 1) {
+      // 6. SINGLE-WORD UNACCENTED SEARCH
+      const singleWord = normKwTokens[0];
+      const wordRegex = new RegExp(`(?:^|\\s)${singleWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|\\s)`, "i");
+      if (wordRegex.test(normTitle) || wordRegex.test(normOrig) || wordRegex.test(normSlug)) {
+        return { score: 70, matchType: "title" };
+      }
     }
-    return { score: 0, matchType: "title" };
   }
 
-  // 5. UNACCENTED TOKEN MATCH
-  const normKwTokens = normKw.split(/\s+/).filter((w) => w.length > 1);
-  if (normKwTokens.length > 1) {
-    const titleTokens = new Set(normTitle.split(/\s+/).filter(Boolean));
-    const origTokens = new Set(normOrig.split(/\s+/).filter(Boolean));
-    const slugTokens = new Set(normSlug.split(/\s+/).filter(Boolean));
-
-    const matchedTokensCount = normKwTokens.filter(
-      (tok) => titleTokens.has(tok) || origTokens.has(tok) || slugTokens.has(tok)
-    ).length;
-
-    if (matchedTokensCount === normKwTokens.length) {
-      return { score: 65, matchType: "title" };
+  // 7. CONTENT / SYNOPSIS MATCH (giữ nghiêm ngặt dấu tiếng Việt khi người dùng gõ có dấu)
+  const rawDesc = String(movie.content || movie.description || "").trim().toLowerCase();
+  if (rawDesc) {
+    if (userHasDiacritics) {
+      if (containsRawRegex.test(rawDesc)) {
+        return { score: 30, matchType: "content" };
+      }
+    } else {
+      const desc = cleanNormalizedForMatch(rawDesc);
+      if (desc && containsNormRegex.test(desc)) {
+        return { score: 30, matchType: "content" };
+      }
     }
-    if (matchedTokensCount / normKwTokens.length >= 0.75) {
-      return { score: 45, matchType: "title" };
-    }
-    return { score: 0, matchType: "title" };
-  }
-
-  // 6. SINGLE-WORD UNACCENTED SEARCH
-  if (normKwTokens.length === 1) {
-    const singleWord = normKwTokens[0];
-    const wordRegex = new RegExp(`(?:^|\\s)${singleWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|\\s)`, "i");
-    if (wordRegex.test(normTitle) || wordRegex.test(normOrig) || wordRegex.test(normSlug)) {
-      return { score: 70, matchType: "title" };
-    }
-  }
-
-  // 7. CONTENT / SYNOPSIS MATCH
-  const desc = cleanNormalizedForMatch(String(movie.content || movie.description || ""));
-  if (desc && containsNormRegex.test(desc)) {
-    return {
-      score: 30,
-      matchType: "content",
-    };
   }
 
   return { score: 0, matchType: "title" };

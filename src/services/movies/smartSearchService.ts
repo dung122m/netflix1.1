@@ -16,6 +16,7 @@ import {
   normalizeForMatch,
   calculateDamerauLevenshteinSimilarity,
 } from "@/lib/stringUtils";
+import { getTitleEvidence } from "@/lib/searchRelevance";
 import { fetchTmdbEndpoint } from "../tmdbService";
 import { matchTmdbMoviesWithSources } from "../tmdb/movieMatcher";
 import { TmdbMovieCredit } from "../tmdb/types";
@@ -101,7 +102,7 @@ export async function executeSmartSearch(
   }
 
   const normQuery = normalizeForMatch(rawQuery);
-  const cacheKey = `search:smart:v4:${normQuery}:${page}:${limit}:${params.category || ""}:${params.country || ""}:${params.year || ""}:${params.type || ""}:${sort}`;
+  const cacheKey = `search:smart:v5:${normQuery}:${page}:${limit}:${params.category || ""}:${params.country || ""}:${params.year || ""}:${params.type || ""}:${sort}`;
 
   // Kiểm tra L1 In-Memory Cache (0ms)
   const now = Date.now();
@@ -127,11 +128,60 @@ export async function executeSmartSearch(
   // =========================================================================
   // TẦNG 1: SMART FILTER TOKENIZER (Bóc tách bộ lọc động)
   // =========================================================================
+  // Lưu kết quả direct search nếu câu truy vấn vẫn còn phần chữ hoặc chỉ là 4 chữ số (ví dụ "2012", "1917", "Gia Đình Là Số 1")
+  // để tên phim thật không bị bộ lọc năm/thể loại nuốt mất.
+  let prefetchedDirectRes: Awaited<ReturnType<typeof movieApi.getMovies>> | null = null;
+
   try {
     const taxonomy = await getDynamicTaxonomy();
     const intent = parseSearchFilterIntent(rawQuery, taxonomy);
 
     if (intent.hasFilter) {
+      const hasRemainingText = intent.remainingQuery.trim().length > 0;
+      const isBareYearTitle = /^\d{4}$/.test(normQuery);
+
+      if (hasRemainingText || isBareYearTitle) {
+        prefetchedDirectRes = await movieApi.getMovies({
+          category: params.category,
+          country: params.country,
+          year: params.year,
+          type: params.type,
+          keyword: rawQuery,
+          page,
+          limit,
+          sort,
+          skipKvCache: params.skipKvCache,
+          posterEnrichmentBudgetMs: 0,
+        });
+
+        const hasExactTitleMatch =
+          prefetchedDirectRes &&
+          Array.isArray(prefetchedDirectRes.items) &&
+          prefetchedDirectRes.items.some(
+            (item: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown }) =>
+              getTitleEvidence(item, rawQuery).score >= 85
+          );
+
+        if (hasExactTitleMatch && prefetchedDirectRes) {
+          const directResult: SmartSearchResult = {
+            items: prefetchedDirectRes.items,
+            totalItems: prefetchedDirectRes.pagination?.totalItems || prefetchedDirectRes.items.length,
+            totalPages: prefetchedDirectRes.pagination?.totalPages || 1,
+            currentPage: page,
+            tier: "tier2_direct",
+            originalQuery: rawQuery,
+          };
+          SMART_SEARCH_MEMORY_CACHE.set(cacheKey, {
+            data: directResult,
+            expireAt: now + 300 * 1000,
+          });
+          if (!params.skipKvCache) {
+            cacheService.set(cacheKey, directResult, SMART_SEARCH_CACHE_TTL_SECONDS).catch(() => { });
+          }
+          return directResult;
+        }
+      }
+
       // Kết hợp bộ lọc được tách ra từ câu truy vấn với các tham số bộ lọc người dùng đã chọn
       const combinedCategory = params.category || intent.filter.category;
       const combinedCountry = params.country || intent.filter.country;
@@ -182,8 +232,8 @@ export async function executeSmartSearch(
   // TẦNG 2: DIRECT CATALOG SEARCH & SLUG NORMALIZATION
   // =========================================================================
   try {
-    // 2A. Tìm trực tiếp trên catalog qua movieApi.getMovies
-    const directRes = await movieApi.getMovies({
+    // 2A. Tìm trực tiếp trên catalog qua movieApi.getMovies (tái dùng prefetchedDirectRes nếu đã gọi)
+    const directRes = prefetchedDirectRes || await movieApi.getMovies({
       category: params.category,
       country: params.country,
       year: params.year,

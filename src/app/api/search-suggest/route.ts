@@ -68,8 +68,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ items: [] }, { headers: emptyEdgeHeaders });
     }
 
-    // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService (gồm cả negative cache rỗng 3 phút)
-    const cacheKey = `search:suggest:v4:${normKw}`;
+    // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService (tách key có dấu để tránh "mưa đỏ" và "mùa đông" dùng chung cache)
+    const rawLowerKw = keyword.toLowerCase().replace(/\s+/g, " ");
+    const cacheKey = `search:suggest:v5:${rawLowerKw}`;
     const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
     if (cached && Array.isArray(cached.items)) {
       return NextResponse.json(cached, {
@@ -142,7 +143,7 @@ export async function GET(req: NextRequest) {
       try {
         const smartRes = await Promise.race([
           executeSmartSearch({ query: keyword, limit: 8, skipKvCache: true }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 2200)),
         ]);
         if (smartRes && Array.isArray(smartRes.items) && smartRes.items.length > 0) {
           rawItems = smartRes.items as SuggestMovieItem[];
@@ -156,7 +157,7 @@ export async function GET(req: NextRequest) {
       const normOrig = normalizeForMatch(item.origin_name || "");
       const normSlug = normalizeForMatch(item.slug || "");
 
-      if (normTitle === kw || normOrig === kw || normSlug === kw.replace(/\s+/g, "-")) return 100;
+      if (normTitle === kw || normOrig === kw || normSlug === kw) return 100;
       if (normTitle.startsWith(kw) || normOrig.startsWith(kw)) return 80;
       if (normTitle.includes(kw) || normOrig.includes(kw)) return 60;
 

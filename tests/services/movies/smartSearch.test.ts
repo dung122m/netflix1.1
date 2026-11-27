@@ -10,6 +10,7 @@ import {
   parseSearchFilterIntent,
 } from "@/services/movies/dynamicTaxonomy";
 import { executeSmartSearch } from "@/services/movies/smartSearchService";
+import { evaluateSearchRelevance } from "@/lib/searchRelevance";
 
 describe("Smart Search Pipeline (Zero-AI, Zero-Hardcode)", () => {
   describe("1. Local Damerau-Levenshtein & Slug Normalization", () => {
@@ -86,6 +87,59 @@ describe("Smart Search Pipeline (Zero-AI, Zero-Hardcode)", () => {
 
       assert.equal(intent.hasFilter, false, "Must NOT have false positive filters");
       assert.equal(intent.remainingQuery, "lat mat 7", "Title must be preserved");
+    });
+
+    it("does NOT hijack movie titles containing homonym 1-word country words (anh, my, duc, nga, phap)", async () => {
+      const taxonomy = await getDynamicTaxonomy();
+
+      for (const title of [
+        "Anh Hùng Xạ Điêu",
+        "Mỹ Nhân Ngư",
+        "Em Là Bà Nội Của Anh",
+        "Đức Phật",
+      ]) {
+        const intent = parseSearchFilterIntent(title, taxonomy);
+        assert.equal(
+          intent.hasFilter,
+          false,
+          `'${title}' must NOT be stripped as a country filter`
+        );
+      }
+
+      const explicitCountryIntent = parseSearchFilterIntent("phim mỹ 2024", taxonomy);
+      assert.equal(explicitCountryIntent.hasFilter, true);
+      assert.equal(explicitCountryIntent.filter.country, "au-my");
+      assert.equal(explicitCountryIntent.filter.year, "2024");
+    });
+
+    it("evaluateSearchRelevance preserves sequel digits ('7', '3') and enforces diacritics in synopsis match", () => {
+      const sequel7 = { name: "Lật Mặt Phần 7", origin_name: "Lat Mat 7", slug: "lat-mat-phan-7" };
+      const sequel6 = { name: "Lật Mặt Phần 6", origin_name: "Lat Mat 6", slug: "lat-mat-phan-6" };
+      assert.ok(
+        evaluateSearchRelevance(sequel7, "lat mat phan 7").score >
+          evaluateSearchRelevance(sequel6, "lat mat phan 7").score,
+        "Unaccented search 'lat mat phan 7' must score Part 7 higher than Part 6"
+      );
+
+      const multiWordContentMatch = {
+        name: "Tác phẩm bí ẩn",
+        slug: "tac-pham-bi-an",
+        content: "Phim kể về hành trình giải mã mật thư cổ đại.",
+      };
+      const contentHit = evaluateSearchRelevance(multiWordContentMatch, "mật thư");
+      assert.equal(contentHit.matchType, "content");
+      assert.equal(contentHit.score, 30);
+
+      const falseAccentContent = {
+        name: "Mùa Đông Lạnh",
+        slug: "mua-dong-lanh",
+        content: "Ký ức mua do trong rừng sâu.",
+      };
+      assert.equal(
+        evaluateSearchRelevance(falseAccentContent, "mưa đỏ").score,
+        0,
+        "Diacritic query 'mưa đỏ' must NOT match unaccented synopsis 'mua do'"
+      );
     });
   });
 

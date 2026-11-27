@@ -244,6 +244,25 @@ export function parseSearchFilterIntent(
   }
 
   // 4. BÓC TÁCH QUỐC GIA (COUNTRY - Khớp động từ dynamic taxonomy)
+  // Bảo vệ các từ quốc gia 1 âm tiết dễ trùng tên phim tiếng Việt ("Anh", "Mỹ", "Nga", "Đức", "Pháp", "Thái", "Ấn", "Ý")
+  // Chỉ nhận diện làm bộ lọc quốc gia khi có ngữ cảnh lọc rõ ràng (có "phim"/"nước"/"quốc gia" hoặc đã có năm/loại/thể loại)
+  const AMBIGUOUS_SINGLE_WORD_COUNTRIES = new Set([
+    "anh",
+    "my",
+    "nga",
+    "duc",
+    "phap",
+    "thai",
+    "an",
+    "y",
+  ]);
+  const hasFilterContextSoFar = Boolean(
+    detectedFilter.year ||
+    detectedFilter.type ||
+    detectedFilter.category ||
+    /\b(?:phim|nuoc|quoc gia|san xuat)\b/i.test(workingQuery)
+  );
+
   // Sắp xếp các quốc gia theo độ dài tên giảm dần (ưu tiên "Hàn Quốc", "Trung Quốc", "Hồng Kông", "Đài Loan"...)
   const sortedCountries = [...(taxonomy.countries || [])].sort((a, b) => b.name.length - a.name.length);
   for (const country of sortedCountries) {
@@ -267,6 +286,7 @@ export function parseSearchFilterIntent(
     let matched = false;
     for (const pat of patterns) {
       if (pat.length < 2) continue;
+      if (AMBIGUOUS_SINGLE_WORD_COUNTRIES.has(pat) && !hasFilterContextSoFar) continue;
       const regex = new RegExp(`(^|\\s)${pat}(\\s|$)`, "i");
       if (regex.test(workingQuery)) {
         detectedFilter.country = country.slug;
@@ -280,16 +300,18 @@ export function parseSearchFilterIntent(
     if (matched) break;
   }
 
-  // 5. LÀM SẠCH TỪ ĐỆM VÔ NGHĨA (FILLER WORDS)
-  const fillerRegex = /\b(phim|bo phim|xem phim|xem|tap|tron bo|full hd|vietsub|thuyet minh|long tieng|moi nhat|hay nhat|hd)\b/gi;
-  workingQuery = workingQuery.replace(fillerRegex, " ").replace(/\s+/g, " ").trim();
-
   const hasFilter = Boolean(
     detectedFilter.category ||
     detectedFilter.country ||
     detectedFilter.year ||
     detectedFilter.type
   );
+
+  // 5. LÀM SẠCH TỪ ĐỆM VÔ NGHĨA (chỉ làm sạch khi thực sự tách được bộ lọc)
+  if (hasFilter) {
+    const fillerRegex = /\b(phim|bo phim|xem phim|xem|tap|tron bo|full hd|vietsub|thuyet minh|long tieng|moi nhat|hay nhat|hd)\b/gi;
+    workingQuery = workingQuery.replace(fillerRegex, " ").replace(/\s+/g, " ").trim();
+  }
 
   return {
     hasFilter,

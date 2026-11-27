@@ -45,13 +45,10 @@ export function sortMovieCandidates<T extends Record<string, any>>(
   parsedSort: ParsedSortMode,
   isSearch: boolean = false
 ): T[] {
-  if (isSearch) {
-    candidates.sort((a, b) => (Number(b.relevanceScore) || 0) - (Number(a.relevanceScore) || 0));
-  } else if (parsedSort.field === "rating") {
-    candidates.sort((a, b) => {
+  const compareBySortMode = (a: T, b: T): number => {
+    if (parsedSort.field === "rating") {
       const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
       const { rating: rateB, voteCount: vcB } = extractMovieRatingScore(b);
-
       if (parsedSort.direction === "asc") {
         if (rateA !== rateB) return rateA - rateB;
         if (vcA !== vcB) return vcA - vcB;
@@ -66,9 +63,8 @@ export function sortMovieCandidates<T extends Record<string, any>>(
         if (yearB !== yearA) return yearB - yearA;
       }
       return String(a.name || "").localeCompare(String(b.name || ""));
-    });
-  } else if (parsedSort.field === "year") {
-    candidates.sort((a, b) => {
+    }
+    if (parsedSort.field === "year") {
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
       if (yearB !== yearA) {
@@ -77,9 +73,8 @@ export function sortMovieCandidates<T extends Record<string, any>>(
       return parsedSort.direction === "asc"
         ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
         : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
-    });
-  } else if (parsedSort.field === "view") {
-    candidates.sort((a, b) => {
+    }
+    if (parsedSort.field === "view") {
       const vA = Number(a.view || a.tmdb?.vote_count || 0);
       const vB = Number(b.view || b.tmdb?.vote_count || 0);
       if (vB !== vA) {
@@ -88,22 +83,28 @@ export function sortMovieCandidates<T extends Record<string, any>>(
       return parsedSort.direction === "asc"
         ? extractMovieModifiedTime(a) - extractMovieModifiedTime(b)
         : extractMovieModifiedTime(b) - extractMovieModifiedTime(a);
+    }
+    const timeA = extractMovieModifiedTime(a);
+    const timeB = extractMovieModifiedTime(b);
+    if (timeB !== timeA) {
+      return parsedSort.direction === "asc" ? timeA - timeB : timeB - timeA;
+    }
+    const yearA = Number(a.year || 0);
+    const yearB = Number(b.year || 0);
+    if (yearB !== yearA) {
+      return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
+    }
+    return String(a.name || "").localeCompare(String(b.name || ""));
+  };
+
+  if (isSearch) {
+    candidates.sort((a, b) => {
+      const relDiff = (Number(b.relevanceScore) || 0) - (Number(a.relevanceScore) || 0);
+      if (relDiff !== 0) return relDiff;
+      return compareBySortMode(a, b);
     });
   } else {
-    // "modified.time" ("latest" desc hoặc "oldest" asc)
-    candidates.sort((a, b) => {
-      const timeA = extractMovieModifiedTime(a);
-      const timeB = extractMovieModifiedTime(b);
-      if (timeB !== timeA) {
-        return parsedSort.direction === "asc" ? timeA - timeB : timeB - timeA;
-      }
-      const yearA = Number(a.year || 0);
-      const yearB = Number(b.year || 0);
-      if (yearB !== yearA) {
-        return parsedSort.direction === "asc" ? yearA - yearB : yearB - yearA;
-      }
-      return String(a.name || "").localeCompare(String(b.name || ""));
-    });
+    candidates.sort(compareBySortMode);
   }
   return candidates;
 }
