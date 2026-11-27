@@ -19,12 +19,17 @@ export function resolveActiveEpisode(
   contextEpisode: EpisodeItem | null | undefined,
   activeEpisodeSlug?: string,
 ): EpisodeItem | undefined {
-  return (
-    contextEpisode ||
-    episodes.find((e) => e.slug === activeEpisodeSlug) ||
-    findEpisodeMatch(episodes, activeEpisodeSlug) ||
-    episodes[0]
-  );
+  if (contextEpisode) {
+    return contextEpisode;
+  }
+  if (activeEpisodeSlug) {
+    return (
+      episodes.find((e) => e.slug === activeEpisodeSlug) ||
+      findEpisodeMatch(episodes, activeEpisodeSlug) ||
+      undefined
+    );
+  }
+  return episodes[0];
 }
 
 export function resolveEpisodeStreams(params: {

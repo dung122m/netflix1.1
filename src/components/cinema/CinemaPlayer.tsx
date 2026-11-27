@@ -270,9 +270,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     initialTimeUsed,
   ]);
 
+  const isEmbedBroken = isCinemaEmbedBroken(embedSrc);
+  const isResolvingStream = Boolean(watchContext?.isResolvingStream);
+  const isConnectingStream = Boolean(isResolvingStream || resolvedM3u8);
+  const isNativeVideo = Boolean(
+    resolvedM3u8 && (!useIframeFallback || isEmbedBroken),
+  );
+
   const activeSrc = useMemo(() => {
     if (forceTrailerFallback && fallbackTrailerEmbedSrc) {
       return fallbackTrailerEmbedSrc;
+    }
+    if (isResolvingStream && !resolvedM3u8 && !videoLink && !embedSrc) {
+      return "";
     }
     return resolveActiveIframeSrc({
       videoLink,
@@ -284,19 +294,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [
     forceTrailerFallback,
     fallbackTrailerEmbedSrc,
+    isResolvingStream,
     videoLink,
     embedSrc,
     trailerEmbedSrc,
     targetProgress,
     resolvedM3u8,
   ]);
-
-  const isEmbedBroken = isCinemaEmbedBroken(embedSrc);
-  const isResolvingStream = Boolean(watchContext?.isResolvingStream);
-  const isConnectingStream = Boolean(isResolvingStream || resolvedM3u8);
-  const isNativeVideo = Boolean(
-    resolvedM3u8 && (!useIframeFallback || isEmbedBroken),
-  );
 
   const hasStream = Boolean(
     resolvedM3u8 ||

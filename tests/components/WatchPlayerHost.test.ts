@@ -1,7 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { filterDualServers } from "@/services/movies/service";
-import { canServerUseNanaflixPlayer } from "@/components/cinema/cinemaStreamHelpers";
+import {
+  canServerUseNanaflixPlayer,
+  resolveActiveEpisode,
+  resolveEpisodeStreams,
+} from "@/components/cinema/cinemaStreamHelpers";
 
 describe("Nanaflix Multi-Source & Multi-Server Switching Regression Tests", () => {
   test("1. filterDualServers prioritizes playable direct .m3u8 servers over embed-only servers", () => {
@@ -215,5 +219,66 @@ describe("Nanaflix Multi-Source & Multi-Server Switching Regression Tests", () =
     servers.sort((a, b) => (canServerUseNanaflixPlayer(b) ? 1 : 0) - (canServerUseNanaflixPlayer(a) ? 1 : 0));
     assert.equal(servers[0].server_name, "Vietsub");
     assert.equal(servers[1].server_name, "Thuyết Minh");
+  });
+
+  test("9. resolveEpisodeStreams never leaks SSR episode-1 streams when switching to another episode before streams arrive", () => {
+    const ssrEp1Embed = "nf_enc_ep1_embed";
+    const ssrEp1M3u8 = "nf_enc_ep1_m3u8";
+
+    // Case A: Tập kế tiếp chưa có link_m3u8 và link_embed (đang chờ /api/movies/streams)
+    const pendingNextEp = {
+      name: "Tập 78",
+      slug: "tap-78",
+      link_m3u8: "",
+      link_embed: "",
+    };
+    const resolvedPending = resolveEpisodeStreams({
+      activeEpisode: pendingNextEp,
+      propActiveEpisodeSlug: "tap-1",
+      activeEpisodeSlug: "tap-78",
+      propM3u8Link: ssrEp1M3u8,
+      propEmbedSrc: ssrEp1Embed,
+      propVideoLink: ssrEp1M3u8,
+    });
+    assert.equal(resolvedPending.m3u8Link, "");
+    assert.equal(resolvedPending.embedSrc, "");
+    assert.equal(resolvedPending.videoLink, undefined);
+
+    // Case B: Tập mới chuyển sang chưa tìm thấy trong context (activeEpisode = undefined)
+    const resolvedMissing = resolveEpisodeStreams({
+      activeEpisode: undefined,
+      propActiveEpisodeSlug: "tap-1",
+      activeEpisodeSlug: "tap-78",
+      propM3u8Link: ssrEp1M3u8,
+      propEmbedSrc: ssrEp1Embed,
+      propVideoLink: ssrEp1M3u8,
+    });
+    assert.equal(resolvedMissing.m3u8Link, undefined);
+    assert.equal(resolvedMissing.embedSrc, undefined);
+    assert.equal(resolvedMissing.videoLink, undefined);
+
+    // Case C: Khi đúng là tập SSR mặc định (tap-1) và activeEpisode chưa có trường stream riêng, giữ nguyên fallback SSR
+    const resolvedMatchingSsr = resolveEpisodeStreams({
+      activeEpisode: undefined,
+      propActiveEpisodeSlug: "tap-1",
+      activeEpisodeSlug: "tap-1",
+      propM3u8Link: ssrEp1M3u8,
+      propEmbedSrc: ssrEp1Embed,
+      propVideoLink: ssrEp1M3u8,
+    });
+    assert.equal(resolvedMatchingSsr.m3u8Link, ssrEp1M3u8);
+    assert.equal(resolvedMatchingSsr.embedSrc, ssrEp1Embed);
+    assert.equal(resolvedMatchingSsr.videoLink, ssrEp1M3u8);
+  });
+
+  test("10. resolveActiveEpisode never silently substitutes episode 1 when explicit activeEpisodeSlug is missing", () => {
+    const episodes = [
+      { name: "Tập 1", slug: "tap-1", link_m3u8: "https://cdn.example/1.m3u8" },
+      { name: "Tập 2", slug: "tap-2", link_m3u8: "https://cdn.example/2.m3u8" },
+    ];
+
+    assert.equal(resolveActiveEpisode(episodes, undefined, "tap-78"), undefined);
+    assert.equal(resolveActiveEpisode(episodes, undefined, "tap-2")?.slug, "tap-2");
+    assert.equal(resolveActiveEpisode(episodes, undefined, undefined)?.slug, "tap-1");
   });
 });
