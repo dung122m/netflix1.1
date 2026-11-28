@@ -295,17 +295,17 @@ export function LiveMatchScoreboard({
             <div className="relative z-10 flex flex-col w-full min-w-0">
               {/* 1. THANH HEADER: NGÀY GIỜ & SÂN VẬN ĐỘNG (CHUẨN THEO THIẾT KẾ MẪU) */}
               {(matchDateStr || effectiveVenue) && (
-                <div className="flex items-center justify-center gap-4 sm:gap-6 py-2 px-3 sm:px-6 text-xs text-zinc-400 font-sans border-b border-white/[0.08] select-none text-center">
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:gap-6 py-2 px-3 sm:px-6 text-xs text-zinc-400 font-sans border-b border-white/[0.08] select-none">
                   {matchDateStr && (
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
                       <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                       <span>{matchDateStr}</span>
                     </span>
                   )}
                   {effectiveVenue && (
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
                       <StadiumIcon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                      <span>{effectiveVenue}</span>
+                      <span className="truncate sm:whitespace-normal">{effectiveVenue}</span>
                     </span>
                   )}
                 </div>

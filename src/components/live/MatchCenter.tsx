@@ -648,7 +648,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   <div
                     role="tablist"
                     aria-label="Điều hướng thông tin trận đấu"
-                    className="flex items-center gap-6 border-b border-white/[0.08] select-none text-xs font-semibold px-0.5 overflow-x-auto scrollbar-none"
+                    className="flex items-center gap-4 sm:gap-6 border-b border-white/[0.08] select-none text-xs font-semibold px-0.5 overflow-x-auto scrollbar-none"
                   >
                     {[
                       { id: "lineups", label: "Đội hình" },

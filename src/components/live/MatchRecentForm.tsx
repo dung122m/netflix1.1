@@ -134,11 +134,11 @@ function FotmobFormMatchRow({
       : "bg-amber-400";
 
   return (
-    <div className="flex items-center justify-between py-2 px-1 text-xs sm:text-[13px] font-sans group">
+    <div className="flex items-center justify-between py-2 px-0.5 sm:px-1 text-xs sm:text-[13px] font-sans group">
       {/* ĐỘI NHÀ (Căn phải) */}
       <span
         title={homeTeamName}
-        className={`text-right truncate flex-1 font-medium transition-colors pr-2 sm:pr-3 ${
+        className={`text-right truncate flex-1 font-medium transition-colors pr-1.5 sm:pr-3 ${
           isTrackedHome
             ? "text-white font-semibold group-hover:text-amber-200"
             : "text-zinc-300 group-hover:text-zinc-100"
@@ -148,9 +148,9 @@ function FotmobFormMatchRow({
       </span>
 
       {/* SCORE PILL VÀ GẠCH CHÂN CHUẨN FOTMOB */}
-      <div className="flex flex-col items-center shrink-0 w-16 sm:w-20">
+      <div className="flex flex-col items-center shrink-0 w-14 sm:w-20">
         <span
-          className={`font-sans tabular-nums font-black text-xs sm:text-[12.5px] px-2.5 py-0.5 rounded text-white shadow-sm transition-transform group-hover:scale-105 ${pillBg}`}
+          className={`font-sans tabular-nums font-black text-xs sm:text-[12.5px] px-2 sm:px-2.5 py-0.5 rounded text-white shadow-sm transition-transform group-hover:scale-105 ${pillBg}`}
         >
           {homeScore} - {awayScore}
         </span>
@@ -168,7 +168,7 @@ function FotmobFormMatchRow({
       {/* ĐỘI KHÁCH (Căn trái) */}
       <span
         title={awayTeamName}
-        className={`text-left truncate flex-1 font-medium transition-colors pl-2 sm:pl-3 ${
+        className={`text-left truncate flex-1 font-medium transition-colors pl-1.5 sm:pl-3 ${
           !isTrackedHome
             ? "text-white font-semibold group-hover:text-amber-200"
             : "text-zinc-300 group-hover:text-zinc-100"
@@ -176,6 +176,77 @@ function FotmobFormMatchRow({
       >
         {awayTeamName}
       </span>
+    </div>
+  );
+}
+
+/**
+ * Khối 5 trận gần nhất cho từng đội (có header logo, tên đội, dải phong độ T/H/B và ngăn cách rõ ràng trên mobile)
+ */
+function TeamRecentFormBlock({
+  team,
+  games,
+  roleLabel,
+}: {
+  team: MatchSummaryTeam;
+  games: TeamPastGameItem[];
+  roleLabel: string;
+}) {
+  const teamName = team.displayName || team.name;
+  const teamLogo = team.logo ? toDarkModeLogoUrl(team.logo) : "";
+
+  return (
+    <div className="rounded-xl bg-zinc-900/55 p-3 sm:p-3.5 space-y-2">
+      <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2 min-w-0">
+          {teamLogo ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={teamLogo} alt="" loading="lazy" className="w-5 h-5 object-contain shrink-0" />
+          ) : (
+            <span className="w-5 h-5 rounded-full bg-zinc-800 shrink-0" />
+          )}
+          <span className="text-xs sm:text-[13px] font-bold text-white truncate">
+            {teamName}
+          </span>
+          <span className="text-[10px] font-medium text-zinc-400 shrink-0">
+            · {roleLabel}
+          </span>
+        </div>
+
+        {games.length > 0 && (
+          <div className="flex items-center gap-1 shrink-0" aria-label={`Chuỗi phong độ ${teamName}`}>
+            {games.slice(0, 5).map((g) => {
+              const badgeColor =
+                g.result === "W"
+                  ? "bg-emerald-600 text-white"
+                  : g.result === "L"
+                    ? "bg-rose-600 text-white"
+                    : "bg-amber-600 text-white";
+              const label = g.result === "W" ? "T" : g.result === "L" ? "B" : "H";
+              return (
+                <span
+                  key={g.id}
+                  className={`w-4 h-4 rounded text-[10px] font-bold font-sans tabular-nums flex items-center justify-center ${badgeColor}`}
+                >
+                  {label}
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {games.length > 0 ? (
+        <div className="divide-y divide-white/[0.04]">
+          {games.map((g) => (
+            <FotmobFormMatchRow key={g.id} game={g} trackedTeam={team} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-center py-6 text-xs text-zinc-500 font-sans">
+          Chưa có dữ liệu phong độ
+        </p>
+      )}
     </div>
   );
 }
@@ -210,7 +281,7 @@ function HeadToHeadCard({
           Chưa có dữ liệu đối đầu trước đây
         </p>
       ) : (
-        <div className="space-y-0.5">
+        <div className="space-y-2 sm:space-y-0.5">
           {events.map((ev) => {
             const hTeam = ev.homeTeam;
             const aTeam = ev.awayTeam;
@@ -220,49 +291,52 @@ function HeadToHeadCard({
             return (
               <div
                 key={ev.id}
-                className="flex items-center justify-between gap-2 sm:gap-3 py-2 px-2.5 sm:px-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition rounded-lg text-xs font-sans group"
+                className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 py-2.5 sm:py-2 px-2.5 sm:px-3 bg-zinc-900/45 sm:bg-transparent sm:border-b sm:border-white/[0.04] sm:last:border-b-0 hover:bg-white/[0.03] transition rounded-xl sm:rounded-lg text-xs font-sans group"
               >
-                {/* 1. NGÀY & GIẢI ĐẤU */}
-                <div className="flex flex-col min-w-[70px] sm:min-w-[85px] text-zinc-400 shrink-0">
-                  <span className="tabular-nums text-[11px] font-semibold text-zinc-300">
+                {/* 1. NGÀY & GIẢI ĐẤU (Trên mobile xếp thành hàng meta phía trên để nhường tối đa chiều ngang cho tên 2 đội) */}
+                <div className="flex items-center justify-between sm:flex-col sm:items-start sm:min-w-[85px] text-zinc-400 shrink-0 gap-2 sm:gap-0">
+                  <span className="tabular-nums text-[11px] font-semibold text-zinc-400 sm:text-zinc-300">
                     {formatH2HDate(ev.date) || formatGameDate(ev.date)}
                   </span>
                   {ev.competitionName && (
-                    <span className="text-[10px] text-zinc-500 font-medium truncate max-w-[90px] sm:max-w-[130px]">
+                    <span className="text-[10.5px] sm:text-[10px] text-zinc-500 font-medium truncate max-w-[150px] sm:max-w-[130px]">
                       {cleanCompetitionName(ev.competitionName)}
                     </span>
                   )}
                 </div>
 
-                {/* 2. ĐỘI NHÀ */}
-                <div className="flex items-center justify-end gap-1.5 sm:gap-2 flex-1 min-w-0 text-right">
-                  <span className={`text-xs truncate ${hTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300 group-hover:text-white"}`}>
-                    {hTeam.displayName || hTeam.name}
-                  </span>
-                  {hLogo ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={hLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
-                  ) : (
-                    <span className="w-3.5 h-3.5 rounded-full bg-zinc-800 shrink-0" />
-                  )}
-                </div>
+                {/* 2. CẶP ĐẤU & TỶ SỐ TRUNG TÂM */}
+                <div className="flex items-center justify-between gap-1.5 sm:gap-2 flex-1 min-w-0">
+                  {/* Đội nhà */}
+                  <div className="flex items-center justify-end gap-1.5 sm:gap-2 flex-1 min-w-0 text-right">
+                    <span className={`text-xs truncate ${hTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300 group-hover:text-white"}`}>
+                      {hTeam.displayName || hTeam.name}
+                    </span>
+                    {hLogo ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={hLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
+                    ) : (
+                      <span className="w-3.5 h-3.5 rounded-full bg-zinc-800 shrink-0" />
+                    )}
+                  </div>
 
-                {/* 3. TỶ SỐ TRUNG TÂM */}
-                <div className="shrink-0 font-sans tabular-nums font-black text-xs text-white bg-zinc-800/80 px-2 py-0.5 rounded shadow-sm min-w-[42px] text-center mx-1">
-                  {hTeam.score} - {aTeam.score}
-                </div>
+                  {/* Tỷ số trung tâm */}
+                  <div className="shrink-0 font-sans tabular-nums font-black text-xs text-white bg-zinc-800/90 px-2 py-0.5 rounded shadow-sm min-w-[42px] text-center">
+                    {hTeam.score} - {aTeam.score}
+                  </div>
 
-                {/* 4. ĐỘI KHÁCH */}
-                <div className="flex items-center justify-start gap-1.5 sm:gap-2 flex-1 min-w-0 text-left">
-                  {aLogo ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={aLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
-                  ) : (
-                    <span className="w-3.5 h-3.5 rounded-full bg-zinc-800 shrink-0" />
-                  )}
-                  <span className={`text-xs truncate ${aTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300 group-hover:text-white"}`}>
-                    {aTeam.displayName || aTeam.name}
-                  </span>
+                  {/* Đội khách */}
+                  <div className="flex items-center justify-start gap-1.5 sm:gap-2 flex-1 min-w-0 text-left">
+                    {aLogo ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={aLogo} alt="" loading="lazy" className="w-4 h-4 object-contain shrink-0" />
+                    ) : (
+                      <span className="w-3.5 h-3.5 rounded-full bg-zinc-800 shrink-0" />
+                    )}
+                    <span className={`text-xs truncate ${aTeam.winner ? "font-bold text-white" : "font-medium text-zinc-300 group-hover:text-white"}`}>
+                      {aTeam.displayName || aTeam.name}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -367,38 +441,23 @@ export function MatchRecentForm({
 
       {/* NỘI DUNG 1: 5 TRẬN GẦN NHẤT - CHUẨN FORM FOTMOB */}
       {effectiveView === "recent" && hasRecent && (
-        <div className="rounded-2xl bg-zinc-950/70 p-3.5 sm:p-5 shadow-sm space-y-3">
+        <div className="rounded-2xl bg-zinc-950/70 p-3 sm:p-5 shadow-sm space-y-3">
           {/* TIÊU ĐỀ SECTION CHÍNH GIỮA */}
           <h3 className="text-center font-sans font-bold text-sm sm:text-base text-white tracking-wide">
             Phong độ gần đây
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-white/[0.06] gap-x-6">
-            {/* Cột trái: Đội nhà */}
-            <div className="space-y-1">
-              {homeGames.length > 0 ? (
-                homeGames.map((g) => (
-                  <FotmobFormMatchRow key={g.id} game={g} trackedTeam={homeTeam} />
-                ))
-              ) : (
-                <p className="text-center py-6 text-xs text-zinc-500 font-sans">
-                  Chưa có dữ liệu phong độ
-                </p>
-              )}
-            </div>
-
-            {/* Cột phải: Đội khách */}
-            <div className="space-y-1 md:pl-6 pt-3 md:pt-0">
-              {awayGames.length > 0 ? (
-                awayGames.map((g) => (
-                  <FotmobFormMatchRow key={g.id} game={g} trackedTeam={awayTeam} />
-                ))
-              ) : (
-                <p className="text-center py-6 text-xs text-zinc-500 font-sans">
-                  Chưa có dữ liệu phong độ
-                </p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-5">
+            <TeamRecentFormBlock
+              team={homeTeam}
+              games={homeGames}
+              roleLabel="Đội nhà"
+            />
+            <TeamRecentFormBlock
+              team={awayTeam}
+              games={awayGames}
+              roleLabel="Đội khách"
+            />
           </div>
         </div>
       )}
