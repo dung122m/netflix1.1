@@ -1466,9 +1466,14 @@ function updateMemoryCacheFromSnapshot(snapshot: LiveFootballData, now: number):
   const hasMatches = Array.isArray(snapshot.matches) && snapshot.matches.length > 0;
   memoryCache = {
     data: snapshot,
-    expireAt: now + (hasMatches ? 10 * 60 * 1000 : 60 * 1000),
-    staleUntil: now + (hasMatches ? 15 * 60 * 1000 : 2 * 60 * 1000),
+    expireAt: now + (hasMatches ? 10 * 60 * 1000 : 15 * 1000),
+    staleUntil: now + (hasMatches ? 15 * 60 * 1000 : 15 * 1000),
   };
+}
+
+export function _resetLiveFootballCacheForTest(): void {
+  memoryCache = null;
+  inFlightFetch = null;
 }
 
 /**
@@ -1554,13 +1559,20 @@ export function filterLiveMatchesSnapshot(
 }
 
 // Tầng cache dữ liệu Next.js (10 phút = 600s) cho Vercel Data Cache
+// Lưu ý: chỉ cache snapshot có >= 1 trận; nếu rỗng thì throw để unstable_cache không giữ 0 trận suốt 10 phút.
 let getCachedFootballDataWithNext: (() => Promise<LiveFootballData>) | null = null;
 try {
   getCachedFootballDataWithNext =
     typeof unstable_cache === "function"
       ? unstable_cache(
-          async () => liveFootballService.fetchAndCacheMatchesInternal(),
-          ["nanaflix-live-football-matches-v4"],
+          async () => {
+            const data = await liveFootballService.fetchAndCacheMatchesInternal();
+            if (!data?.matches || data.matches.length === 0) {
+              throw new Error("EMPTY_LIVE_FOOTBALL_SNAPSHOT");
+            }
+            return data;
+          },
+          ["nanaflix-live-football-matches-v5"],
           { revalidate: 600, tags: ["live-football"] }
         )
       : null;
@@ -1573,11 +1585,19 @@ export const liveFootballService = {
     const now = Date.now();
     if (memoryCache) {
       if (memoryCache.expireAt > now) {
-        return filterLiveMatchesSnapshot(memoryCache.data, now);
-      }
-      if (memoryCache.staleUntil > now) {
-        liveFootballService.revalidateFootballMatches().catch(() => {});
-        return filterLiveMatchesSnapshot(memoryCache.data, now);
+        const filteredMemory = filterLiveMatchesSnapshot(memoryCache.data, now);
+        // Nếu cache từng có trận nhưng tất cả vừa FT/hết cửa sổ, không trả 0 trận mà làm mới từ nguồn
+        if (filteredMemory.matches.length > 0 || memoryCache.data.matches.length === 0) {
+          return filteredMemory;
+        }
+        memoryCache = null;
+      } else if (memoryCache.staleUntil > now) {
+        const filteredStale = filterLiveMatchesSnapshot(memoryCache.data, now);
+        if (filteredStale.matches.length > 0) {
+          liveFootballService.revalidateFootballMatches().catch(() => {});
+          return filteredStale;
+        }
+        memoryCache = null;
       }
     }
 
@@ -1586,8 +1606,10 @@ export const liveFootballService = {
       const redisCached = await cacheService.get<LiveFootballData>(FOOTBALL_REDIS_KEY);
       if (redisCached && Array.isArray(redisCached.matches) && redisCached.matches.length > 0) {
         const filteredSnapshot = filterLiveMatchesSnapshot(redisCached, now);
-        updateMemoryCacheFromSnapshot(filteredSnapshot, now);
-        return filteredSnapshot;
+        if (filteredSnapshot.matches.length > 0) {
+          updateMemoryCacheFromSnapshot(filteredSnapshot, now);
+          return filteredSnapshot;
+        }
       }
     } catch {}
 
@@ -1597,11 +1619,13 @@ export const liveFootballService = {
         const nextData = await getCachedFootballDataWithNext();
         if (nextData && Array.isArray(nextData.matches) && nextData.matches.length > 0) {
           const filteredSnapshot = filterLiveMatchesSnapshot(nextData, now);
-          updateMemoryCacheFromSnapshot(filteredSnapshot, now);
-          return filteredSnapshot;
+          if (filteredSnapshot.matches.length > 0) {
+            updateMemoryCacheFromSnapshot(filteredSnapshot, now);
+            return filteredSnapshot;
+          }
         }
       } catch (_err: unknown) {
-        // Fallback an toàn nếu chạy trong test runner không có Next.js incrementalCache
+        // Fallback an toàn nếu chạy trong test runner hoặc snapshot cache rỗng
       }
     }
 
@@ -1646,13 +1670,13 @@ export const liveFootballService = {
       const m3uFetchPromises = sources.map(async (source) => {
         try {
           const res = await fetch(source.url, {
-            next: { revalidate: 120 },
+            cache: "no-store",
             headers: {
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
               Accept: "*/*",
             },
-            signal: AbortSignal.timeout(6000),
+            signal: AbortSignal.timeout(8000),
           });
           if (!res.ok) return "";
           return await res.text();

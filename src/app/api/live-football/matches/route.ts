@@ -4,7 +4,7 @@ import {
   liveFootballService,
   type LiveFootballData,
 } from "@/services/live/football/service";
-import { buildEdgeCacheHeaders } from "@/lib/cacheHeaders";
+import { buildEdgeCacheHeaders, NO_CACHE_HEADERS } from "@/lib/cacheHeaders";
 import {
   enforceRateLimit,
   buildRateLimitResponse,
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
       {
         headers: hasMatches
           ? buildEdgeCacheHeaders(60, 120)
-          : buildEdgeCacheHeaders(15, 30),
+          : NO_CACHE_HEADERS,
       },
     );
   } catch (error) {

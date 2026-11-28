@@ -5,9 +5,12 @@ import {
 } from "@/services/live/football/lifecycleEngine";
 import {
   filterLiveMatchesSnapshot,
+  liveFootballService,
+  _resetLiveFootballCacheForTest,
   FootballMatch,
   LiveFootballData,
 } from "@/services/live/football/service";
+import { cacheService } from "@/lib/cache";
 import { LiveMatchScore } from "@/services/live/football/types";
 
 describe("Nanaflix Live Football — Stale Matches Fix Verification Suite", () => {
@@ -365,6 +368,63 @@ describe("Nanaflix Live Football — Stale Matches Fix Verification Suite", () =
       assert.equal(remainingIds.includes("m_live_1"), true, `F5 lần ${f5Count}: Trận đang LIVE phải còn`);
       assert.equal(remainingIds.includes("m_upcoming_1"), true, `F5 lần ${f5Count}: Trận sắp đá <= 2h phải còn`);
       assert.equal(filtered.matches.length, 2, `F5 lần ${f5Count}: Số trận giữ đúng 2 trận hợp lệ`);
+    }
+  });
+
+  // 9. Khi Redis/memoryCache chỉ còn các trận đã kết thúc (0 trận hợp lệ), getFootballMatches không trả về 0 trận từ cache mà tự làm mới từ nguồn
+  it("Test 9: Redis/stale cache có 0 trận hợp lệ -> getFootballMatches tự bypass cache và fetch mới", async () => {
+    _resetLiveFootballCacheForTest();
+    const origFetchInternal = liveFootballService.fetchAndCacheMatchesInternal;
+    const origCacheGet = cacheService.get;
+    let fetchCalls = 0;
+
+    const staleFinishedSnapshot: LiveFootballData = {
+      updatedAt: new Date(baseNow - 15 * 60 * 1000).toISOString(),
+      channels: ["Bóng Đá"],
+      matches: [
+        mockMatch({
+          id: "m_old_finished",
+          time: "18:00",
+          timestamp: baseNow - 4 * 60 * 60 * 1000,
+          title: "Old Finished Match",
+          sport: "football",
+          sourceStatus: "finished",
+          score: mockScore({ status: "finished", statusText: "FT", displayClock: "FT" }),
+        }),
+      ],
+    };
+
+    const freshSnapshot: LiveFootballData = {
+      updatedAt: new Date().toISOString(),
+      channels: ["Bóng Đá"],
+      matches: [
+        mockMatch({
+          id: "m_fresh_live",
+          time: "21:00",
+          timestamp: Date.now() - 10 * 60 * 1000,
+          title: "Arsenal vs Liverpool",
+          sport: "football",
+          sourceStatus: "live",
+        }),
+      ],
+    };
+
+    // Giả lập Redis đang giữ snapshot cũ mà mọi trận đều đã kết thúc
+    cacheService.get = (async () => staleFinishedSnapshot) as typeof cacheService.get;
+    liveFootballService.fetchAndCacheMatchesInternal = async () => {
+      fetchCalls++;
+      return freshSnapshot;
+    };
+
+    try {
+      const result = await liveFootballService.getFootballMatches();
+      assert.equal(fetchCalls, 1, "Phải bypass Redis stale-0 để gọi fetch mới");
+      assert.equal(result.matches.length, 1);
+      assert.equal(result.matches[0].id, "m_fresh_live");
+    } finally {
+      cacheService.get = origCacheGet;
+      liveFootballService.fetchAndCacheMatchesInternal = origFetchInternal;
+      _resetLiveFootballCacheForTest();
     }
   });
 });

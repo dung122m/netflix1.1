@@ -42,7 +42,9 @@ export function useLiveScoresRealtime({
   );
 
   useEffect(() => {
-    setLiveMatches(initialMatches);
+    if (initialMatches.length > 0) {
+      setLiveMatches(initialMatches);
+    }
   }, [initialMatches]);
 
   const parsedInitialUpdatedAt = initialUpdatedAt ? Date.parse(initialUpdatedAt) : NaN;
@@ -67,8 +69,9 @@ export function useLiveScoresRealtime({
 
     let isEffectActive = true;
     const abortController = new AbortController();
+    let emptyRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const refreshMatches = async () => {
+    const refreshMatches = async (retryAttempt = 0) => {
       if (typeof document !== "undefined" && document.hidden) {
         if (isEffectActive) setIsMatchesRefreshing(false);
         return;
@@ -76,8 +79,9 @@ export function useLiveScoresRealtime({
       if (isMatchesFetchingRef.current) return;
       isMatchesFetchingRef.current = true;
       if (isEffectActive) setIsMatchesRefreshing(true);
+      let gotMatches = false;
       try {
-        const timeoutSignal = AbortSignal.timeout(8000);
+        const timeoutSignal = AbortSignal.timeout(12000);
         const signal =
           typeof AbortSignal.any === "function"
             ? AbortSignal.any([abortController.signal, timeoutSignal])
@@ -88,21 +92,36 @@ export function useLiveScoresRealtime({
           signal,
         });
         lastFetchedMatchesTimeRef.current = Date.now();
-        if (!res.ok) return;
-        const json = await res.json();
-        if (
-          isEffectActive &&
-          json.status &&
-          Array.isArray(json.data?.matches) &&
-          json.data.matches.length > 0
-        ) {
-          setLiveMatches(json.data.matches);
+        if (res.ok) {
+          const json = await res.json();
+          if (
+            isEffectActive &&
+            json.status &&
+            Array.isArray(json.data?.matches) &&
+            json.data.matches.length > 0
+          ) {
+            gotMatches = true;
+            setLiveMatches(json.data.matches);
+          }
         }
       } catch {
         // Giữ nguyên dữ liệu cũ nếu fetch thất bại hoặc bị hủy
       } finally {
         isMatchesFetchingRef.current = false;
-        if (isEffectActive) {
+        const shouldRetryColdStart =
+          isEffectActive &&
+          !abortController.signal.aborted &&
+          !gotMatches &&
+          liveMatchesRef.current.length === 0 &&
+          retryAttempt < 1;
+
+        if (shouldRetryColdStart) {
+          emptyRetryTimer = setTimeout(() => {
+            if (isEffectActive) {
+              void refreshMatches(retryAttempt + 1);
+            }
+          }, 1500);
+        } else if (isEffectActive) {
           setIsMatchesRefreshing(false);
         }
       }
@@ -117,15 +136,17 @@ export function useLiveScoresRealtime({
 
     let initialDelay: ReturnType<typeof setTimeout> | null = null;
     if (needsImmediateRefresh) {
-      refreshMatches();
+      void refreshMatches(0);
     } else {
       setIsMatchesRefreshing(false);
-      initialDelay = setTimeout(refreshMatches, 5 * 60 * 1000);
+      initialDelay = setTimeout(() => {
+        void refreshMatches(0);
+      }, 5 * 60 * 1000);
     }
 
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      refreshMatches();
+      void refreshMatches(0);
     }, 5 * 60 * 1000);
 
     const handleVisibilityChange = () => {
@@ -136,7 +157,7 @@ export function useLiveScoresRealtime({
             5 * 60 * 1000,
           )
         ) {
-          refreshMatches();
+          void refreshMatches(0);
         }
       }
     };
@@ -148,6 +169,7 @@ export function useLiveScoresRealtime({
     return () => {
       isEffectActive = false;
       abortController.abort();
+      if (emptyRetryTimer) clearTimeout(emptyRetryTimer);
       if (initialDelay) clearTimeout(initialDelay);
       clearInterval(interval);
       if (typeof document !== "undefined") {
